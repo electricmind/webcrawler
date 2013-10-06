@@ -76,8 +76,9 @@ class Queue(storage: Storage)(implicit cfg: CFG) extends Actor {
                     log("Get seeds from %s seed", seed)
                     central = central match {
                         case None => Some(vector)
-                        case Some(v) => Some(v + vector.normal)
+                        case Some(v) => Some(v) 
                     }
+                    
                     val queueitem = (central.get.normal * vector.normal, seed, seeds, vector)
 
                     log("Priority: %f",queueitem._1)
@@ -87,6 +88,8 @@ class Queue(storage: Storage)(implicit cfg: CFG) extends Actor {
                     } else {
                         queue.enqueue(queueitem)
                     }
+                    
+                    
                 }
 
                 case (seed: WebCrawler.Seed) => {
@@ -104,13 +107,19 @@ class Queue(storage: Storage)(implicit cfg: CFG) extends Actor {
                     if (!queue.isEmpty) {
                         val (priority, seed, seeds: Set[WebCrawler.Seed], vector) = queue.dequeue()
                         log("Priority of request: %f", priority)
-//                        val c = central + vector
-//                        central = c
-
-                        //                        println("New vector:  %f".format(c.normal * central.normal))
-                        //                        println(seed)
-                        //                        println(seeds)
+                        val c = central match {
+                            case None => vector
+                            case Some(v) => v + vector.normal
+                        }
+                        println("New vector:  %f".format((c.normal - central.get.normal).norm))
+                        central = Some(c)
                         storage ! seed 
+                        
+ //TODO: Priorities should be recalculated only if central vector deflected from previous state more than difference between them and head of queue
+                        
+                        val copy = queue.toList.map({case (priority, seed, seeds, vector) => (central.get.normal * vector.normal,seed, seeds, vector)})
+                        queue.clear
+                        queue.enqueue(copy: _*)
 
                         for (seed <- seeds) {
                             this.debug("Sent: %s",seed)

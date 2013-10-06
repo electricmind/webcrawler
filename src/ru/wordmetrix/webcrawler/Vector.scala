@@ -49,8 +49,9 @@ class Vector[F <: String](val self: List[(F, Double)])(implicit accuracy : Doubl
         new Vector(map({ case (x, y) => (x, y / z) }).toList)
     }
 
+    lazy val norm = Math.pow(map(_._2).map(Math.pow(_, 2)).sum, 0.5)
     def normal() = {
-        this / Math.pow(map(_._2).map(Math.pow(_, 2)).sum, 0.5)
+        this / norm 
     }
 
 }

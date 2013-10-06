@@ -14,7 +14,7 @@ class Queue(storage: Storage)(implicit cfg: CFG) extends Actor {
     type Seeds = Set[WebCrawler.Seed]
     type Item = (Double, WebCrawler.Seed, Seeds, V)
 
-    var central : Option[V] = None //Vector(List[(String, Double)]())
+    var central: Option[V] = None //Vector(List[(String, Double)]())
 
     val queue = new PriorityQueue[Item]()(
         Ordering.fromLessThan((x: Item, y: Item) => x._1 < y._1))
@@ -24,10 +24,10 @@ class Queue(storage: Storage)(implicit cfg: CFG) extends Actor {
 
     val dispatcher: Actor = Actor.actor {
         def dispatch(webgets: immutable.Queue[WebGet], seeds: immutable.Queue[WebCrawler.Seed]): Unit = {
-            log("Dispatch:%s %s",webgets.size,seeds.size)
+            log("Dispatch:%s %s", webgets.size, seeds.size)
             Actor.react {
                 case seed: WebCrawler.Seed => {
-                    this.debug("%s",seed)
+                    this.debug("%s", seed)
                     webgets match {
                         case immutable.Queue() => dispatch(webgets, seeds.enqueue(seed))
                         case webgets => webgets.dequeue match {
@@ -40,7 +40,7 @@ class Queue(storage: Storage)(implicit cfg: CFG) extends Actor {
                 }
 
                 case None => {
-                    this.debug("%s",None)
+                    this.debug("%s", None)
                     seeds match {
                         case immutable.Queue() => this ! None
                         case _                 =>
@@ -48,14 +48,18 @@ class Queue(storage: Storage)(implicit cfg: CFG) extends Actor {
                     dispatch(webgets, seeds)
                 }
                 case webget: WebGet => {
-                    this.debug("%s",webget)
+                    this.debug("%s", webget)
                     seeds match {
                         case immutable.Queue() => {
-                            this ! None
+                            //                            this ! None
                             dispatch(webgets.enqueue(webget), seeds)
                         }
                         case seeds => seeds.dequeue match {
                             case (seed, seeds) => {
+                                if (seeds.isEmpty) {
+                                    log("seeds empty")
+                                    this ! None
+                                }
                                 webget ! seed
                                 dispatch(webgets, seeds)
                             }
@@ -75,56 +79,62 @@ class Queue(storage: Storage)(implicit cfg: CFG) extends Actor {
                 case (seeds: Seeds, seed: WebCrawler.Seed, vector: V) => {
                     log("Get seeds from %s seed", seed)
                     central = central match {
-                        case None => Some(vector)
-                        case Some(v) => Some(v) 
+                        case None    => Some(vector)
+                        case Some(v) => Some(v)
                     }
-                    
+
                     val queueitem = (central.get.normal * vector.normal, seed, seeds, vector)
 
-                    log("Priority: %f",queueitem._1)
+                    log("Priority: %f", queueitem._1)
                     if (queue.isEmpty) {
                         queue.enqueue(queueitem)
                         dispatcher ! None
                     } else {
                         queue.enqueue(queueitem)
                     }
-                    
-                    
+
                 }
 
                 case (seed: WebCrawler.Seed) => {
-                    this.debug("%s",seed)
+                    this.debug("%s", seed)
                     dispatcher ! seed
                 }
 
                 case (webget: WebGet) => {
-                    this.debug("%s",webget)
+                    this.debug("%s", webget)
                     dispatcher ! webget
                 }
 
                 case None => {
-                    this.debug("%s",None)
+                    this.debug("%s", None)
                     if (!queue.isEmpty) {
                         val (priority, seed, seeds: Set[WebCrawler.Seed], vector) = queue.dequeue()
                         log("Priority of request: %f", priority)
                         val c = central match {
-                            case None => vector
+                            case None    => vector
                             case Some(v) => v + vector.normal
                         }
                         println("New vector:  %f".format((c.normal - central.get.normal).norm))
+                        println("New seeds:  %d".format(seeds.size))
                         central = Some(c)
-                        storage ! seed 
-                        
- //TODO: Priorities should be recalculated only if central vector deflected from previous state more than difference between them and head of queue
-                        
-                        val copy = queue.toList.map({case (priority, seed, seeds, vector) => (central.get.normal * vector.normal,seed, seeds, vector)})
-                        queue.clear
-                        queue.enqueue(copy: _*)
+                        storage ! seed
 
-                        for (seed <- seeds) {
-                            this.debug("Sent: %s",seed)
-                            dispatcher ! seed
+                        if (seeds.size > 0) {
+                            for (seed <- seeds) {
+                                this.debug("Sent: %s", seed)
+                                dispatcher ! seed
+                            }
+
+                            //TODO: Priorities should be recalculated only if central vector deflected from previous state more than difference between them and head of queue
+
+                            val copy = queue.toList.map({ case (priority, seed, seeds, vector) => (central.get.normal * vector.normal, seed, seeds, vector) })
+                            queue.clear
+                            queue.enqueue(copy: _*)
+                        } else {
+                            log("Seed %s has no childrens",seed     )
+                            this ! None
                         }
+
                     } else {
                         println("Queue was empty")
                     }

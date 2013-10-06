@@ -13,8 +13,19 @@ class Queue(storage: Storage)(implicit cfg: CFG) extends Actor {
     type V = Vector[String]
     type Seeds = Set[WebCrawler.Seed]
     type Item = (Double, WebCrawler.Seed, Seeds, V)
-
+    //TODO: remove qq
+    var qq = 4
     var central: Option[V] = None //Vector(List[(String, Double)]())
+
+    var average = Vector(List[(String, Double)]())
+
+    def priorityCentral(v: V) = {
+        central.get.normal * v.normal
+    }
+
+    def priorityDiffer(v: V) = {
+        v.normal * (central.get.normal - average.normal)
+    }
 
     val queue = new PriorityQueue[Item]()(
         Ordering.fromLessThan((x: Item, y: Item) => x._1 < y._1))
@@ -33,6 +44,9 @@ class Queue(storage: Storage)(implicit cfg: CFG) extends Actor {
                         case webgets => webgets.dequeue match {
                             case (webget, webgets) => {
                                 webget ! seed
+                                if (seeds.isEmpty) {
+                                    this ! None
+                                }
                                 dispatch(webgets, seeds)
                             }
                         }
@@ -83,9 +97,11 @@ class Queue(storage: Storage)(implicit cfg: CFG) extends Actor {
                         case Some(v) => Some(v)
                     }
 
-                    val queueitem = (central.get.normal * vector.normal, seed, seeds, vector)
+                    average = average + vector
 
-                    log("Priority: %f", queueitem._1)
+                    val queueitem = (priorityDiffer(vector), seed, seeds, vector)
+
+                    log("Priority: %f (%s)", queueitem._1, queueitem._2)
                     if (queue.isEmpty) {
                         queue.enqueue(queueitem)
                         dispatcher ! None
@@ -109,7 +125,7 @@ class Queue(storage: Storage)(implicit cfg: CFG) extends Actor {
                     this.debug("%s", None)
                     if (!queue.isEmpty) {
                         val (priority, seed, seeds: Set[WebCrawler.Seed], vector) = queue.dequeue()
-                        log("Priority of request: %f", priority)
+                        log("Priority of request: %f (%s)", priority, seed)
                         val c = central match {
                             case None    => vector
                             case Some(v) => v + vector.normal
@@ -126,12 +142,16 @@ class Queue(storage: Storage)(implicit cfg: CFG) extends Actor {
                             }
 
                             //TODO: Priorities should be recalculated only if central vector deflected from previous state more than difference between them and head of queue
-
-                            val copy = queue.toList.map({ case (priority, seed, seeds, vector) => (central.get.normal * vector.normal, seed, seeds, vector) })
-                            queue.clear
-                            queue.enqueue(copy: _*)
+                            if (qq > 0) {
+                                qq -= 1
+                                log("start calc")
+                                val copy = queue.toList.map({ case (priority, seed, seeds, vector) => (priorityDiffer(vector), seed, seeds, vector) })
+                                queue.clear
+                                queue.enqueue(copy: _*)
+                                log("stop calc")
+                            }
                         } else {
-                            log("Seed %s has no childrens",seed     )
+                            log("Seed %s has no childrens", seed)
                             this ! None
                         }
 

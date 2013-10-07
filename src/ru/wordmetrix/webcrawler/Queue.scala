@@ -30,63 +30,10 @@ class Queue(storage: Storage)(implicit cfg: CFG) extends Actor {
     val queue = new PriorityQueue[Item]()(
         Ordering.fromLessThan((x: Item, y: Item) => x._1 < y._1))
 
-    //    @tailrec
-    //    private 
-
-    val dispatcher: Actor = Actor.actor {
-        def dispatch(webgets: immutable.Queue[WebGet], seeds: immutable.Queue[WebCrawler.Seed]): Unit = {
-            log("Dispatch:%s %s", webgets.size, seeds.size)
-            Actor.react {
-                case seed: WebCrawler.Seed => {
-                    this.debug("%s", seed)
-                    webgets match {
-                        case immutable.Queue() => dispatch(webgets, seeds.enqueue(seed))
-                        case webgets => webgets.dequeue match {
-                            case (webget, webgets) => {
-                                webget ! seed
-                                if (seeds.isEmpty) {
-                                    this ! None
-                                }
-                                dispatch(webgets, seeds)
-                            }
-                        }
-                    }
-                }
-
-                case None => {
-                    this.debug("%s", None)
-                    seeds match {
-                        case immutable.Queue() => this ! None
-                        case _                 =>
-                    }
-                    dispatch(webgets, seeds)
-                }
-                case webget: WebGet => {
-                    this.debug("%s", webget)
-                    seeds match {
-                        case immutable.Queue() => {
-                            //                            this ! None
-                            dispatch(webgets.enqueue(webget), seeds)
-                        }
-                        case seeds => seeds.dequeue match {
-                            case (seed, seeds) => {
-                                if (seeds.isEmpty) {
-                                    log("seeds empty")
-                                    this ! None
-                                }
-                                webget ! seed
-                                dispatch(webgets, seeds)
-                            }
-                        }
-                    }
-                }
-            }
-
-        }
-
-        dispatch(immutable.Queue[WebGet](), immutable.Queue[WebCrawler.Seed]())
+    val dispatcher = new Dispatcher(this) {
+        start
     }
-
+    
     def act() = {
         loop {
             react {

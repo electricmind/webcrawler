@@ -13,16 +13,9 @@ object WebCrawler extends App {
     type Word = String
     type Vector = List[(Word,Double)]
     
-    val rkey = """-(.*)""".r
-    
-    def parse(args : List[String], cfg : CFG = CFG(), seeds : List[Seed] = List()) : (CFG, List[Seed]) = args match {
-//        case rkey(key) :: value :: args => parse(args,cfg(key, value),seeds)
-        case seed :: args => parse(args, cfg, new URI(seed) :: seeds)
-        case List() => (cfg, seeds)
-    }
     override
     def main(args: Array[String]) {
-        implicit val (cfg,seeds) = parse(args.toList)
+        implicit val cfg = CFG(args.toList)
         val storage = new Storage()
         val queue = new Queue(storage)
         val gather = new Gather(storage, queue)
@@ -33,13 +26,13 @@ object WebCrawler extends App {
         gather.start
 //        webget.start
 
-        for (i <- 1 to 10) {
+        for (i <- 1 to cfg.servers) {
             val webget = new WebGet(queue, gather)
             webget.start
             queue ! webget
         }
         
-        for (seed <- seeds) {
+        for (seed <- cfg.seeds)  {
             queue ! seed
         }
     }

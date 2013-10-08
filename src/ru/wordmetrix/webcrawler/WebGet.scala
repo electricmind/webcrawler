@@ -5,7 +5,7 @@ import ActorDebug._
 /*
  * WebGet gets an information from web pages 
  */
-class WebGet(queue: Queue, gather: Gather)(implicit cfg: CFG) extends Actor {
+class WebGet(queue: Actor, gather: Gather)(implicit cfg: CFG) extends Actor {
     def act() = {
         loop {
             react {

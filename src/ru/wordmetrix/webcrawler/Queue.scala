@@ -9,6 +9,8 @@ import ActorDebug._
 /* 
  * Queue is a system of estimation of priorities and queueing task for webget
  */
+import WebCrawler.Seed
+
 class Queue(storage: Storage)(implicit cfg: CFG) extends Actor {
     type V = Vector[String]
     type Seeds = Set[WebCrawler.Seed]
@@ -33,7 +35,7 @@ class Queue(storage: Storage)(implicit cfg: CFG) extends Actor {
     val dispatcher = new Dispatcher(this) {
         start
     }
-    
+
     def act() = {
         loop {
             react {

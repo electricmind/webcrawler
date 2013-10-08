@@ -17,7 +17,8 @@ object WebCrawler extends App {
     def main(args: Array[String]) {
         implicit val cfg = CFG(args.toList)
         val storage = new Storage()
-        val queue = new Queue(storage)
+        //val queue = new Queue(storage)
+        val queue = new EvaluatePriorityMatrix(storage)
         val gather = new Gather(storage, queue)
 //        val webget = new WebGet( queue, gather)
         

@@ -11,7 +11,7 @@ import ActorDebug._
 /*
  * Gather analyzes a page and elicits links and useful load.
  */
-class Gather(storage: Storage, queue: Queue)(implicit val cfg: CFG)
+class Gather(storage: Storage, queue: Actor)(implicit val cfg: CFG)
         extends Actor {
 
     val map = scala.collection.mutable.Set[(String, String)]()

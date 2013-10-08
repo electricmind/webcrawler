@@ -4,16 +4,18 @@ import scala.actors.Actor
 import scala.collection.immutable
 import ActorDebug._
 
-class Dispatcher(queue: Queue)(implicit val cfg: CFG) extends Actor {
+class Dispatcher(queue: Actor)(implicit val cfg: CFG) extends Actor {
     def dispatch(webgets: immutable.Queue[WebGet],
                  seeds: immutable.Queue[WebCrawler.Seed]): Unit = {
-        log("Dispatch:%s %s", webgets.size, seeds.size)
-        Actor.react {
+        this.log("Dispatch:%s %s", webgets.size, seeds.size)
+        
+        react {
             case seed: WebCrawler.Seed => {
                 this.debug("%s", seed)
                 webgets match {
                     case immutable.Queue() =>
                         dispatch(webgets, seeds.enqueue(seed))
+                        
                     case webgets => webgets.dequeue match {
                         case (webget, webgets) => {
                             webget ! seed
@@ -34,6 +36,7 @@ class Dispatcher(queue: Queue)(implicit val cfg: CFG) extends Actor {
                 }
                 dispatch(webgets, seeds)
             }
+            
             case webget: WebGet => {
                 this.debug("%s", webget)
                 seeds match {

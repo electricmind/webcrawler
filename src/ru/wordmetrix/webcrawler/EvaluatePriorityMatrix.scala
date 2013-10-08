@@ -51,11 +51,15 @@ class EvaluatePriorityMatrix(storage: Storage)(implicit cfg: CFG) extends Actor 
         }
 
         def normal = average.normal
+
     }
 
     val dispatcher = new Dispatcher(this) {
         start
     }
+
+    var mode = 0
+
     var factor = new V(List())
 
     var newfactor = new V(List())
@@ -64,7 +68,7 @@ class EvaluatePriorityMatrix(storage: Storage)(implicit cfg: CFG) extends Actor 
 
     var average = new AverageVector()
 
-    var limit = 0.01
+    var limit = 0.90
 
     def calculate(factor: V, vectors: Map[Seed, (V, Set[Seed])]) =
         vectors.map({
@@ -84,7 +88,37 @@ class EvaluatePriorityMatrix(storage: Storage)(implicit cfg: CFG) extends Actor 
 
     var amount = 4
 
-    var q = new V(List())
+    var central = new V(List())
+
+    def enqueue(seeds: Set[Seed], seed: Seed, v: V) = {
+        vectors = vectors + (seed -> (v, seeds))
+        for (item <- seeds) {
+            priorities = priorities + (
+                item -> (
+                    (combinepolicy(
+                        priorities.getOrElse(
+                            item,
+                            (0d, Set[Seed]())
+                        )._2.map(
+                                x => vectors(x)._1 * factor) + v * factor
+                    ),
+                        priorities.getOrElse(item, (0d, Set[Seed]()))._2 + seed
+                    )
+                )
+            )
+        }
+        
+        if (queue.isEmpty) {
+            this.log("Ask dispatcher")
+            this ! dispatcher
+        }
+        
+        queue.clear()
+        for ((seed, (p, seeds)) <- priorities) {
+            queue.enqueue((p, seed))
+        }
+    }
+
     def act() = loop {
         react {
             case (seed: Seed) => {
@@ -92,63 +126,88 @@ class EvaluatePriorityMatrix(storage: Storage)(implicit cfg: CFG) extends Actor 
                 dispatcher ! seed
             }
 
-            case (seeds: Set[Seed], seed: Seed, v: V) => {
-                this.log("Seed & seeds: %s", seed)
-                val v1 = v.normal
-                if (factor.norm < 0.0008) {
-                    factor = v1
-                }
-                average = average + v1
-                target = target + v1
-
-                if (target.vs.length == 1) {
-                    q = v
-                    this.log("Init for %s", seed)
+            case (seeds: Set[Seed], seed: Seed, v: V) => mode = mode match {
+                case 0 => {
+                    //Initialization
+                    val v1 = v.normal
+                    this.log("Seed & seeds (0): %s", seed)
                     for (seed <- seeds) {
                         dispatcher ! seed
                     }
-                } else {
+                    central = v1
+                    target = target + v1
+                    average = average + v1
+                    storage ! seed
+                    1
+                }
+
+                case 1 => {
+                    //Accumulate initial vectors for target
+                    val v1 = v.normal
+                    this.log("Seed & seeds (1): %s", seed)
+                    target = target + v1
+                    average = average + v1
+
                     if (v1 * factor >= target.priority) {
                         storage ! seed
                     }
 
-                    newfactor = //average.normal -v1 //target.normal //
-                        (target.normal - average.normal) * -1.0
+                    newfactor = target.normal - average.normal
 
-                    vectors = vectors + (seed -> (v1, seeds))
+                    this.debug("target size = %s",target.vs.length)
+                    
+                    this.debug("mark |target - average| = %s",
+                        (target.normal - average.normal).norm)
 
-                    for (item <- seeds) {
-                        priorities = priorities + (
-                            item -> (
-                                (combinepolicy(
-                                    priorities.getOrElse(
-                                        item,
-                                        (0d, Set[Seed]())
-                                    )._2.map(
-                                            x => vectors(x)._1 * factor) + v1 * factor
-                                ),
+                    this.debug("mark target*central = %s",
+                        target.normal * central)
 
-                                    priorities.getOrElse(item, (0d, Set[Seed]()))._2 + seed
-                                )
-                            )
-                        )
+                    this.debug("mark  direction = %s",
+                        (target.normal - average.normal) * central)
+
+                    factor = newfactor
+                    enqueue(seeds, seed, v1)
+                    
+                    queue.clear()
+
+                    if (factor * central > 0.01 ) {
+                        priorities = calculate(newfactor, vectors)
+                        2
+                    } else {
+                        1
+                    }
+                }
+
+                case 2 => {
+                    //Do work
+                    this.log("Seed & seeds (2) priority: (%s) %s", factor*v.normal, seed)
+
+                    val v1 = v.normal
+                    average = average + v1
+                    target = target + v1
+
+                    if (v1 * factor >= target.priority) {
+                        storage ! seed
                     }
 
-                    if (newfactor.norm > 0.1 && Math.abs(newfactor.normal * factor.normal) > limit && amount > 0) {
-                        amount -= 1;
+                    //newfactor = //average.normal -v1 //target.normal //
+                    newfactor = target.normal - average.normal
+
+                    this.debug("direction = %s %s",
+                        (target.normal - average.normal) * central, factor * central)
+
+                    this.debug("limit? %s < %s",
+                            newfactor.normal * factor.normal, limit
+                        )
+
+                    if (newfactor.normal * factor.normal < limit) {
                         log("do priority")
                         priorities = calculate(newfactor, vectors)
                         factor = newfactor
                     }
 
-                    if (queue.isEmpty) {
-                        this.log("Ask dispatcher")
-                        this ! dispatcher
-                    }
-                    queue.clear()
-                    for ((seed, (p, seeds)) <- priorities) {
-                        queue.enqueue((p, seed))
-                    }
+                    enqueue(seeds, seed, v1)
+                    2
                 }
             }
 
@@ -170,7 +229,7 @@ class EvaluatePriorityMatrix(storage: Storage)(implicit cfg: CFG) extends Actor 
             }
 
             case None => {
-                this.log("Get None request ")
+//                this.log("Get None request ")
                 this ! dispatcher
             }
 

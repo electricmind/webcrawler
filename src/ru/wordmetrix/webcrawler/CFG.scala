@@ -66,7 +66,7 @@ object log {
     }
 
     def apply(actor : Actor, format: String, p: Any*)(implicit cfg: CFG) = {
-        println({ if (cfg.isdebug) "->>> " else "" } + "In " + actor + format.format(p: _*))
+        println({ if (cfg.isdebug) "->>> " else "" } + "In " + actor + ": " + format.format(p: _*))
     }
 }
 

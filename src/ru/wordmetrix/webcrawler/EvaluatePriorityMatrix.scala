@@ -25,7 +25,7 @@ class EvaluatePriorityMatrix(storage: Storage)(implicit cfg: CFG) extends Actor 
         def normal = v.normal
     }
 
-    class TargetVector(average: AverageVector = new AverageVector(),
+    class TargetVector(val average: AverageVector = new AverageVector(),
                        val vs: List[(Priority, V)] = List[(Priority, V)](),
                        n: Int = 9) {
         def factory(average: AverageVector, vs: List[(Priority, V)]) =
@@ -148,7 +148,8 @@ class EvaluatePriorityMatrix(storage: Storage)(implicit cfg: CFG) extends Actor 
                     target = target + v1
                     average = average + v1
 
-                    if (v1 * factor >= target.priority) {
+                    if (v1 * target.average.normal >= target.priority) {
+                        this.debug("accepted %s with %s in %s",seed,v1 * target.average.normal, target.priority )
                         storage ! seed
                     }
 
@@ -156,13 +157,13 @@ class EvaluatePriorityMatrix(storage: Storage)(implicit cfg: CFG) extends Actor 
 
                     this.debug("target size = %s",target.vs.length)
                     
-                    this.debug("mark |target - average| = %s",
+                    this.debug("target - average| = %s",
                         (target.normal - average.normal).norm)
 
-                    this.debug("mark target*central = %s",
+                    this.debug("target*central = %s",
                         target.normal * central)
 
-                    this.debug("mark  direction = %s",
+                    this.debug("direction = %s",
                         (target.normal - average.normal) * central)
 
                     factor = newfactor
@@ -186,7 +187,8 @@ class EvaluatePriorityMatrix(storage: Storage)(implicit cfg: CFG) extends Actor 
                     average = average + v1
                     target = target + v1
 
-                    if (v1 * factor >= target.priority) {
+                    if (v1 * target.average.normal >= target.priority) {
+                        this.debug("accepted %s with %s in %s",seed,v1 * target.average.normal, target.priority )
                         storage ! seed
                     }
 

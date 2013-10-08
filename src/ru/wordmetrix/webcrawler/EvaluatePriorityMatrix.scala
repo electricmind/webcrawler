@@ -28,8 +28,6 @@ class EvaluatePriorityMatrix(storage: Storage)(implicit cfg: CFG) extends Actor 
     class TargetVector(average: AverageVector = new AverageVector(),
                        val vs: List[(Priority, V)] = List[(Priority, V)](),
                        n: Int = 9) {
-        log("vs: %s", vs.length)
-
         def factory(average: AverageVector, vs: List[(Priority, V)]) =
             new TargetVector(average, vs.map(_._2).map(x => (average.normal * x, x)))
 
@@ -79,23 +77,21 @@ class EvaluatePriorityMatrix(storage: Storage)(implicit cfg: CFG) extends Actor 
                 seed -> ps.map(_._2)
         }).map({
             case (seed, ps) =>
-                seed -> ((combinepolicy(ps), priorities.getOrElse(seed, (0d, Set[Seed]()))._2))
+                seed -> ((combinepolicy(ps), priorities(seed) /*.getOrElse(seed, (0d, Set[Seed]()))*/ ._2))
         })
 
-    def combinepolicy(priorities: Iterable[Double]) = {
-        //                log("combine %s %s", priorities.size, priorities.max)
-        priorities.max
-    }
+    def combinepolicy(priorities: Iterable[Double]) = priorities.max
 
     var amount = 4
 
+    var q = new V(List())
     def act() = loop {
         react {
-
             case (seed: Seed) => {
                 this.log("Inital seed: %s", seed)
                 dispatcher ! seed
             }
+
             case (seeds: Set[Seed], seed: Seed, v: V) => {
                 this.log("Seed & seeds: %s", seed)
                 val v1 = v.normal
@@ -106,33 +102,38 @@ class EvaluatePriorityMatrix(storage: Storage)(implicit cfg: CFG) extends Actor 
                 target = target + v1
 
                 if (target.vs.length == 1) {
+                    q = v
+                    this.log("Init for %s", seed)
                     for (seed <- seeds) {
                         dispatcher ! seed
                     }
                 } else {
-                    this.log("priority %s : %s > %s = %s (%s)", factor * target.normal, v1 * factor, target.priority, v1 * factor > target.priority, target.vs.length)
-                    this.log("average * target, newfactor * factor: %s %s", average.normal * target.normal, newfactor.norm)
-
                     if (v1 * factor >= target.priority) {
                         storage ! seed
                     }
 
-                    newfactor = (target.normal - average.normal) * -1.0
+                    newfactor = //average.normal -v1 //target.normal //
+                        (target.normal - average.normal) * -1.0
 
                     vectors = vectors + (seed -> (v1, seeds))
 
                     for (item <- seeds) {
                         priorities = priorities + (
                             item -> (
-                                (
-                                    {
-                                        val q = combinepolicy(priorities.getOrElse(item, (0d, Set[Seed]()))._2
-                                            .map(x => vectors(x)._1 * factor) + v1 * factor); /* log("combine qq:%s %s %s",q,item,seed); */ q
-                                    },
-                                    priorities.getOrElse(item, (0d, Set[Seed]()))._2 + seed)))
+                                (combinepolicy(
+                                    priorities.getOrElse(
+                                        item,
+                                        (0d, Set[Seed]())
+                                    )._2.map(
+                                            x => vectors(x)._1 * factor) + v1 * factor
+                                ),
+
+                                    priorities.getOrElse(item, (0d, Set[Seed]()))._2 + seed
+                                )
+                            )
+                        )
                     }
 
-                    this.log("norm & limit %s %s", newfactor.norm, Math.abs(newfactor.normal * factor.normal))
                     if (newfactor.norm > 0.1 && Math.abs(newfactor.normal * factor.normal) > limit && amount > 0) {
                         amount -= 1;
                         log("do priority")

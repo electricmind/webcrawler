@@ -8,6 +8,8 @@ import org.xml.sax.InputSource
 import scala.xml.parsing.NoBindingFactoryAdapter
 import java.io.CharArrayReader
 import ActorDebug._
+import scala.xml.Node
+import ru.wordmetrix.webcrawler.LinkContext.Feature
 /*
  * Gather analyzes a page and elicits links and useful load.
  */
@@ -55,6 +57,7 @@ class Gather(storage: Storage, queue: Actor)(implicit val cfg: CFG)
                 this.debug("Gather data from %s", seed)
                 try {
                     val xml = page2xml(page)
+                    //this.debug("%s",xml.map(x => new LinkContext().extract( x )).reduce(_ ++ _))//(x : Map[WebCrawler.Seed,Vector[Feature]],y :Map[WebCrawler.Seed,Vector[Feature]]) => x ++ x))
                     storage ! ((seed, xml2intell(xml)))
                     queue ! ((xml2seeds(xml, seed), seed, xml2vector(xml)))
                 } catch {

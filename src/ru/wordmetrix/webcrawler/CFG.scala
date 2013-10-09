@@ -56,7 +56,9 @@ object CFG {
             seeds.reverse)
     }
 }
-
+/*
+ *[04:02] Lynne: a tin of striped paint
+*/
 class CFG(val path: File, val isdebug: Boolean, val servers: Int,
         val targeting : Double, val targets : Int, val seeds: List[URI]) {}
 

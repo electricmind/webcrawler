@@ -13,7 +13,7 @@ class testGather extends FlatSpec with Matchers {
                                                                  </body></html>
 
     implicit val cfg = CFG()
-    val gather = new Gather(null, null)
+    val gather = new Gather(null, null, null)
 
     "A gather" should "parse xml" in {
         gather.page2xml(xml.toString) should be(xml)

@@ -13,7 +13,7 @@ import ru.wordmetrix.webcrawler.LinkContext.Feature
 /*
  * Gather analyzes a page and elicits links and useful load.
  */
-class Gather(storage: Storage, queue: Actor)(implicit val cfg: CFG)
+class Gather(storage: Storage, queue: Actor, sample : SampleHierarchy2Priority)(implicit val cfg: CFG)
         extends Actor with CFGAware {
     override val name = "Gather"
 
@@ -58,6 +58,9 @@ class Gather(storage: Storage, queue: Actor)(implicit val cfg: CFG)
                 try {
                     val xml = page2xml(page)
                     //this.debug("%s",xml.map(x => new LinkContext().extract( x )).reduce(_ ++ _))//(x : Map[WebCrawler.Seed,Vector[Feature]],y :Map[WebCrawler.Seed,Vector[Feature]]) => x ++ x))
+                    
+                    //this.debug("%s",new LinkContext().extract(page2xml_whole(page)))
+                    sample ! new LinkContext().extract(page2xml_whole(page))
                     storage ! ((seed, xml2intell(xml)))
                     queue ! ((xml2seeds(xml, seed), seed, xml2vector(xml)))
                 } catch {

@@ -12,17 +12,21 @@ import ActorDebug._
  * Gather analyzes a page and elicits links and useful load.
  */
 class Gather(storage: Storage, queue: Actor)(implicit val cfg: CFG)
-        extends Actor {
+        extends Actor with CFGAware {
+    override val name = "Gather"
 
     val map = scala.collection.mutable.Set[(String, String)]()
 
-    def page2xml_whole(page: WebCrawler.Page) = (new NoBindingFactoryAdapter).loadXML(
-        new InputSource(new CharArrayReader(page.toArray)),
-        new SAXFactoryImpl().newSAXParser())
+    def page2xml_whole(page: WebCrawler.Page) =
+        (new NoBindingFactoryAdapter).loadXML(
+            new InputSource(new CharArrayReader(page.toArray)),
+            new SAXFactoryImpl().newSAXParser())
 
-    def page2xml(page: WebCrawler.Page) : scala.xml.NodeSeq = ((page2xml_whole(page) \\ "div").
-        filter(
-            x => x.attribute("id").getOrElse("").toString == "mw-content-text"))
+    def page2xml(page: WebCrawler.Page): scala.xml.NodeSeq =
+        ((page2xml_whole(page) \\ "div").
+            filter(
+                x => x.attribute("id").getOrElse("").toString ==
+                    "mw-content-text"))
 
     def xml2seeds(xml: scala.xml.NodeSeq, base: URI) = (xml \\ "a").
         map(x => x.attribute("href")).flatten.
@@ -48,13 +52,10 @@ class Gather(storage: Storage, queue: Actor)(implicit val cfg: CFG)
     def act() = loop {
         react {
             case (seed: URI, page: WebCrawler.Page) => {
-                log("Gather data from %s", seed)
+                this.debug("Gather data from %s", seed)
                 try {
                     val xml = page2xml(page)
                     storage ! ((seed, xml2intell(xml)))
-
-                    //                println("gathered " + (xml2seeds(xml,seed)))
-                    //                println(xml2vector(xml))
                     queue ! ((xml2seeds(xml, seed), seed, xml2vector(xml)))
                 } catch {
                     case x => log("Gathering failed on %s: %s", seed, x)

@@ -5,12 +5,14 @@ import ActorDebug._
 /*
  * WebGet gets an information from web pages 
  */
-class WebGet(queue: Actor, gather: Gather)(implicit cfg: CFG) extends Actor {
+class WebGet(queue: Actor, gather: Gather)(implicit cfg: CFG) extends Actor
+        with CFGAware {
+    override val name = "WebGet"
     def act() = {
         loop {
             react {
                 case seed: WebCrawler.Seed => {
-                    log("Get %s", seed)
+                    this.debug("Download %s", seed)
                     val connection = seed.toURL.openConnection()
                     try {
                         connection.getContentType().split(";").head match {
@@ -23,7 +25,7 @@ class WebGet(queue: Actor, gather: Gather)(implicit cfg: CFG) extends Actor {
                             }
                             case _ => None
                         }
-//                        Thread.sleep(200)
+                        //                        Thread.sleep(200)
                     } catch { case x => println(x) }
                     queue ! this
                 }

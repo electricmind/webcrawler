@@ -11,7 +11,8 @@ import ActorDebug._
  */
 import WebCrawler.Seed
 
-class Queue(storage: Storage)(implicit cfg: CFG) extends Actor {
+class Queue(storage: Storage)(implicit cfg: CFG) extends Actor with CFGAware {
+    override val name = "Queue"
     type V = Vector[String]
     type Seeds = Set[WebCrawler.Seed]
     type Item = (Double, WebCrawler.Seed, Seeds, V)

@@ -14,7 +14,9 @@ object CFG {
     val default = Map(
         "path" -> new File("/tmp/webcrawler"),
         "isdebug" -> false,
-        "servers" -> 2)
+        "servers" -> 2,
+        "targets" -> 9,
+        "targeting" -> 0.01)
 
     def apply() : CFG = this(List())
     
@@ -31,6 +33,12 @@ object CFG {
         case rkey("n") :: value :: list =>
             CFG(list, map + ("servers" -> value.toInt), seeds)
 
+        case rkey("tl") :: value :: list =>
+            CFG(list, map + ("targeting" -> value.toDouble), seeds)
+
+        case rkey("ts") :: value :: list =>
+            CFG(list, map + ("targets" -> value.toInt), seeds)
+
         case rkey(x) :: list => {
             println("Unknown key %s".format(x))
             CFG(list, map, seeds)
@@ -43,38 +51,43 @@ object CFG {
             map("path").asInstanceOf[File],
             map("isdebug").asInstanceOf[Boolean],
             map("servers").asInstanceOf[Int],
+            map("targeting").asInstanceOf[Double],
+            map("targets").asInstanceOf[Int],
             seeds.reverse)
     }
 }
 
-class CFG(val path: File, val isdebug: Boolean, val servers: Int, val seeds: List[URI]) {}
+class CFG(val path: File, val isdebug: Boolean, val servers: Int,
+        val targeting : Double, val targets : Int, val seeds: List[URI]) {}
 
 object debug {
     def apply(format: String, p: Any*)(implicit cfg: CFG) = {
-        if (cfg.isdebug) println(format.format(p: _*))
+        if (cfg.isdebug) println("  " + format.format(p: _*))
     }
 
-    def apply(actor: Actor, format: String, p: Any*)(implicit cfg: CFG) = {
-        if (cfg.isdebug) println("In " + actor + ": " + format.format(p: _*))
+    def apply(actor: CFGAware, format: String, p: Any*)(implicit cfg: CFG) = {
+        if (cfg.isdebug) println("  - %20s: ".format(actor.name.slice(0,20)) + format.format(p: _*))
     }
 }
 
-
+trait CFGAware {
+    val name = "CFGAware"
+}
 object log {
     def apply(format: String, p: Any*)(implicit cfg: CFG) = {
-        println({ if (cfg.isdebug) "->>> " else "" } + format.format(p: _*))
+        println({ if (cfg.isdebug) "* " else ""} + format.format(p: _*))
     }
 
-    def apply(actor : Actor, format: String, p: Any*)(implicit cfg: CFG) = {
-        println({ if (cfg.isdebug) "->>> " else "" } + "In " + actor + ": " + format.format(p: _*))
+    def apply(actor : CFGAware, format: String, p: Any*)(implicit cfg: CFG) = {
+        println({ if (cfg.isdebug) "* " else "" } + "- %20s: ".format(actor.name.slice(0,20)) + format.format(p: _*))
     }
 }
 
 object ActorDebug {
-    implicit def actor2ActorDebug(actor: Actor) = new ActorDebug(actor)
+    implicit def actor2ActorDebug(actor: CFGAware) = new ActorDebug(actor)
 }
 
-class ActorDebug(actor: Actor) {
+class ActorDebug(actor: CFGAware) {
     def debug(format: String, p: Any*)(implicit cfg: CFG) = 
         ru.wordmetrix.webcrawler.debug(actor, format, p: _*)
     def log(format: String, p: Any*)(implicit cfg: CFG) = 

@@ -5,7 +5,9 @@ import WebCrawler.{ Seed, Word }
 import scala.collection.mutable.PriorityQueue
 import ActorDebug._
 
-class EvaluatePriorityMatrix(storage: Storage)(implicit cfg: CFG) extends Actor {
+class EvaluatePriorityMatrix(storage: Storage)(implicit cfg: CFG) extends Actor
+        with CFGAware {
+    override val name = "Evaluate . Matrix"
     type Priority = Double
     type V = Vector[Word]
     type Item = (Priority, Seed)
@@ -64,7 +66,7 @@ class EvaluatePriorityMatrix(storage: Storage)(implicit cfg: CFG) extends Actor 
 
     var newfactor = new V(List())
 
-    var target = new TargetVector()
+    var target = new TargetVector(n = cfg.targets)
 
     var average = new AverageVector()
 
@@ -107,22 +109,43 @@ class EvaluatePriorityMatrix(storage: Storage)(implicit cfg: CFG) extends Actor 
                 )
             )
         }
-        
+
         if (queue.isEmpty) {
-            this.log("Ask dispatcher")
+            this.log("Empty queue, beg dispatcher for webget")
             this ! dispatcher
         }
-        
+
         queue.clear()
         for ((seed, (p, seeds)) <- priorities) {
             queue.enqueue((p, seed))
         }
     }
 
+    def estimate(seed: Seed, v: V) = {
+        average = average + v
+        target = target + v
+
+        if (v * target.average.normal >= target.priority) {
+            this.debug("accepted %s with %s in %s", seed, v * target.average.normal, target.priority)
+            storage ! seed
+        }
+
+        //newfactor = //average.normal -v1 //target.normal //
+        newfactor = target.normal - average.normal
+
+        this.debug("direction = %s %s",
+            (target.normal - average.normal) * central, factor * central)
+
+        this.debug("limit? %s < %s",
+            newfactor.normal * factor.normal, limit
+        )
+
+    }
+
     def act() = loop {
         react {
             case (seed: Seed) => {
-                this.log("Inital seed: %s", seed)
+                this.log("Initial seed: %s", seed)
                 dispatcher ! seed
             }
 
@@ -130,48 +153,38 @@ class EvaluatePriorityMatrix(storage: Storage)(implicit cfg: CFG) extends Actor 
                 case 0 => {
                     //Initialization
                     val v1 = v.normal
-                    this.log("Seed & seeds (0): %s", seed)
-                    for (seed <- seeds) {
-                        dispatcher ! seed
-                    }
+                    this.log("Initial phase, v = %s, n = %s, seed = %s",
+                        v.norm, seeds.size, seed)
                     central = v1
                     target = target + v1
                     average = average + v1
+
+                    for (seed <- seeds) {
+                        dispatcher ! seed
+                    }
+
                     storage ! seed
                     1
                 }
 
                 case 1 => {
                     //Accumulate initial vectors for target
-                    val v1 = v.normal
-                    this.log("Seed & seeds (1): %s", seed)
-                    target = target + v1
-                    average = average + v1
+                    estimate(seed, v.normal)
+                    this.log("Targeting phase, attitude = %s, n = %s, " +
+                        "seed = %s",
+                        newfactor * central, seeds.size, seed)
 
-                    if (v1 * target.average.normal >= target.priority) {
-                        this.debug("accepted %s with %s in %s",seed,v1 * target.average.normal, target.priority )
-                        storage ! seed
-                    }
-
-                    newfactor = target.normal - average.normal
-
-                    this.debug("target size = %s",target.vs.length)
-                    
                     this.debug("target - average| = %s",
                         (target.normal - average.normal).norm)
 
                     this.debug("target*central = %s",
                         target.normal * central)
-
-                    this.debug("direction = %s",
-                        (target.normal - average.normal) * central)
-
+                    // TODO: central vector should (can) be used for estimation during targeting phase
                     factor = newfactor
-                    enqueue(seeds, seed, v1)
-                    
+                    enqueue(seeds, seed, v)
                     queue.clear()
 
-                    if (factor * central > 0.01 ) {
+                    if (factor * central > cfg.targeting) {
                         priorities = calculate(newfactor, vectors)
                         2
                     } else {
@@ -181,40 +194,22 @@ class EvaluatePriorityMatrix(storage: Storage)(implicit cfg: CFG) extends Actor 
 
                 case 2 => {
                     //Do work
-                    this.log("Seed & seeds (2) priority: (%s) %s", factor*v.normal, seed)
-
-                    val v1 = v.normal
-                    average = average + v1
-                    target = target + v1
-
-                    if (v1 * target.average.normal >= target.priority) {
-                        this.debug("accepted %s with %s in %s",seed,v1 * target.average.normal, target.priority )
-                        storage ! seed
-                    }
-
-                    //newfactor = //average.normal -v1 //target.normal //
-                    newfactor = target.normal - average.normal
-
-                    this.debug("direction = %s %s",
-                        (target.normal - average.normal) * central, factor * central)
-
-                    this.debug("limit? %s < %s",
-                            newfactor.normal * factor.normal, limit
-                        )
-
+                    this.log("Estimating phase, priority = %s, seed = %s",
+                        factor * v.normal, seed)
+                    estimate(seed, v.normal)
                     if (newfactor.normal * factor.normal < limit) {
-                        log("do priority")
+                        this.debug("Priorities should be recalculated")
                         priorities = calculate(newfactor, vectors)
                         factor = newfactor
                     }
 
-                    enqueue(seeds, seed, v1)
+                    enqueue(seeds, seed, v)
                     2
                 }
             }
 
             case dispatcher: Dispatcher => {
-                this.log("Get dispather request")
+                this.debug("Get dispather request")
                 if (!queue.isEmpty) {
                     val (p, seed) = queue.dequeue
                     val (_, seeds) = priorities(seed)
@@ -225,19 +220,19 @@ class EvaluatePriorityMatrix(storage: Storage)(implicit cfg: CFG) extends Actor 
                             (vector, seeds - seed)
                         })
                     }
-                    this.log("Probability %s for %s : %s", p, seed, seeds)
+                    this.log("Request, priority = %s for %s : %s", p,
+                        seed, seeds.headOption.getOrElse("empty"))
                     dispatcher ! seed
                 }
             }
 
             case None => {
-//                this.log("Get None request ")
                 this ! dispatcher
             }
 
             case webget: WebGet => dispatcher ! webget
-            case x              => this.log("Unknown message %s from %s", x, sender)
-
+            case x => this.debug("!!!! Unknown message %s from %s",
+                x, sender)
         }
     }
 }

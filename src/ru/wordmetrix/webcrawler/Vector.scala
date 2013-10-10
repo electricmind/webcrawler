@@ -5,7 +5,10 @@ import scala.math.Ordering.StringOrdering
 
 object Vector {
     
-    def apply[F](list : List[(F,Double)])(implicit ord : Ordering[F]) = new Vector(list.sortBy(_._1)) 
+    def apply[F](list : List[(F,Double)])(implicit ord : Ordering[F]) = 
+        new Vector(
+                list.groupBy(_._1).map({case (x,y) => x -> y.map(_._2).sum}).toList.sortBy(_._1)
+            ) 
     def apply[F](pairs : (F,Double)*)(implicit ord : Ordering[F]) : Vector[F] = apply(pairs.toList)
 }
 
@@ -17,12 +20,12 @@ class Vector[F](val self: List[(F, Double)])(implicit accuracy : Double= 0.0001,
     
     def +(v: Vector[F]) = new Vector(pairs(self, v.self).map({
         case (f,(d0,d1)) => (f,d0 + d1)       
-    }).filter(filter).sortBy(_._1))
+    }).filter(filter)) //.sortBy(_._1))
       
 
     def -(v: Vector[F]) = new Vector(pairs(self, v.self).map({
         case (f,(d0,d1)) => (f,d0 - d1)       
-    }).filter(filter).sortBy(_._1))
+    }).filter(filter)) //.sortBy(_._1))
 
     def *(v: Vector[F]) = pairs(self, v.self).map({
         case (f,(d0,d1)) => d0 * d1       
@@ -32,7 +35,7 @@ class Vector[F](val self: List[(F, Double)])(implicit accuracy : Double= 0.0001,
     
     private def pairs(ps1: Pairs, ps2: Pairs, outcome: List[(F, (Double, Double))] = List()): List[(F, (Double, Double))] = (ps1, ps2) match {
         
-        case ((f1, d1) :: pst1, (f2, d2) :: pst2) => if (ord.gt(f2, f2)) {
+        case ((f1, d1) :: pst1, (f2, d2) :: pst2) => if (ord.gt(f1, f2)) {
             pairs(ps1, pst2, (f2, (0d, d2)) :: outcome)
         } else if (ord.lt(f1,f2)) {
             pairs(pst1, ps2, (f1, (d1, 0d)) :: outcome)

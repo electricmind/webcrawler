@@ -25,10 +25,11 @@ class Gather(storage: Storage, queue: Actor, sample : SampleHierarchy2Priority)(
             new SAXFactoryImpl().newSAXParser())
 
     def page2xml(page: WebCrawler.Page): scala.xml.NodeSeq =
-        ((page2xml_whole(page) \\ "div").
-            filter(
-                x => x.attribute("id").getOrElse("").toString ==
-                    "mw-content-text"))
+        (page2xml_whole(page) \\ "body")
+//        ((page2xml_whole(page) \\ "div").
+//            filter(
+//                x => x.attribute("id").getOrElse("").toString ==
+//                    "mw-content-text"))
 
     def xml2seeds(xml: scala.xml.NodeSeq, base: URI) = (xml \\ "a").
         map(x => x.attribute("href")).flatten.
@@ -60,7 +61,7 @@ class Gather(storage: Storage, queue: Actor, sample : SampleHierarchy2Priority)(
                     //this.debug("%s",xml.map(x => new LinkContext().extract( x )).reduce(_ ++ _))//(x : Map[WebCrawler.Seed,Vector[Feature]],y :Map[WebCrawler.Seed,Vector[Feature]]) => x ++ x))
                     
                     //this.debug("%s",new LinkContext().extract(page2xml_whole(page)))
-                    sample ! new LinkContext().extract(page2xml_whole(page))
+                    sample ! new LinkContext(seed).extract(page2xml_whole(page))
                     storage ! ((seed, xml2intell(xml)))
                     queue ! ((xml2seeds(xml, seed), seed, xml2vector(xml)))
                 } catch {

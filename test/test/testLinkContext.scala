@@ -7,7 +7,7 @@ import LinkContext._
 import java.net.URI
 class testLinkContext extends FlatSpec with Matchers {
 
-    val extract = new LinkContext()
+    val extract = new LinkContext(new URI(""))
     "An simple xml" should "gives a map with empty vectors" in {
         extract.extract(
             <html>

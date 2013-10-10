@@ -59,14 +59,13 @@ class testLinkContext extends FlatSpec with Matchers {
                     <p></p>
                 </body>
             </html>
-        ) should be equals (Map(
-                "http://example.org" -> Vector(
-                    Feature("""class=body""") -> 1.0,
-                    Feature("""class=header""") -> 1.0),
-                "http://example.org/1" -> Vector(
-                    Feature("""class=test""") -> 1.0,
-                    Feature("""id=ref""") -> 1.0
-                )
+        ) should be (Map(
+                new URI("http://example.org") -> Vector(
+                        (Feature("a"),1.0), (Feature("body"),1.0), (Feature("h1"),1.0), (Feature("""class=body"""),1.0), 
+                        (Feature("""class=header"""),1.0)),
+                        
+                new URI("http://example.org/1") -> Vector((Feature("a"),1.0), (Feature("body"),1.0), (Feature("p"),1.0), (Feature("""id=ref"""),1.0), 
+                        (Feature("""class=body"""),1.0))
          ))
     }
 

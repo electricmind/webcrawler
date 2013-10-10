@@ -9,12 +9,17 @@ object LinkContext {
         def apply(x: String) = x.split("=") match {
             case Array("id", v)    => new FeatureId(v)
             case Array("class", v) => new FeatureClass(v)
-            case Array("name", v)  => new FeatureName(v)
+            case Array(v)  => new FeatureName(v)
         }
     }
     abstract class Feature {
         val order: Int
         val x: String
+        
+        override def equals(f : Any) = f match {
+            case f : Feature => order == f.order && x == f.x
+            case _ => false
+        }
     }
     class FeatureName(val x: String) extends Feature {
         val order = 1

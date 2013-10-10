@@ -44,18 +44,28 @@ class SampleHierarchy2Priority()(implicit val cfg: CFG)
                             val dump = new BufferedOutputStream(new FileOutputStream(cfg.sampling))
                             val N = Iterator.from(1)
                             val seed2N = mutable.Map[String, Int]()
+                            val count = mutable.Map[String, Int]()
+
+                            for {
+                            (seed, priority) <- priorities.toList.sortBy(_._2)
+                                record <- vectors.get(seed)
+                                vector <- record
+                                feature <- vector.toMap.keySet.map(_.toString)
+                            } {
+                                count += (feature->(count.getOrElse(feature,0)+1))
+                            }
 
                             for {
                                 (seed, priority) <- priorities.toList.sortBy(_._2)
                                 record <- vectors.get(seed)
                                 vector <- record
                             } {
-
+                               // vector.toList().
+                                val map : Map[String,Double] = vector.toMap.map({case (x,y) => x.toString -> y}).filter(x => count(x._1) > 10).withDefaultValue(0.0)
                                 //dump.write("%10s : %s\n".format(priority, vector.map(_._1.toString).filter(! _.startsWith("class=\"page"))).getBytes)
                                 //dump.write("%s %s\n".format(seed2N,vector.toMap -- seed2N.keySet).getBytes)
                                 
                                 dump.write("%8.2f : %s\n".format(priority, {
-                                    val map : Map[String,Double] = vector.toMap.map({case (x,y) => x.toString -> y}).withDefaultValue(0.0)
                                     
                                     seed2N.toList.sortBy(_._2).map(_._1).map(map) ++
                                         map.filterNot( x => seed2N.contains(x._1)).map({ case (x, y) => { seed2N += (x -> N.next); y } })
@@ -63,6 +73,8 @@ class SampleHierarchy2Priority()(implicit val cfg: CFG)
                                 
                                 dump.write("%s\n".format(seed2N.size).getBytes)
                             }
+                            dump.write(seed2N.toList.sortBy(_._2).map(_._1).mkString(" ").getBytes)
+                            dump.write(("\n").getBytes)
                             dump.close()
                         }
                     }

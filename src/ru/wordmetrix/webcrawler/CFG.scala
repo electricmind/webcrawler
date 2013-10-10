@@ -16,7 +16,8 @@ object CFG {
         "isdebug" -> false,
         "servers" -> 2,
         "targets" -> 9,
-        "targeting" -> 0.01)
+        "targeting" -> 0.01,
+        "sampling" -> new File("sampling.lst"))
 
     def apply() : CFG = this(List())
     
@@ -39,6 +40,9 @@ object CFG {
         case rkey("ts") :: value :: list =>
             CFG(list, map + ("targets" -> value.toInt), seeds)
 
+        case rkey("ps") :: path :: list =>
+            CFG(list, map + ("samping" -> new File(path)), seeds)
+
         case rkey(x) :: list => {
             println("Unknown key %s".format(x))
             CFG(list, map, seeds)
@@ -49,6 +53,10 @@ object CFG {
 
        case List() => new CFG(
             map("path").asInstanceOf[File],
+            map("sampling").asInstanceOf[File] match {
+                case x if x.isAbsolute => x
+                case x => new File(map("path").asInstanceOf[File],x.getPath)
+            },
             map("isdebug").asInstanceOf[Boolean],
             map("servers").asInstanceOf[Int],
             map("targeting").asInstanceOf[Double],
@@ -59,7 +67,7 @@ object CFG {
 /*
  *[04:02] Lynne: a tin of striped paint
 */
-class CFG(val path: File, val isdebug: Boolean, val servers: Int,
+class CFG(val path: File, val sampling : File, val isdebug: Boolean, val servers: Int,
         val targeting : Double, val targets : Int, val seeds: List[URI]) {}
 
 object debug {

@@ -40,7 +40,7 @@ class SampleHierarchy2Priority()(implicit val cfg: CFG)
                     this.log("Get priority, %s", nseed)
                     if (vectors contains seed) {
                         priorities += (seed -> priority)
-                        if (nseed % 250 == 0) {
+                        if (nseed % 100 == 0) {
                             val dump = new BufferedOutputStream(new FileOutputStream(cfg.sampling))
                             val N = Iterator.from(1)
                             val seed2N = mutable.Map[String, Int]()
@@ -63,7 +63,7 @@ class SampleHierarchy2Priority()(implicit val cfg: CFG)
                                // vector.toList().
                                 val map : Map[String,Double] = vector.toMap.map({case (x,y) => x.toString -> y}).filter(x => count(x._1) > 10).withDefaultValue(0.0)
                                 //dump.write("%10s : %s\n".format(priority, vector.map(_._1.toString).filter(! _.startsWith("class=\"page"))).getBytes)
-                                //dump.write("%s %s\n".format(seed2N,vector.toMap -- seed2N.keySet).getBytes)
+                                //dump.write("%s %s\n".format(seed2N,map -- seed2N.keySet).getBytes)
                                 
                                 dump.write("%8.2f : %s\n".format(priority, {
                                     

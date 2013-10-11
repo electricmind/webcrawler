@@ -24,6 +24,8 @@ class Gather(storage: Storage, queue: Actor, sample : SampleHierarchy2Priority)(
             new InputSource(new CharArrayReader(page.toArray)),
             new SAXFactoryImpl().newSAXParser())
 
+            
+            
     def page2xml(page: WebCrawler.Page): scala.xml.NodeSeq =
         (page2xml_whole(page) \\ "body")
 //        ((page2xml_whole(page) \\ "div").

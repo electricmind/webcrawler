@@ -14,6 +14,19 @@ object WebCrawler extends App {
     type Priority = Double
     type Vector = List[(Word,Priority)]
     
+    def normalize(s : String) : URI = normalize(new URI(s))
+
+    def normalize(base : String, s : String) : URI = 
+        normalize(new URI(base), new URI(s))
+
+    def normalize(base : URI, s : String) : URI = normalize(base, new URI(s))
+
+    def normalize(base : URI, uri : URI) : URI = 
+        normalize(base.resolve(uri))
+    
+    def normalize(uri : URI) = 
+        new URI(uri.getScheme() + ":" + uri.getSchemeSpecificPart()).normalize
+    
     override
     def main(args: Array[String]) {
         implicit val cfg = CFG(args.toList)

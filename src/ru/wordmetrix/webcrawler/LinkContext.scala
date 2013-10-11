@@ -71,7 +71,7 @@ class LinkContext(base: URI) {
                             }
                             case None => None
                         }) :: (x.attribute("class") match {
-                            case Some(x) => x.toString.split(" ").map(x =>
+                            case Some(x) => x.toString.split(" ").filterNot(_.startsWith("page")).map(x =>
                                 Some(new FeatureClass(x))).toList
                             case None => List[Option[Feature]]()
                         }) flatten);

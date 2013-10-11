@@ -20,27 +20,22 @@ class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2Priority)
     val queue = new PriorityQueue[Item]()(
         Ordering.fromLessThan((x: Item, y: Item) => x._1 < y._1))
 
-    class AverageVector(v: V = new V(List())) {
-        def +(v1: V) = new AverageVector(v + v1)
-        def -(v1: V) = new AverageVector(v - v1)
-        def vector = v.normal
-        def normal = v.normal
-    }
-
-    class TargetVector(val average: AverageVector = new AverageVector(),
+    class TargetVector(val average: AverageVector[Word] = new AverageVector[Word](),
                        val vs: List[(Priority, V)] = List[(Priority, V)](),
                        n: Int = 9) {
-        def factory(average: AverageVector, vs: List[(Priority, V)]) =
+        def factory(average: AverageVector[Word], vs: List[(Priority, V)]) =
             new TargetVector(average, vs.map(_._2).map(x => (average.normal * x, x)))
 
         def +(v1: V): TargetVector = {
             val priority = v1.normal * average.normal
             if (vs.length > n) {
-                ((priority, v1) :: vs).sortBy(_._1) match {
+                val l : List[(Priority, Vector[Word])] = ((priority, v1) :: vs).sortBy(_._1)
+                l  match {
                     case (p, v) :: vs => if (v == v1) {
                         this
                     } else {
-                        factory(average - v + v1, vs)
+                        average - v 
+                        factory(average - v  + v1, vs)
                     }
                 }
             } else {

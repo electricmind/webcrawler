@@ -1,8 +1,11 @@
 package ru.wordmetrix.webcrawler
 
-class TargetVector[F](val average: AverageVector[F],
-                      val vs: List[(Double, Vector[F])],
-                      n: Int = 9)(implicit ord: Ordering[F]) {
+import ru.wordmetrix.webcrawler.AverageVector
+import ru.wordmetrix.webcrawler.Vector
+
+class TargetVector[F](val average: AverageVector[F], 
+                      val vs: List[(Double, Vector[F])], 
+                      n: Int = 9) {
     def this(n: Int = 9)(implicit ord: Ordering[F]) =
         this(new AverageVector[F](), List[(Double, Vector[F])](), n)
 

@@ -34,7 +34,7 @@ class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2Priority)
 
     var target = new TargetVector(n = cfg.targets)
 
-    var average = new AverageVector()
+    var average =  new AverageVector()
 
     var limit = 0.90
 
@@ -105,7 +105,6 @@ class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2Priority)
         this.debug("limit? %s < %s",
             newfactor.normal * factor.normal, limit
         )
-
     }
 
     def act() = loop {

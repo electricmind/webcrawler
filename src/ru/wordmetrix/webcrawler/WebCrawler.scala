@@ -24,8 +24,9 @@ object WebCrawler extends App {
     def normalize(base : URI, uri : URI) : URI = 
         normalize(base.resolve(uri))
     
-    def normalize(uri : URI) = 
-        new URI(uri.getScheme() + ":" + uri.getSchemeSpecificPart()).normalize
+    def normalize(uri : URI) =
+        new URI(uri.getScheme(),uri.getHost(),uri.getPath(),null).normalize
+        //new URI(uri.getScheme() + ":" + java.net.URLEncoder.encode(uri.getSchemeSpecificPart())).normalize 
     
     override
     def main(args: Array[String]) {

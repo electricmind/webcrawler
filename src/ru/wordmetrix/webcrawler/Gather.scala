@@ -17,7 +17,7 @@ class Gather(storage: Storage, queue: Actor, sample : SampleHierarchy2Priority)(
         extends Actor with CFGAware {
     override val name = "Gather"
 
-    val map = scala.collection.mutable.Set[(String, String)]()
+    val map = scala.collection.mutable.Set[String]()
 
     def page2xml_whole(page: WebCrawler.Page) =
         (new NoBindingFactoryAdapter).loadXML(
@@ -35,10 +35,11 @@ class Gather(storage: Storage, queue: Actor, sample : SampleHierarchy2Priority)(
 
     def xml2seeds(xml: scala.xml.NodeSeq, base: URI) = (xml \\ "a").
         map(x => x.attribute("href")).flatten.
-        map(x => base.resolve(x.toString)).
+        map(x => WebCrawler.normalize(base,x.toString)).
+//        map(x => {println(x); x}).
         filter(x => x.getHost() == "en.wikipedia.org").
         filter(x => {
-            val id = (x.getHost(), x.getPath())
+            val id = x.toString
             if (map contains id) {
                 false
             } else {
@@ -60,12 +61,13 @@ class Gather(storage: Storage, queue: Actor, sample : SampleHierarchy2Priority)(
                 this.debug("Gather data from %s", seed)
                 try {
                     val xml = page2xml(page)
-                    //this.debug("%s",xml.map(x => new LinkContext().extract( x )).reduce(_ ++ _))//(x : Map[WebCrawler.Seed,Vector[Feature]],y :Map[WebCrawler.Seed,Vector[Feature]]) => x ++ x))
                     
+                    //this.debug("%s",xml.map(x => new LinkContext().extract( x )).reduce(_ ++ _))//(x : Map[WebCrawler.Seed,Vector[Feature]],y :Map[WebCrawler.Seed,Vector[Feature]]) => x ++ x))
                     //this.debug("%s",new LinkContext().extract(page2xml_whole(page)))
+//                    println("!!",(/*(xml2seeds(xml, seed),*/ seed))
                     sample ! new LinkContext(seed).extract(page2xml_whole(page))
                     storage ! ((seed, xml2intell(xml)))
-                    queue ! ((xml2seeds(xml, seed), seed, xml2vector(xml)))
+                    queue ! ((xml2seeds(xml, seed), seed, xml2vector(xml))) 
                 } catch {
                     case x => log("Gathering failed on %s: %s", seed, x)
                 }

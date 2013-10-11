@@ -79,11 +79,13 @@ class LinkContext(base: URI) {
                     val v1 = v + Vector[Feature](l.map(x => x -> 1.0))
                     extract(x, v1, x.attribute("href") match {
                         case Some(ref) => {
-                            val x = base.resolve(ref.toString)
+                            val x = WebCrawler.normalize(base.toString.replace("|","%124"),ref.toString.replace("|","%124"))
+                            
                             map + (x -> (map.get(x) match {
                                 case Some(v) => v + v1
                                 case None    => v1
                             }))
+                            
                         }
                         case None => map
                     })

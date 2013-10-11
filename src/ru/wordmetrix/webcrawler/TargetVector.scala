@@ -28,9 +28,13 @@ class TargetVector[F](val average: AverageVector[F],
             factory(average + v1, (priority, v1) :: vs)
         }
     }
+    
+    def priority(v : Vector[F]) = normal*v
+    
     def priority = vs.headOption match {
         case Some((p, v)) => p
         case None         => 0d
     }
+    
     def normal = average.normal
 }

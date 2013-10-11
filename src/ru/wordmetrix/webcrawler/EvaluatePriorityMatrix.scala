@@ -32,7 +32,7 @@ class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2Priority)
 
     var newfactor = new V(List())
 
-    var target = new TargetVector(n = cfg.targets)
+    var target = new TargetVectorCluster(n = cfg.targets)
 
     var average =  new AverageVector()
 
@@ -91,7 +91,8 @@ class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2Priority)
         average = average + v
         target = target + v
 
-        if (v * target.average.normal >= target.priority) {
+        //TODO: add contains method to check that vector was included into cluster
+        if (target.priority(v) >= target.priority) {
             this.debug("accepted %s with %s in %s", seed, v * target.average.normal, target.priority)
             storage ! seed
         }

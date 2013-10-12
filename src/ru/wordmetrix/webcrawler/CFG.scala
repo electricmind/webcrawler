@@ -17,7 +17,8 @@ object CFG {
         "servers" -> 2,
         "targets" -> 9,
         "targeting" -> 0.01,
-        "sampling" -> new File("sampling.lst"))
+        "sampling" -> new File("sampling.lst"),
+        "sigma" -> 1.0)
 
     def apply() : CFG = this(List())
     
@@ -43,6 +44,9 @@ object CFG {
         case rkey("ps") :: path :: list =>
             CFG(list, map + ("samping" -> new File(path)), seeds)
 
+        case rkey("sigma") :: value :: list =>
+            CFG(list, map + ("samping" -> value.toDouble), seeds)
+
         case rkey(x) :: list => {
             println("Unknown key %s".format(x))
             CFG(list, map, seeds)
@@ -61,6 +65,7 @@ object CFG {
             map("servers").asInstanceOf[Int],
             map("targeting").asInstanceOf[Double],
             map("targets").asInstanceOf[Int],
+            map("sigma").asInstanceOf[Double],
             seeds.reverse)
     }
 }
@@ -68,7 +73,7 @@ object CFG {
  *[04:02] Lynne: a tin of striped paint
 */
 class CFG(val path: File, val sampling : File, val isdebug: Boolean, val servers: Int,
-        val targeting : Double, val targets : Int, val seeds: List[URI]) {}
+        val targeting : Double, val targets : Int, val sigma : Double, val seeds: List[URI]) {}
 
 object debug {
     def apply(format: String, p: Any*)(implicit cfg: CFG) = {
@@ -96,10 +101,11 @@ object log {
 object ActorDebug {
     implicit def actor2ActorDebug(actor: CFGAware) = new ActorDebug(actor)
 }
+//import ru.wordmetrix.
 
 class ActorDebug(actor: CFGAware) {
     def debug(format: String, p: Any*)(implicit cfg: CFG) = 
         ru.wordmetrix.webcrawler.debug(actor, format, p: _*)
-    def log(format: String, p: Any*)(implicit cfg: CFG) = 
+     def log(format: String, p: Any*)(implicit cfg: CFG) = 
         ru.wordmetrix.webcrawler.log(actor, format, p: _*)
 }

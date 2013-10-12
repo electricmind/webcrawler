@@ -37,7 +37,7 @@ class TargetVectorCluster[F](average: AverageVector[F],
              * */
             println("new D: %s > %s", Sigma, p)
 
-            if (Sigma  > p) {
+            if (0.6 * Sigma  > p) {
                 println("add: %s", vs.length + 1)
                 new TargetVectorCluster[F](average + v, (p, v) :: vs, n)
             } else {

@@ -92,7 +92,8 @@ class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2Priority)
         target = target + v
 
         //TODO: add contains method to check that vector was included into cluster
-        if (target.priority(v) >= target.priority()) {
+        // <= is suitable only for TargetVectorCluster
+        if (target.priority(v) <= target.priority()) {
             this.debug("accepted %s with %s in %s", seed, v * target.average.normal, target.priority())
              storage ! seed
         }

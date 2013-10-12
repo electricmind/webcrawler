@@ -8,7 +8,7 @@ import scala.math.Ordering
 
 /**
  * @author cray
- *
+ * 
  */
 class TargetVectorCluster[F](average: AverageVector[F],
                              vs: List[(Double, Vector[F])],
@@ -19,6 +19,7 @@ class TargetVectorCluster[F](average: AverageVector[F],
 
     lazy val D = Math.sqrt(vs.map({case (p,x) => p}).sum)
     
+    override
     def +(v : Vector[F]) = {
         val t = new TargetVectorCluster[F](average + v, (0d,v) :: vs, n)
         if (t.D <= D) t else this

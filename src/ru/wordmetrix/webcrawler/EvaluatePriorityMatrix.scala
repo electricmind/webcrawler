@@ -20,7 +20,7 @@ class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2Priority)
     val queue = new PriorityQueue[Item]()(
         Ordering.fromLessThan((x: Item, y: Item) => x._1 < y._1))
 
-    
+     
 
     val dispatcher = new Dispatcher(this) {
         start
@@ -32,19 +32,19 @@ class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2Priority)
 
     var newfactor = new V(List())
 
-    var target = new TargetVectorCluster(n = cfg.targets)
+    var target = new TargetVectorCluster[String](n = cfg.targets)
 
-    var average =  new AverageVector()
+    var average =  new AverageVector[String]()
 
     var limit = 0.90
 
-    def calculate(factor: V, vectors: Map[Seed, (V, Set[Seed])]) =
+    def calculate(factor: V, vectors: Map[Seed, (V, Set[Seed])]) = 
         vectors.map({
             case (seed, (vector, seeds)) => {
                 val priority = vector * factor.normal
                 seeds.map((_, priority))
             }
-        }).flatten.groupBy(_._1).map({
+        }).flatten.groupBy(x => x._1).map({
             case (seed, ps) =>
                 seed -> ps.map(_._2)
         }).map({
@@ -92,9 +92,9 @@ class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2Priority)
         target = target + v
 
         //TODO: add contains method to check that vector was included into cluster
-        if (target.priority(v) >= target.priority) {
-            this.debug("accepted %s with %s in %s", seed, v * target.average.normal, target.priority)
-            storage ! seed
+        if (target.priority(v) >= target.priority()) {
+            this.debug("accepted %s with %s in %s", seed, v * target.average.normal, target.priority())
+             storage ! seed
         }
 
         //newfactor = //average.normal -v1 //target.normal //
@@ -157,7 +157,7 @@ class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2Priority)
                         1
                     }
                 }
-
+ 
                 case 2 => {
                     //Do work
                     this.log("Estimating phase, priority = %s, seed = %s",

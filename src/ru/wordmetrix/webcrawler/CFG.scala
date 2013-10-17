@@ -20,12 +20,18 @@ object CFG {
         "sampling" -> new File("sampling.lst"),
         "sigma" -> 1.0)
 
-    def apply() : CFG = this(List())
-    
+    def apply(): CFG = this(List())
+
     def apply(args: Array[String]): CFG = CFG(args.toList)
 
     def apply(list: List[String], map: Map[String, Any] = default,
               seeds: List[URI] = List()): CFG = list match {
+        case rkey("h") :: list =>
+            for ((key, value) <- default) {
+                println(" -%s = %s".format(key, value))
+            }
+            scala.sys.exit
+            CFG(list, map, seeds)
         case rkey("p") :: path :: list =>
             CFG(list, map + ("path" -> new File(path)), seeds)
 
@@ -45,21 +51,21 @@ object CFG {
             CFG(list, map + ("samping" -> new File(path)), seeds)
 
         case rkey("sigma") :: value :: list =>
-            CFG(list, map + ("samping" -> value.toDouble), seeds)
+            CFG(list, map + ("sigma" -> value.toDouble), seeds)
 
         case rkey(x) :: list => {
             println("Unknown key %s".format(x))
             CFG(list, map, seeds)
         }
-        
-         case seed :: list =>
-         CFG(list, map, new URI(seed) :: seeds)
 
-       case List() => new CFG(
+        case seed :: list =>
+            CFG(list, map, new URI(seed) :: seeds)
+
+        case List() => new CFG(
             map("path").asInstanceOf[File],
             map("sampling").asInstanceOf[File] match {
                 case x if x.isAbsolute => x
-                case x => new File(map("path").asInstanceOf[File],x.getPath)
+                case x                 => new File(map("path").asInstanceOf[File], x.getPath)
             },
             map("isdebug").asInstanceOf[Boolean],
             map("servers").asInstanceOf[Int],
@@ -72,8 +78,8 @@ object CFG {
 /*
  *[04:02] Lynne: a tin of striped paint
 */
-class CFG(val path: File, val sampling : File, val isdebug: Boolean, val servers: Int,
-        val targeting : Double, val targets : Int, val sigma : Double, val seeds: List[URI]) {}
+class CFG(val path: File, val sampling: File, val isdebug: Boolean, val servers: Int,
+          val targeting: Double, val targets: Int, val sigma: Double, val seeds: List[URI]) {}
 
 object debug {
     def apply(format: String, p: Any*)(implicit cfg: CFG) = {
@@ -81,7 +87,7 @@ object debug {
     }
 
     def apply(actor: CFGAware, format: String, p: Any*)(implicit cfg: CFG) = {
-        if (cfg.isdebug) println("  - %20s: ".format(actor.name.slice(0,20)) + format.format(p: _*))
+        if (cfg.isdebug) println("  - %20s: ".format(actor.name.slice(0, 20)) + format.format(p: _*))
     }
 }
 
@@ -90,11 +96,11 @@ trait CFGAware {
 }
 object log {
     def apply(format: String, p: Any*)(implicit cfg: CFG) = {
-        println({ if (cfg.isdebug) "* " else ""} + format.format(p: _*))
+        println({ if (cfg.isdebug) "* " else "" } + format.format(p: _*))
     }
 
-    def apply(actor : CFGAware, format: String, p: Any*)(implicit cfg: CFG) = {
-        println({ if (cfg.isdebug) "* " else "" } + "- %20s: ".format(actor.name.slice(0,20)) + format.format(p: _*))
+    def apply(actor: CFGAware, format: String, p: Any*)(implicit cfg: CFG) = {
+        println({ if (cfg.isdebug) "* " else "" } + "- %20s: ".format(actor.name.slice(0, 20)) + format.format(p: _*))
     }
 }
 
@@ -104,8 +110,8 @@ object ActorDebug {
 //import ru.wordmetrix.
 
 class ActorDebug(actor: CFGAware) {
-    def debug(format: String, p: Any*)(implicit cfg: CFG) = 
+    def debug(format: String, p: Any*)(implicit cfg: CFG) =
         ru.wordmetrix.webcrawler.debug(actor, format, p: _*)
-     def log(format: String, p: Any*)(implicit cfg: CFG) = 
+    def log(format: String, p: Any*)(implicit cfg: CFG) =
         ru.wordmetrix.webcrawler.log(actor, format, p: _*)
 }

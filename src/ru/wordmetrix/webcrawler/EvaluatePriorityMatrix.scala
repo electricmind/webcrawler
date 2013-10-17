@@ -20,8 +20,6 @@ class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2Priority)
     val queue = new PriorityQueue[Item]()(
         Ordering.fromLessThan((x: Item, y: Item) => x._1 < y._1))
 
-     
-
     val dispatcher = new Dispatcher(this) {
         start
     }
@@ -89,16 +87,21 @@ class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2Priority)
 
     def estimate(seed: Seed, v: V) = {
         average = average + v
-        target = target + v
+        target = target + (v, {
+            this.debug("accepted %s with %s in %s", seed, v * target.average.normal, target.priority())
+             storage ! seed
+        })
 
         //TODO: add contains method to check that vector was included into cluster
         // <= is suitable only for TargetVectorCluster
-        if (target.priority(v) <= target.priority()*0.6) {
+        // New api should look like that: target.add(v, {storage ! seed}) where last argument
+        // is a callback that is called if vector is added.
+/* moved into call back       if (target.priority(v) <= target.priority()*0.6) {
             this.debug("accepted %s with %s in %s", seed, v * target.average.normal, target.priority())
              storage ! seed
         }
 
-        //newfactor = //average.normal -v1 //target.normal //
+*/        //newfactor = //average.normal -v1 //target.normal //
         newfactor = target.normal - average.normal
 
         this.debug("direction = %s %s",

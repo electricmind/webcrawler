@@ -13,7 +13,7 @@ import ru.wordmetrix.webcrawler.LinkContext.Feature
 /*
  * Gather analyzes a page and elicits links and useful load.
  */
-class Gather(storage: Storage, queue: Actor, sample : SampleHierarchy2Priority)(implicit val cfg: CFG)
+class Gather(storage: Storage, queue: Actor, sample : SampleHierarchy2PriorityBase)(implicit val cfg: CFG)
         extends Actor with CFGAware {
     override val name = "Gather"
 

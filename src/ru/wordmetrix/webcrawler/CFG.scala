@@ -14,6 +14,7 @@ object CFG {
     val default = Map(
         "path" -> new File("/tmp/webcrawler"),
         "isdebug" -> false,
+        "ish2p" -> false,
         "servers" -> 2,
         "targets" -> 9,
         "targeting" -> 0.01,
@@ -37,6 +38,9 @@ object CFG {
 
         case rkey("d") :: list =>
             CFG(list, map + ("isdebug" -> true), seeds)
+
+        case rkey("ish2p") :: list =>
+            CFG(list, map + ("ish2p" -> true), seeds)
 
         case rkey("n") :: value :: list =>
             CFG(list, map + ("servers" -> value.toInt), seeds)
@@ -68,6 +72,7 @@ object CFG {
                 case x                 => new File(map("path").asInstanceOf[File], x.getPath)
             },
             map("isdebug").asInstanceOf[Boolean],
+            map("ish2p").asInstanceOf[Boolean],
             map("servers").asInstanceOf[Int],
             map("targeting").asInstanceOf[Double],
             map("targets").asInstanceOf[Int],
@@ -78,8 +83,10 @@ object CFG {
 /*
  *[04:02] Lynne: a tin of striped paint
 */
-class CFG(val path: File, val sampling: File, val isdebug: Boolean, val servers: Int,
-          val targeting: Double, val targets: Int, val sigma: Double, val seeds: List[URI]) {}
+class CFG(val path: File, val sampling: File, val isdebug: Boolean, 
+          val ish2p: Boolean, val servers: Int,
+          val targeting: Double, val targets: Int, 
+          val sigma: Double, val seeds: List[URI]) {}
 
 object debug {
     def apply(format: String, p: Any*)(implicit cfg: CFG) = {

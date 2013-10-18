@@ -10,13 +10,18 @@ import ru.wordmetrix.webcrawler.LinkContext.Feature
 import ru.wordmetrix.webcrawler.ActorDebug._
 import java.io.FileOutputStream
 import java.io.BufferedOutputStream
+import ru.wordmetrix.webcrawler.CFG
+import ru.wordmetrix.webcrawler.CFGAware
+import ru.wordmetrix.webcrawler.Vector
 
 /**
  * @author cray
  *
  */
+
+
 class SampleHierarchy2Priority()(implicit val cfg: CFG)
-        extends Actor with CFGAware {
+        extends Actor with CFGAware with SampleHierarchy2PriorityBase {
     override val name = "SampleH2P"
     val priorities = mutable.Map[Seed, Priority]()
     val vectors = mutable.Map[Seed, Set[Vector[Feature]]]()

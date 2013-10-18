@@ -5,7 +5,7 @@ import WebCrawler.{ Seed, Word }
 import scala.collection.mutable.PriorityQueue
 import ActorDebug._
 
-class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2Priority)(implicit cfg: CFG) extends Actor
+class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2PriorityBase)(implicit cfg: CFG) extends Actor
         with CFGAware {
     override val name = "Evaluate . Matrix"
     type Priority = Double
@@ -72,7 +72,7 @@ class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2Priority)
                     )
                 )
             )
-            this.log("QQ %s %s",qq._1,qq._2)
+//            this.log("QQ %s %s",qq._1,qq._2)
             priorities = priorities + qq
         }
 

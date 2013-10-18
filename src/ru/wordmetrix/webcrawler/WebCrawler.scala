@@ -33,7 +33,8 @@ object WebCrawler extends App {
         implicit val cfg = CFG(args.toList)
         val storage = new Storage()
         //val queue = new Queue(storage)
-        val sample = new SampleHierarchy2Priority()
+        val sample : SampleHierarchy2PriorityBase = if (cfg.ish2p) new SampleHierarchy2Priority() else 
+            new SampleHierarchy2PriorityStub()
         val queue = new EvaluatePriorityMatrix(storage,sample)
         val gather = new Gather(storage, queue, sample)
 //        val webget = new WebGet( queue, gather)

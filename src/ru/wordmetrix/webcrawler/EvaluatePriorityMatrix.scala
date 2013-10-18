@@ -30,9 +30,6 @@ class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2Priority)
 
     var newfactor = new V(List())
 
-    //var target = new TargetVectorCluster[String](n = cfg.targets)
-    // TODO: Use target vector during targeting stage and convert it
-    // into Cluster in estimation stage
     var target = new TargetVector[String](n = cfg.targets)
 
     var average =  new AverageVector[String]()

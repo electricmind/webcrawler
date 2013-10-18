@@ -30,7 +30,10 @@ class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2Priority)
 
     var newfactor = new V(List())
 
-    var target = new TargetVectorCluster[String](n = cfg.targets)
+    //var target = new TargetVectorCluster[String](n = cfg.targets)
+    // TODO: Use target vector during targeting stage and convert it
+    // into Cluster in estimation stage
+    var target = new TargetVector[String](n = cfg.targets)
 
     var average =  new AverageVector[String]()
 
@@ -59,7 +62,7 @@ class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2Priority)
     def enqueue(seeds: Set[Seed], seed: Seed, v: V) = {
         vectors = vectors + (seed -> (v, seeds))
         for (item <- seeds) {
-            priorities = priorities + (
+             val qq = (
                 item -> (
                     (combinepolicy(
                         priorities.getOrElse(
@@ -72,6 +75,8 @@ class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2Priority)
                     )
                 )
             )
+            this.log("QQ %s %s",qq._1,qq._2)
+            priorities = priorities + qq
         }
 
         if (queue.isEmpty) {
@@ -92,16 +97,6 @@ class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2Priority)
              storage ! seed
         })
 
-        //TODO: add contains method to check that vector was included into cluster
-        // <= is suitable only for TargetVectorCluster
-        // New api should look like that: target.add(v, {storage ! seed}) where last argument
-        // is a callback that is called if vector is added.
-/* moved into call back       if (target.priority(v) <= target.priority()*0.6) {
-            this.debug("accepted %s with %s in %s", seed, v * target.average.normal, target.priority())
-             storage ! seed
-        }
-
-*/        //newfactor = //average.normal -v1 //target.normal //
         newfactor = target.normal - average.normal
 
         this.debug("direction = %s %s",
@@ -149,13 +144,14 @@ class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2Priority)
 
                     this.debug("target*central = %s",
                         target.normal * central)
-                    // TODO: central vector should (can) be used for estimation during targeting phase
-                    factor = newfactor
+
+                        factor = newfactor
                     enqueue(seeds, seed, v)
                     queue.clear()
 
                     if (factor * central > cfg.targeting) {
                         priorities = calculate(newfactor, vectors)
+                        //target = new TargetVectorCluster[String](target, n = cfg.targets)
                         2
                     } else {
                         1
@@ -164,8 +160,8 @@ class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2Priority)
  
                 case 2 => {
                     //Do work
-                    this.log("Estimating phase, priority = %s, seed = %s",
-                        factor * v.normal, seed)
+                    this.log("Estimating phase,  attitude = %s, priority = %s, seed = %s",
+                        newfactor * central, factor * v.normal, seed)
                     estimate(seed, v.normal)
                     if (newfactor.normal * factor.normal < limit) {
                         this.debug("Priorities should be recalculated")
@@ -176,7 +172,7 @@ class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2Priority)
                     enqueue(seeds, seed, v)
                     sample ! (seed, factor * v.normal)
                     2
-                }
+                } 
             }
 
             case dispatcher: Dispatcher => {

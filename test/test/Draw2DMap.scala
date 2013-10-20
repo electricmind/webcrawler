@@ -30,7 +30,7 @@ object Draw2DMap extends SimpleSwingApplication {
 
     def top = new MainFrame {
         title = "Convert Celsius / Fahrenheit"
-        var n = 25
+        var n = 50
         var dispersy = 0.5
         var tree = generate2tree1(dispersy, n)
 
@@ -95,7 +95,7 @@ object Draw2DMap extends SimpleSwingApplication {
                     case leaf: Leaf[Int, Int] =>
                         g.setStroke(new BasicStroke(1))
                         g.drawOval(xp(x) - 5, yp(y) - 5, 11, 11)
-                        g.drawString(leaf.value.toString, xp(x * 1.2), yp(y * 1.2))
+//                        g.drawString(leaf.value.toString, xp(x * 1.2), yp(y * 1.2))
                         1
                 }
 

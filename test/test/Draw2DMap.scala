@@ -13,9 +13,17 @@ import scala.swing.event.Key._
 
 object Draw2DMap extends SimpleSwingApplication {
 
-    def generate2tree1(d: Double, n: Int) = (1 until n).map(x => 2 * (x % 2) - 1).map(
-        x => (Vector(1 -> (nextGaussian * d + x), 2 -> (nextGaussian * d + x)).normal, x)
-    ).foldLeft(TreeApproximator[Int, Int]((Vector[Int](1 -> 1d), 0)))({
+    def generate2tree1(d: Double, n: Int) = (1 until n)
+        .map(x => 2 * (x % 2) - 1)
+        .map(x => List((x, 1, 1), (x, -1, 1))).flatten
+        .map({
+            case (x, y, z) => (Vector(1 -> (nextGaussian * d + x), 2 -> (nextGaussian * d + y),
+                3 -> (nextGaussian * d + z) /*,
+                4 -> (nextGaussian * d + x),
+                5 -> (nextGaussian * d + x)*/
+
+            ).normal, x)
+        }).foldLeft(TreeApproximator[Int, Int]((Vector[Int](1 -> 1d), 0)))({
             case (tree, (key, value)) =>
                 tree + (key, value)
         }).asInstanceOf[TreeApproximatorNode[Int, Int]]

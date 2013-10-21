@@ -1,11 +1,12 @@
 package test
-import ru.wordmetrix.webcrawler.{ Vector, TreeApproximator }
+import ru.wordmetrix.webcrawler.{ Vector, TreeApproximator, debug, CFG }
 import TreeApproximator._
 import java.io._
 //TODO: Try to use integers ids instead of words
 object ArrangeText extends App {
+    implicit lazy val cfg = CFG(List("-d"))
     type Word = String
-    implicit val accuracy: Double = 0.01
+    implicit lazy val accuracy: Double = 0.01
     def arrange(tree: Tree[Word, File], path: File): Unit = tree match {
         case node: Node[Word, File] => {
             arrange(node.child1, new File(path, "1"))
@@ -30,27 +31,41 @@ object ArrangeText extends App {
         val Array(target, files @ _*) = args
 
         def vectors = files.toIterator.map(x => {
-            println(x); ((new Vector(
+            /*println(x);*/ ((Vector(
                 io.Source.fromFile(x).getLines().map(delimiter.split).flatten
-                    .toList.groupBy(x => x)
-                    .map({ case (x, y) => (x, y.length.toDouble) }).toList),
+                    .toList.groupBy(x => x.toLowerCase())
+                    .map({ case (x, y) => (x, y.length.toDouble) })
+                    .filter(_._2 > 5)
+                    .toList),
                 new File(x))
             )
         })
-        val t = System.nanoTime()
+        val t = System.currentTimeMillis()
         def tree = vectors.foldLeft(TreeApproximator(vectors.next))({
             case (tree, (vector, filename)) => {
-                println("%s tree(%s).energy => %4.3f".format((System.nanoTime()-t)/1000000000, tree.n, 0d/*tree.energy2*/))
-                tree + (vector, filename)
+                debug.time("%s %d tree(%s).energy => %4.3f, length = %d / %d".format(
+                    (System.currentTimeMillis() - t)/1000,
+                    tree.n,
+                    filename,
+                    tree.energy2,
+                    vector.size,
+                    tree.average.size)
+                ) {
+                    tree + (vector, filename)
+                }
 
             }
         })
 
-        def tree_opt = (1 to 10).foldLeft(tree.asInstanceOf[Node[Word, File]])({
+        def tree_opt = (1 to 20).foldLeft(tree.asInstanceOf[Node[Word, File]])({
             case (tree, n) =>
-                println("#%3d = %4.3f".format(n, tree.energy2))
-                tree.rectify(tree.n)
+                debug.time("Rectifying #%3d = %4.3f %d".format(
+                    n, tree.energy2, tree.average.size)
+                ) {
+                    tree.rectify(tree.n)
+                }
         })
-        arrange(tree_opt, new File(target))
+
+        arrange(tree_opt.align()._1, new File(target))
     }
 }

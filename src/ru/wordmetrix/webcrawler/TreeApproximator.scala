@@ -5,6 +5,10 @@ import scala.collection
 import TreeApproximator._
 import scala.annotation.tailrec
 
+//TODO: add diversity computation 
+//TODO: Compute energy during changing an item
+//TODO: make empty tree :) to simplify initialization
+
 object TreeApproximator {
 
     type Node[F, V] = TreeApproximatorNode[F, V]
@@ -73,6 +77,9 @@ trait TreeApproximator[F, V] {
 
     //    def reinsert(): TreeApproximator.Leaf[F, V]
 
+    // TODO: implement align method.
+    def align(v : Vector[F]) : (Tree[F,V],Vector[F])
+    def align()(implicit ord : Ordering[F]) : (Tree[F,V],Vector[F]) = align(Vector[F]())
 }
 
 class TreeApproximatorNode[F, V](val child1: TreeApproximator[F, V],
@@ -136,7 +143,14 @@ class TreeApproximatorNode[F, V](val child1: TreeApproximator[F, V],
         }
     }
 
-    
+    def align(vector : Vector[F]) : (Tree[F,V],Vector[F]) = {
+        val (c1, v1) = child1.align(vector)
+        val (c2, v2) = child2.align(v1)
+        
+        List((v1,c1),(v2,c2)).sortBy(_._1.normal*vector.normal) match {
+            case List((v2,c2),(v1,c1)) => (new Node[F,V](c1,c2),v2)
+        }
+    } 
     
     @tailrec
     final def rectify(n: Int = 1): Node[F,V] = if (n > 0) this.random() match {
@@ -156,5 +170,6 @@ class TreeApproximatorLeaf[F, V](val average: Vector[F], val value: V)
     def /(n: Int) = this
     def path(vector: Vector[F]): Stream[Int] = Stream()
     def reinsert(): TreeApproximator.Leaf[F, V] = this
-    //    override def toString = average.toString 
+    //    override def toString = average.toString
+    def align(vector : Vector[F]) : (Tree[F,V],Vector[F]) = (this,average)
 }

@@ -23,7 +23,6 @@ object TreeApproximator {
     }
 
     class Iterator[F, V](root: Tree[F, V]) extends collection.Iterator[Leaf[F, V]] {
-        println("create iterator")
         var state: State[F, V] = root match {
             case node: Node[F, V] => godown(node)
             case leaf: Leaf[F, V] => (Some(leaf), List())

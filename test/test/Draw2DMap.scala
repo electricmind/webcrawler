@@ -64,7 +64,7 @@ object Draw2DMap extends SimpleSwingApplication {
             }
 
             case _: MouseClicked | _: KeyPressed =>
-                tree = tree.rectify(n / 2)
+                tree = tree.rectify(n / 4)
                 this.repaint()
         }
         val draw = new Panel {

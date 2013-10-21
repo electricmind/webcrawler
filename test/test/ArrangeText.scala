@@ -2,7 +2,7 @@ package test
 import ru.wordmetrix.webcrawler.{ Vector, TreeApproximator }
 import TreeApproximator._
 import java.io._
-
+//TODO: Try to use integers ids instead of words
 object ArrangeText extends App {
     type Word = String
     implicit val accuracy: Double = 0.01
@@ -37,10 +37,10 @@ object ArrangeText extends App {
                 new File(x))
             )
         })
-
+        val t = System.nanoTime()
         def tree = vectors.foldLeft(TreeApproximator(vectors.next))({
             case (tree, (vector, filename)) => {
-                println("tree(%s).energy => %4.3f".format(tree.n, tree.energy2))
+                println("%s tree(%s).energy => %4.3f".format((System.nanoTime()-t)/1000000000, tree.n, 0d/*tree.energy2*/))
                 tree + (vector, filename)
 
             }

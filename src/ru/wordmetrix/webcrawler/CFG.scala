@@ -96,6 +96,14 @@ object debug {
     def apply(actor: CFGAware, format: String, p: Any*)(implicit cfg: CFG) = {
         if (cfg.isdebug) println("  - %20s: ".format(actor.name.slice(0, 20)) + format.format(p: _*))
     }
+    
+    def time[B](s : String)(f : => B)(implicit cfg : CFG) : B = {
+        val t = System.currentTimeMillis() 
+        val outcome = f
+        println(outcome.asInstanceOf[TreeApproximator[Int,Int]].n)
+        apply("%s : %d".format(s,(System.currentTimeMillis() - t) / 1))
+        outcome
+    }
 }
 
 trait CFGAware {

@@ -48,7 +48,7 @@ class Vector[F](val self: List[(F, Double)])(implicit accuracy : Double= 0.0001,
     }
 
     def *(z: Double) = {
-        println(z)
+        //println(z)
         new Vector(map({ case (x, y) => (x, y * z) }).toList)
     }
 

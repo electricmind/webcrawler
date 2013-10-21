@@ -65,7 +65,7 @@ trait TreeApproximator[F, V] {
     val n: Int // = 0
     def apply(average: Vector[F]): V
     def energy: Double
-    def energy2 : Double
+    def energy2: Double
     def iterator: collection.Iterator[TreeApproximator.Leaf[F, V]] =
         new TreeApproximator.Iterator[F, V](this)
 
@@ -78,8 +78,8 @@ trait TreeApproximator[F, V] {
     //    def reinsert(): TreeApproximator.Leaf[F, V]
 
     // TODO: implement align method.
-    def align(v : Vector[F]) : (Tree[F,V],Vector[F])
-    def align()(implicit ord : Ordering[F]) : (Tree[F,V],Vector[F]) = align(Vector[F]())
+    def align(v: Vector[F]): (Tree[F, V], Vector[F])
+    def align()(implicit ord: Ordering[F]): (Tree[F, V], Vector[F]) = align(Vector[F]())
 }
 
 class TreeApproximatorNode[F, V](val child1: TreeApproximator[F, V],
@@ -110,9 +110,9 @@ class TreeApproximatorNode[F, V](val child1: TreeApproximator[F, V],
     }
 
     def energy2 = {
-        (child1.average.normal-child2.average.normal).norm + child1.energy2 + child2.energy2
+        (child1.average.normal - child2.average.normal).norm + child1.energy2 + child2.energy2
     }
-    
+
     def /(n: Int) = n match {
         case 1 => child1
         case 2 => child2
@@ -143,19 +143,25 @@ class TreeApproximatorNode[F, V](val child1: TreeApproximator[F, V],
         }
     }
 
-    def align(vector : Vector[F]) : (Tree[F,V],Vector[F]) = {
-        val (c1, v1) = child1.align(vector)
-        val (c2, v2) = child2.align(v1)
+    def align(vector: Vector[F]): (Tree[F, V], Vector[F]) = {
         
-        List((v1,c1),(v2,c2)).sortBy(_._1.normal*vector.normal) match {
-            case List((v2,c2),(v1,c1)) => (new Node[F,V](c1,c2),v2)
+        val List(cd2,cd1) = List(child1,child2).sortBy(_.average.normal * vector.normal)
+        
+        val (c1, v1) = cd1.align(vector)
+        val (c2, v2) = cd2.align(v1)
+
+        (new Node[F, V](c1, c2), v2)
+
+/*        List((v1, c1), (v2, c2)).sortBy(_._1.normal * vector.normal) match {
+            case List((v2, c2), (v1, c1)) => (new Node[F, V](c1, c2), v2)
         }
-    } 
-    
+*/    }
+
     @tailrec
-    final def rectify(n: Int = 1): Node[F,V] = if (n > 0) this.random() match {
+    final def rectify(n: Int = 1): Node[F, V] = if (n > 0) this.random() match {
         case (leaf, tree) => (tree + (leaf.average, leaf.value)).rectify(n - 1)
-    } else this
+    }
+    else this
 }
 
 class TreeApproximatorLeaf[F, V](val average: Vector[F], val value: V)
@@ -171,5 +177,5 @@ class TreeApproximatorLeaf[F, V](val average: Vector[F], val value: V)
     def path(vector: Vector[F]): Stream[Int] = Stream()
     def reinsert(): TreeApproximator.Leaf[F, V] = this
     //    override def toString = average.toString
-    def align(vector : Vector[F]) : (Tree[F,V],Vector[F]) = (this,average)
+    def align(vector: Vector[F]): (Tree[F, V], Vector[F]) = (this, average)
 }

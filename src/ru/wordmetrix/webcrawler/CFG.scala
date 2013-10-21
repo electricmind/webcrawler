@@ -22,7 +22,7 @@ object CFG {
         "sigma" -> 1.0)
 
     def apply(): CFG = this(List())
-
+    
     def apply(args: Array[String]): CFG = CFG(args.toList)
 
     def apply(list: List[String], map: Map[String, Any] = default,
@@ -100,7 +100,6 @@ object debug {
     def time[B](s : String)(f : => B)(implicit cfg : CFG) : B = {
         val t = System.currentTimeMillis() 
         val outcome = f
-        println(outcome.asInstanceOf[TreeApproximator[Int,Int]].n)
         apply("%s : %d".format(s,(System.currentTimeMillis() - t) / 1))
         outcome
     }

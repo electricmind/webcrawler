@@ -44,7 +44,7 @@ object ArrangeText extends App {
         def tree = vectors.foldLeft(TreeApproximator(vectors.next))({
             case (tree, (vector, filename)) => {
                 debug.time("%s %d tree(%s).energy => %4.3f, length = %d / %d".format(
-                    (System.currentTimeMillis() - t)/1000,
+                    (System.currentTimeMillis() - t)/10,
                     tree.n,
                     filename,
                     tree.energy2,
@@ -57,7 +57,7 @@ object ArrangeText extends App {
             }
         })
 
-        def tree_opt = (1 to 20).foldLeft(tree.asInstanceOf[Node[Word, File]])({
+        def tree_opt = (1 to 5).foldLeft(tree.asInstanceOf[Node[Word, File]])({
             case (tree, n) =>
                 debug.time("Rectifying #%3d = %4.3f %d".format(
                     n, tree.energy2, tree.average.size)

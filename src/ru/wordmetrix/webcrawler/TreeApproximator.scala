@@ -77,7 +77,7 @@ trait TreeApproximator[F, V] {
 
     //    def reinsert(): TreeApproximator.Leaf[F, V]
 
-    // TODO: implement align method.
+    
     def align(v: Vector[F]): (Tree[F, V], Vector[F])
     def align()(implicit ord: Ordering[F]): (Tree[F, V], Vector[F]) = align(Vector[F]())
 }

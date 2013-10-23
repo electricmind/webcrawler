@@ -23,7 +23,7 @@ object TreeApproximator {
         })
     }
 
-    class Iterator[F, V](root: Tree[F, V]) extends collection.Iterator[Leaf[F, V]] {
+    class Iterator[F, V](root: Tree[F, V]) extends collection.Iterator[(Vector[F], V)] {
         var state: State[F, V] = root match {
             case node: Node[F, V] => godown(node)
             case leaf: Leaf[F, V] => (Some(leaf), List())
@@ -53,11 +53,11 @@ object TreeApproximator {
                     (None, List())
             }
 
-            next
+            (next.average,next.value)
         }
     }
 }
-
+// TODO: Iterate through pairs (key, value)
 trait TreeApproximator[F, V] {
     val average: Vector[F] // = null //TODO : Create an ability to have empty vectors
 
@@ -66,7 +66,7 @@ trait TreeApproximator[F, V] {
     def apply(average: Vector[F]): V
     def energy: Double
     def energy2: Double
-    def iterator: collection.Iterator[TreeApproximator.Leaf[F, V]] =
+    def iterator: collection.Iterator[(Vector[F],V)] =
         new TreeApproximator.Iterator[F, V](this)
 
     def /(n: Int): TreeApproximator[F, V]
@@ -85,7 +85,7 @@ trait TreeApproximator[F, V] {
 class TreeApproximatorNode[F, V](val child1: TreeApproximator[F, V],
                                  val child2: TreeApproximator[F, V])
         extends TreeApproximator[F, V]
-        with Iterable[TreeApproximator.Leaf[F, V]] {
+        with Iterable[(Vector[F], V)] {
     val average = (child1.average + child2.average) clearMinors(4000)
 
     val n = child1.n + child2.n
@@ -104,8 +104,8 @@ class TreeApproximatorNode[F, V](val child1: TreeApproximator[F, V],
 
     def energy = {
         this.iterator.toList.combinations(2).foldLeft((0, 0d))({
-            case ((n, e), x :: y :: List()) =>
-                (n + 1, e + (x.average - y.average).norm)
+            case ((n, e), (x,_) :: (y,_) :: List()) =>
+                (n + 1, e + (x - y).norm)
         }) match { case (e, n) => e / n }
     }
 

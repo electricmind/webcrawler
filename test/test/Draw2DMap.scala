@@ -111,11 +111,13 @@ object Draw2DMap extends SimpleSwingApplication {
 
             def yp(y: Double) = (y / 4 * size.height + size.height / 2).toInt
 
-            def point(tree: Tree[Int, Int]) = {
-                (tree.average / tree.n).toMap.withDefaultValue(0.0) match {
+            def point(node : Tree[Int,Int]): (Int,Int) = point(node.average,node.n) 
+            def point(vector: Vector[Int], n : Int) : (Int,Int) = point(vector/n)
+            def point(vector :Vector[Int]) = 
+                vector.toMap.withDefaultValue(0.0) match {
                     case v => (xp(v(1)), yp(v(2)))
                 }
-            }
+            
 
             def drawNode(tree: Tree[Int, Int])(implicit g: Graphics2D): (Int, Int, Int) = {
                 val (x, y) = point(tree)
@@ -162,7 +164,9 @@ object Draw2DMap extends SimpleSwingApplication {
                 g.drawString(""" - Right - to decrease dispersy""", 10, 340)
                 g.drawString(""" - Escape - to restart""", 10, 370)
                 showalign match {
-                    case true => tree.map(x => (x.average, point(x))).sliding(2).foldLeft((colors.next, 0d, List[Double]()))({
+                    case true => tree.map({
+                        case (average,_) => (average, point(average))
+                }).sliding(2).foldLeft((colors.next, 0d, List[Double]()))({
                         case ((color, distance, l), List((v1, (x1, y1)), (v2, (x2, y2)))) => {
                             val d = (v2 - v1).norm
                             println(l)

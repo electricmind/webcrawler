@@ -218,15 +218,15 @@ class testTreeApproximator extends FlatSpec with Matchers {
 
     "An align"  should "align" in {
         val tree = (TreeApproximator(v3 -> 3) + (v6, 6) + (v14, 14) + (v30,30) + (v60,60)).rectify(10).align()._1.asInstanceOf[TreeApproximatorNode[Int,Int]]
-        println(tree.map(_.value))
+        println(tree.map(_._2))
         println(tree / 1 / 1 average)
         println(tree / 1 / 2 average)
         println(tree / 2 / 1 average)
         println(tree / 2 / 2 average)
         println(tree / 2 / 2 / 1 average)
         println(tree / 2 / 2 / 2 average)
-        for ( leaf <- tree) {
-            println(leaf.average)
+        for ( (average,_) <- tree) {
+            println(average)
         }
     }
 }

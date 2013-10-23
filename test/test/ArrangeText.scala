@@ -51,18 +51,20 @@ object ArrangeText extends App {
                 new File(x))
             )
         })
+        
         val t = System.currentTimeMillis()
         def tree = vectors.foldLeft(TreeApproximator(vectors.next))({
             case (tree, (vector, filename)) => {
-                debug.time("%s %d tree(%s).energy => %4.3f, length = %d / %d".format(
+                debug.time("%s %d %s tree(%s).energy => %4.3f, length = %d / %d".format(
                     (System.currentTimeMillis() - t)/10,
                     tree.n,
+                    string2word.map.size,
                     filename,
                     tree.energy2,
                     vector.size,
                     tree.average.size)
                 ) {
-                    tree + (vector, filename)
+                    (tree + (vector, filename)).asInstanceOf[TreeApproximator.Node[Word,File]].rectify(2)
                 }
 
             }

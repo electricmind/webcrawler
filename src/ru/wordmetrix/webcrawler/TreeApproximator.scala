@@ -15,7 +15,8 @@ object TreeApproximator {
     type Leaf[F, V] = TreeApproximatorLeaf[F, V]
     type Tree[F, V] = TreeApproximator[F, V]
     type State[F, V] = (Option[Leaf[F, V]], List[Tree[F, V]])
-
+    
+    
     def apply[F, V](vs: (Vector[F], V)*) = vs.toList match {
         case (v, value) :: vs => vs.foldLeft[TreeApproximator[F, V]](new TreeApproximatorLeaf[F, V](v, value))({
             case (tree, (vector, value)) => tree + (vector, value)
@@ -85,7 +86,7 @@ class TreeApproximatorNode[F, V](val child1: TreeApproximator[F, V],
                                  val child2: TreeApproximator[F, V])
         extends TreeApproximator[F, V]
         with Iterable[TreeApproximator.Leaf[F, V]] {
-    val average = child1.average + child2.average
+    val average = (child1.average + child2.average) clearMinors(4000)
 
     val n = child1.n + child2.n
 

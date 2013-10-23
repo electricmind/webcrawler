@@ -10,7 +10,8 @@ import scala.util.Random.nextGaussian
 import java.awt.Paint
 import java.awt.BasicStroke
 import scala.swing.event.Key._
-
+// TODO: Select cluster by mouse pointer
+// TODO: try paint all clusters inot different tinges.
 object Draw2DMap extends SimpleSwingApplication {
 
     val colors = Iterator.iterate(List(

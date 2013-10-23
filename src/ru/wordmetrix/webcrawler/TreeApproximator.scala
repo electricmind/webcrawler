@@ -57,7 +57,7 @@ object TreeApproximator {
         }
     }
 }
-// TODO: Iterate through pairs (key, value)
+
 trait TreeApproximator[F, V] {
     val average: Vector[F] // = null //TODO : Create an ability to have empty vectors
 

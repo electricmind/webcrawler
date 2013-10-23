@@ -13,6 +13,12 @@ import scala.swing.event.Key._
 
 object Draw2DMap extends SimpleSwingApplication {
 
+    val colors = Iterator.iterate(List(
+        Color.red, Color.orange, Color.yellow,
+        Color.green, Color.blue, Color.magenta))({
+        case color :: colors => colors :+ color
+    }).map(_.head)
+
     def generate2tree1(d: Double, n: Int, dimension: Int) = (1 until n)
         .map(x => 2 * (x % 2) - 1)
         .map(x => List((x, 1, 1), (x, -1, 1))).flatten
@@ -129,7 +135,8 @@ object Draw2DMap extends SimpleSwingApplication {
                     }
                     case leaf: Leaf[Int, Int] =>
                         g.setStroke(new BasicStroke(1))
-                        g.drawOval(x - 5, y - 5, 11, 11)
+                        val r = (3*(tree.average / tree.n).toMap.withDefaultValue(0.0)(3)).toInt + 5
+                        g.drawOval(x - r, y - r, r*2+1, r*2+1)
                         //                        g.drawString(leaf.value.toString, xp(x * 1.2), yp(y * 1.2))
                         1
                 }
@@ -155,12 +162,40 @@ object Draw2DMap extends SimpleSwingApplication {
                 g.drawString(""" - Right - to decrease dispersy""", 10, 340)
                 g.drawString(""" - Escape - to restart""", 10, 370)
                 showalign match {
-                    case true => for (List((x1, y1), (x2, y2)) <- tree.map(point).sliding(2)) {
-                        g.setStroke(new BasicStroke(1))
-                        g.drawLine(x1, y1, x2, y2)
-                        g.drawOval(x1 - 5, y1 - 5, 11, 11)
-                        g.drawOval(x2 - 5, y2 - 5, 11, 11)
-                    }
+                    case true => tree.map(x => (x.average, point(x))).sliding(2).foldLeft((colors.next, 0d, List[Double]()))({
+                        case ((color, distance, l), List((v1, (x1, y1)), (v2, (x2, y2)))) => {
+                            val d = (v2 - v1).norm
+                            println(l)
+                             val (c, da, l1) = if (l.length < 3) {
+                                g.setColor(color)
+                                (color, d + distance, d :: l)
+                            } else {
+                                val av = l.reduce(_ + _) / l.length
+                                val sigma = Math.pow(l.map(x => (x - av) * (x - av)).reduce(_ + _) / l.length, 0.5)
+                                if (d - av < sigma*2) {
+                                    println("save " + d  + " " + av + " " + sigma)
+                                    g.setColor(color)
+                                    (color, d + distance, d :: l)
+                                } else {
+                                    println("new  " + d  + " " + av + " " + sigma
+                                            )
+                                    g.setColor(Color.black)
+                                    (colors.next, d, List())
+                                }
+                            }
+                            g.setStroke(new BasicStroke(1))
+                            g.drawLine(x1, y1, x2, y2)
+                            val r1 = (3*(v1.normal).toMap.withDefaultValue(0.0)(3)).toInt + 5
+                        g.drawOval(x1 - r1, y1 - r1, r1*2+1, r1*2+1)
+                        
+                            val r2 = (3*(v1.normal).toMap.withDefaultValue(0.0)(3)).toInt + 5
+                            //g.drawOval(x1 - 5, y1 - 5, 11, 11)
+//                            g.drawOval(x2 - 5, y2 - 5, 11, 11)
+                                                    g.drawOval(x1 - r2, y1 - r2, r2*2+1, r2*2+1)
+
+                            (c, da, l1)
+                        }
+                    })
                     case false => drawNode(tree)(g)
                 }
             }

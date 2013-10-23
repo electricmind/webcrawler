@@ -2,11 +2,21 @@ package test
 import ru.wordmetrix.webcrawler.{ Vector, TreeApproximator, debug, CFG }
 import TreeApproximator._
 import java.io._
-//TODO: Try to use integers ids instead of words
 object ArrangeText extends App {
     implicit lazy val cfg = CFG(List("-d"))
-    type Word = String
+    type Word = Int
     implicit lazy val accuracy: Double = 0.01
+    
+    object string2word {
+        var map = Map[String,Word]()
+        val words = Iterator.from(10)
+        def apply(s : String) = {
+            val word = map.getOrElse(s, words.next)
+            map = map + (s -> word)
+            word
+        }
+    }
+    
     def arrange(tree: Tree[Word, File], path: File): Unit = tree match {
         case node: Node[Word, File] => {
             arrange(node.child1, new File(path, "1"))
@@ -31,11 +41,12 @@ object ArrangeText extends App {
         val Array(target, files @ _*) = args
 
         def vectors = files.toIterator.map(x => {
-            /*println(x);*/ ((Vector(
+            ((Vector(
                 io.Source.fromFile(x).getLines().map(delimiter.split).flatten
-                    .toList.groupBy(x => x.toLowerCase())
+                    .toList.groupBy(x =>                         x.toLowerCase())
                     .map({ case (x, y) => (x, y.length.toDouble) })
                     .filter(_._2 > 5)
+                    .map({case (x,y) => string2word(x) -> y })
                     .toList),
                 new File(x))
             )

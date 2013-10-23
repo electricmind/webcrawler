@@ -35,13 +35,13 @@ class testTreeApproximator extends FlatSpec with Matchers {
     }
 
     "A leaf" should "return the same vector" in {
-        TreeApproximator(v1 -> 1)(v1) should be(1)
-        TreeApproximator(v1 -> 1)(v2) should be(1)
-        TreeApproximator(v1 -> 1)(v3) should be(1)
+        TreeApproximator(v1 -> 1)(Ordering[Int])(v1) should be(1)
+        TreeApproximator(v1 -> 1)(Ordering[Int])(v2) should be(1)
+        TreeApproximator(v1 -> 1)(Ordering[Int])(v3) should be(1)
 
-        TreeApproximator(v2 -> 2)(v1) should be(2)
-        TreeApproximator(v2 -> 2)(v2) should be(2)
-        TreeApproximator(v2 -> 2)(v3) should be(2)
+        TreeApproximator(v2 -> 2)(Ordering[Int])(v1) should be(2)
+        TreeApproximator(v2 -> 2)(Ordering[Int])(v2) should be(2)
+        TreeApproximator(v2 -> 2)(Ordering[Int])(v3) should be(2)
     }
 
     "A node" should "be created from two vectors" in {

@@ -17,11 +17,10 @@ object TreeApproximator {
     type Tree[F, V] = TreeApproximator[F, V]
     type State[F, V] = (Option[Leaf[F, V]], List[Tree[F, V]])
 
-    def apply[F, V](vs: (Vector[F], V)*) = vs.toList match {
-        case (v, value) :: vs => vs.foldLeft[TreeApproximator[F, V]](new TreeApproximatorLeaf[F, V](v, value))({
+    def apply[F, V](vs: (Vector[F], V)*)(implicit ord : Ordering[F]) : Tree[F,V] = 
+        vs.foldLeft[TreeApproximator[F, V]](new TreeApproximatorEmpty[F, V]())({
             case (tree, (vector, value)) => tree + (vector, value)
         })
-    }
 
     class Iterator[F, V](root: Tree[F, V]) extends collection.Iterator[(Vector[F], V)] {
         var state: State[F, V] = root match {
@@ -59,7 +58,7 @@ object TreeApproximator {
 }
 
 trait TreeApproximator[F, V] extends Iterable[(Vector[F], V)] {
-    val average: Vector[F] // = null //TODO : Create an ability to have empty vectors
+    val average: Vector[F] //= Vector[F]() // = null //TODO : Create an ability to have empty vectors
 
     def +(vector: Vector[F], value: V): Tree[F, V] //= new TreeApproximatorLeaf(vector,value)
     val n: Int // = 0

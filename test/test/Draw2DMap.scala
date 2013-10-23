@@ -19,23 +19,27 @@ object Draw2DMap extends SimpleSwingApplication {
         case color :: colors => colors :+ color
     }).map(_.head)
 
-    def generate2tree1(d: Double, n: Int, dimension: Int) = (1 until n)
-        .map(x => 2 * (x % 2) - 1)
-        .map(x => List((x, 1, 1), (x, -1, 1))).flatten
-        .map({
-            case (x, y, z) => (
-                (3 to dimension).map(
-                    dim => Vector(dim -> (nextGaussian * d + x))
-                ).fold(Vector(
-                        1 -> (nextGaussian * d + x),
-                        2 -> (nextGaussian * d + y)
-                    ))(_ + _)
-                .normal, x)
-        }).foldLeft(TreeApproximator[Int, Int]((Vector[Int](1 -> 1d), 0)))({
-            case (tree, (key, value)) =>
-                tree + (key, value)
-        }).asInstanceOf[TreeApproximatorNode[Int, Int]]
+    def randomVector(d: Double, dimension: Int, av: Vector[Int]) =
+        ((3 to dimension).map(
+            dim => Vector(dim -> (nextGaussian * d))
+        ).fold(Vector(
+                1 -> (nextGaussian * d),
+                2 -> (nextGaussian * d)
+            ))(_ + _) + av).normal
 
+    def generate2tree1(d: Double, n: Int, dimension: Int, nc: Int = 4) = {
+
+        val centroids = (1 to nc).map(
+            x => randomVector(100d, dimension, Vector[Int]())).toArray
+
+        (1 until n)
+            .map(_ % nc)
+            .map(x => (randomVector(d, dimension, centroids(x)),x))
+            .foldLeft(TreeApproximator[Int, Int]())({
+                case (tree, (key, value)) =>
+                    tree + (key, value)
+            })
+    }
     def top = new MainFrame {
         title = "Convert Celsius / Fahrenheit"
         var n = 50
@@ -81,7 +85,7 @@ object Draw2DMap extends SimpleSwingApplication {
             }
 
             case KeyReleased(_, Space, 128, _) => {
-                tree = tree.align(Vector(1 -> 1.0))._1.asInstanceOf[Node[Int, Int]]
+                tree = tree.align(Vector(1 -> 1.0))._1
                 println("align")
                 repaint()
             }
@@ -111,13 +115,12 @@ object Draw2DMap extends SimpleSwingApplication {
 
             def yp(y: Double) = (y / 4 * size.height + size.height / 2).toInt
 
-            def point(node : Tree[Int,Int]): (Int,Int) = point(node.average,node.n) 
-            def point(vector: Vector[Int], n : Int) : (Int,Int) = point(vector/n)
-            def point(vector :Vector[Int]) = 
+            def point(node: Tree[Int, Int]): (Int, Int) = point(node.average, node.n)
+            def point(vector: Vector[Int], n: Int): (Int, Int) = point(vector / n)
+            def point(vector: Vector[Int]) =
                 vector.toMap.withDefaultValue(0.0) match {
                     case v => (xp(v(1)), yp(v(2)))
                 }
-            
 
             def drawNode(tree: Tree[Int, Int])(implicit g: Graphics2D): (Int, Int, Int) = {
                 val (x, y) = point(tree)
@@ -137,8 +140,8 @@ object Draw2DMap extends SimpleSwingApplication {
                     }
                     case leaf: Leaf[Int, Int] =>
                         g.setStroke(new BasicStroke(1))
-                        val r = (3*(tree.average / tree.n).toMap.withDefaultValue(0.0)(3)).toInt + 5
-                        g.drawOval(x - r, y - r, r*2+1, r*2+1)
+                        val r = (3 * (tree.average / tree.n).toMap.withDefaultValue(0.0)(3)).toInt + 5
+                        g.drawOval(x - r, y - r, r * 2 + 1, r * 2 + 1)
                         //                        g.drawString(leaf.value.toString, xp(x * 1.2), yp(y * 1.2))
                         1
                 }
@@ -165,37 +168,37 @@ object Draw2DMap extends SimpleSwingApplication {
                 g.drawString(""" - Escape - to restart""", 10, 370)
                 showalign match {
                     case true => tree.map({
-                        case (average,_) => (average, point(average))
-                }).sliding(2).foldLeft((colors.next, 0d, List[Double]()))({
+                        case (average, _) => (average, point(average))
+                    }).sliding(2).foldLeft((colors.next, 0d, List[Double]()))({
                         case ((color, distance, l), List((v1, (x1, y1)), (v2, (x2, y2)))) => {
                             val d = (v2 - v1).norm
                             println(l)
-                             val (c, da, l1) = if (l.length < 3) {
+                            val (c, da, l1) = if (l.length < 3) {
                                 g.setColor(color)
                                 (color, d + distance, d :: l)
                             } else {
                                 val av = l.reduce(_ + _) / l.length
                                 val sigma = Math.pow(l.map(x => (x - av) * (x - av)).reduce(_ + _) / l.length, 0.5)
-                                if (d - av < sigma*2) {
-                                    println("save " + d  + " " + av + " " + sigma)
+                                if (d - av < sigma * 2) {
+                                    println("save " + d + " " + av + " " + sigma)
                                     g.setColor(color)
                                     (color, d + distance, d :: l)
                                 } else {
-                                    println("new  " + d  + " " + av + " " + sigma
-                                            )
+                                    println("new  " + d + " " + av + " " + sigma
+                                    )
                                     g.setColor(Color.black)
                                     (colors.next, d, List())
                                 }
                             }
                             g.setStroke(new BasicStroke(1))
                             g.drawLine(x1, y1, x2, y2)
-                            val r1 = (3*(v1.normal).toMap.withDefaultValue(0.0)(3)).toInt + 5
-                        g.drawOval(x1 - r1, y1 - r1, r1*2+1, r1*2+1)
-                        
-                            val r2 = (3*(v1.normal).toMap.withDefaultValue(0.0)(3)).toInt + 5
+                            val r1 = (3 * (v1.normal).toMap.withDefaultValue(0.0)(3)).toInt + 5
+                            g.drawOval(x1 - r1, y1 - r1, r1 * 2 + 1, r1 * 2 + 1)
+
+                            val r2 = (3 * (v1.normal).toMap.withDefaultValue(0.0)(3)).toInt + 5
                             //g.drawOval(x1 - 5, y1 - 5, 11, 11)
-//                            g.drawOval(x2 - 5, y2 - 5, 11, 11)
-                                                    g.drawOval(x1 - r2, y1 - r2, r2*2+1, r2*2+1)
+                            //                            g.drawOval(x2 - 5, y2 - 5, 11, 11)
+                            g.drawOval(x1 - r2, y1 - r2, r2 * 2 + 1, r2 * 2 + 1)
 
                             (c, da, l1)
                         }

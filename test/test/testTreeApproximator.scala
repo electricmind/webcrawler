@@ -45,18 +45,19 @@ class testTreeApproximator extends FlatSpec with Matchers {
     }
 
     "A node" should "be created from two vectors" in {
+        
         t12.average should be(v1 + v2)
         t12.n should be(2)
 
-        t12.child1.value should be(1)
-        t12.child2.value should be(2)
+        (t12 / 1).value should be(1)
+        (t12 / 2).value should be(2)
 
-        t12.child1.average should be(v1)
-        t12.child2.average should be(v2)
+        (t12 / 1).average should be(v1)
+        (t12 / 2).average should be(v2)
     }
 
     "A node's nearest" should "return nearest leaf" in {
-        val t12 = (TreeApproximator(v1 -> 1) + (v2, 2))
+        val t12 = (TreeApproximator(v1 -> 1) + (v2, 2)).asInstanceOf[TreeApproximatorNode[Int,Int]]
         t12.nearest(v1).head.average should be(v1)
         t12.nearest(v1).head.value should be(1)
     }
@@ -66,14 +67,14 @@ class testTreeApproximator extends FlatSpec with Matchers {
 
         t243.n should be(3)
 
-        t243.child2.value should be(4)
+        (t243 / 2).value should be(4)
 
         (t243 / 1 / 1).value should be(2)
 
         (t243 / 1 / 2).value should be(3)
 
-        t243.child2.average should be(v4)
-        t243.child1.average should be(v2 + v3)
+        (t243 / 2).average should be(v4)
+        (t243 / 1).average should be(v2 + v3)
     }
 
     "A tree-4" should "be created from four vectors" in {
@@ -87,8 +88,8 @@ class testTreeApproximator extends FlatSpec with Matchers {
         (t630731 / 2 / 1).value should be(30)
         (t630731 / 2 / 2).value should be(31)
 
-        t630731.child1.average should be(v6 + v7)
-        t630731.child2.average should be(v30 + v31)
+        (t630731 / 1).average should be(v6 + v7)
+        (t630731 / 2).average should be(v30 + v31)
     }
 
     "A tree-4" should "make right look up" in {

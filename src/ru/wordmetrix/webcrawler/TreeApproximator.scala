@@ -7,16 +7,16 @@ import scala.annotation.tailrec
 
 //TODO: add diversity computation 
 //TODO: Compute energy during changing an item
-//TODO: make empty tree :) to simplify initialization
+
 
 object TreeApproximator {
 
     type Node[F, V] = TreeApproximatorNode[F, V]
+    type Empty[F, V] = TreeApproximatorEmpty[F, V]
     type Leaf[F, V] = TreeApproximatorLeaf[F, V]
     type Tree[F, V] = TreeApproximator[F, V]
     type State[F, V] = (Option[Leaf[F, V]], List[Tree[F, V]])
-    
-    
+
     def apply[F, V](vs: (Vector[F], V)*) = vs.toList match {
         case (v, value) :: vs => vs.foldLeft[TreeApproximator[F, V]](new TreeApproximatorLeaf[F, V](v, value))({
             case (tree, (vector, value)) => tree + (vector, value)
@@ -53,22 +53,23 @@ object TreeApproximator {
                     (None, List())
             }
 
-            (next.average,next.value)
+            (next.average, next.value)
         }
     }
 }
 
-trait TreeApproximator[F, V] {
+trait TreeApproximator[F, V] extends Iterable[(Vector[F], V)] {
     val average: Vector[F] // = null //TODO : Create an ability to have empty vectors
 
-    def +(vector: Vector[F], value: V): TreeApproximatorNode[F, V] //= new TreeApproximatorLeaf(vector,value)
+    def +(vector: Vector[F], value: V): Tree[F, V] //= new TreeApproximatorLeaf(vector,value)
     val n: Int // = 0
     def apply(average: Vector[F]): V
     def energy: Double
     def energy2: Double
-    def iterator: collection.Iterator[(Vector[F],V)] =
+    def iterator: collection.Iterator[(Vector[F], V)] =
         new TreeApproximator.Iterator[F, V](this)
 
+    
     def /(n: Int): TreeApproximator[F, V]
 
     def path(vector: Vector[F]): Stream[Int]
@@ -76,17 +77,30 @@ trait TreeApproximator[F, V] {
     def value: V
 
     //    def reinsert(): TreeApproximator.Leaf[F, V]
-
-    
+    def rectify(n: Int): Tree[F, V] // = this
     def align(v: Vector[F]): (Tree[F, V], Vector[F])
     def align()(implicit ord: Ordering[F]): (Tree[F, V], Vector[F]) = align(Vector[F]())
+}
+
+class TreeApproximatorEmpty[F, V](implicit ord: Ordering[F]) extends TreeApproximator[F, V] {
+    def /(n: Int): Tree[F, V] = this
+    def +(vector: Vector[F], value: V): Tree[F, V] = new Leaf(vector, value)
+    def align(v: Vector[F]): (Tree[F, V], Vector[F]) = (this, Vector[F]())
+    def apply(average: Vector[F]): V = value
+    val average: Vector[F] = Vector[F]()
+    def energy: Double = 0d
+    def energy2: Double = 0d
+    val n: Int = 0
+    def path(vector: ru.wordmetrix.webcrawler.Vector[F]): Stream[Int] = Stream()
+    def value: V = ???
+    def rectify(n : Int) = this
 }
 
 class TreeApproximatorNode[F, V](val child1: TreeApproximator[F, V],
                                  val child2: TreeApproximator[F, V])
         extends TreeApproximator[F, V]
-        with Iterable[(Vector[F], V)] {
-    val average = (child1.average + child2.average) clearMinors(4000)
+         {
+    val average = (child1.average + child2.average) clearMinors (4000)
 
     val n = child1.n + child2.n
 
@@ -104,7 +118,7 @@ class TreeApproximatorNode[F, V](val child1: TreeApproximator[F, V],
 
     def energy = {
         this.iterator.toList.combinations(2).foldLeft((0, 0d))({
-            case ((n, e), (x,_) :: (y,_) :: List()) =>
+            case ((n, e), (x, _) :: (y, _) :: List()) =>
                 (n + 1, e + (x - y).norm)
         }) match { case (e, n) => e / n }
     }
@@ -125,9 +139,24 @@ class TreeApproximatorNode[F, V](val child1: TreeApproximator[F, V],
 
     def value = throw new java.lang.ArrayIndexOutOfBoundsException()
 
-    def random(): (Leaf[F, V], Tree[F, V]) = {
+    def align(vector: Vector[F]): (Tree[F, V], Vector[F]) = {
+
+        val List(cd2, cd1) = List(child1, child2).sortBy(_.average.normal * vector.normal)
+
+        val (c1, v1) = cd1.align(vector)
+        val (c2, v2) = cd2.align(v1)
+
+        (new Node[F, V](c1, c2), v2)
+
+        /*        List((v1, c1), (v2, c2)).sortBy(_._1.normal * vector.normal) match {
+            case List((v2, c2), (v1, c1)) => (new Node[F, V](c1, c2), v2)
+        }
+*/ }
+
+    final def random(): (Tree[F, V], Tree[F, V]) = {
         if (scala.util.Random.nextInt(n) < child1.n) {
             child1 match {
+                
                 case leaf: Leaf[F, V] => (leaf, child2)
                 case node: Node[F, V] => node.random() match {
                     case (leaf, node) => (leaf, new Node[F, V](node, child2))
@@ -143,23 +172,11 @@ class TreeApproximatorNode[F, V](val child1: TreeApproximator[F, V],
         }
     }
 
-    def align(vector: Vector[F]): (Tree[F, V], Vector[F]) = {
-        
-        val List(cd2,cd1) = List(child1,child2).sortBy(_.average.normal * vector.normal)
-        
-        val (c1, v1) = cd1.align(vector)
-        val (c2, v2) = cd2.align(v1)
-
-        (new Node[F, V](c1, c2), v2)
-
-/*        List((v1, c1), (v2, c2)).sortBy(_._1.normal * vector.normal) match {
-            case List((v2, c2), (v1, c1)) => (new Node[F, V](c1, c2), v2)
-        }
-*/    }
-
     @tailrec
     final def rectify(n: Int = 1): Node[F, V] = if (n > 0) this.random() match {
-        case (leaf, tree) => (tree + (leaf.average, leaf.value)).rectify(n - 1)
+        case (leaf, tree) => (tree + (leaf.average, leaf.value)) match {
+            case node : Node[F,V] => node.rectify(n - 1)
+        }
     }
     else this
 }
@@ -178,4 +195,5 @@ class TreeApproximatorLeaf[F, V](val average: Vector[F], val value: V)
     def reinsert(): TreeApproximator.Leaf[F, V] = this
     //    override def toString = average.toString
     def align(vector: Vector[F]): (Tree[F, V], Vector[F]) = (this, average)
+    def rectify(n : Int) = this
 }

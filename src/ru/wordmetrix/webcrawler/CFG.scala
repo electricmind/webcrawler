@@ -96,7 +96,11 @@ object debug {
     def apply(actor: CFGAware, format: String, p: Any*)(implicit cfg: CFG) = {
         if (cfg.isdebug) println("  - %20s: ".format(actor.name.slice(0, 20)) + format.format(p: _*))
     }
-    
+    def trace[B](s : String = "%s")(f : => B)(implicit cfg : CFG) : B = {
+        val outcome = f
+        apply(s,outcome)
+        outcome
+    }
     def time[B](s : String)(f : => B)(implicit cfg : CFG) : B = {
         val t = System.currentTimeMillis() 
         val outcome = f

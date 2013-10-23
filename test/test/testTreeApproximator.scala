@@ -116,9 +116,9 @@ class testTreeApproximator extends FlatSpec with Matchers {
             case (tree, (key, value)) =>
                 //                    println(key); 
                 tree + (key, value)
-        }).asInstanceOf[TreeApproximatorNode[Int, Int]]
+        })
 
-    def twoheadstest(d: Double, n: Int, gen: (Double, Int) => TreeApproximatorNode[Int, Int]) = {
+    def twoheadstest(d: Double, n: Int, gen: (Double, Int) => TreeApproximator[Int, Int]) = {
         val tree = gen(d, n)
 
         tree.n should be(n)
@@ -143,7 +143,7 @@ class testTreeApproximator extends FlatSpec with Matchers {
     ).foldLeft(TreeApproximator[Int, Int]((Vector[Int](1 -> 1d), 0)))({
             case (tree, (key, value)) =>
                 tree + (key, value)
-        }).asInstanceOf[TreeApproximatorNode[Int, Int]]
+        })
 
     "A random sequence tree" should "has two heads" in {
         val d = 100
@@ -218,7 +218,7 @@ class testTreeApproximator extends FlatSpec with Matchers {
     }
 
     "An align"  should "align" in {
-        val tree = (TreeApproximator(v3 -> 3) + (v6, 6) + (v14, 14) + (v30,30) + (v60,60)).rectify(10).align()._1.asInstanceOf[TreeApproximatorNode[Int,Int]]
+        val tree = (TreeApproximator(v3 -> 3) + (v6, 6) + (v14, 14) + (v30,30) + (v60,60)).rectify(10).align()._1
         println(tree.map(_._2))
         println(tree / 1 / 1 average)
         println(tree / 1 / 2 average)

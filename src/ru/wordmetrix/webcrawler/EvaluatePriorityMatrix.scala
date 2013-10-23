@@ -5,7 +5,8 @@ import WebCrawler.{ Seed, Word }
 import scala.collection.mutable.PriorityQueue
 import ActorDebug._
 
-class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2PriorityBase)(implicit cfg: CFG) extends Actor
+class EvaluatePriorityMatrix(storage: Storage,
+                             sample: SampleHierarchy2PriorityBase)(implicit cfg: CFG) extends Actor
         with CFGAware {
     override val name = "Evaluate . Matrix"
     type Priority = Double
@@ -32,11 +33,11 @@ class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2PriorityB
 
     var target = new TargetVector[String](n = cfg.targets)
 
-    var average =  new AverageVector[String]()
+    var average = new AverageVector[String]()
 
     var limit = 0.90
 
-    def calculate(factor: V, vectors: Map[Seed, (V, Set[Seed])]) = 
+    def calculate(factor: V, vectors: Map[Seed, (V, Set[Seed])]) =
         vectors.map({
             case (seed, (vector, seeds)) => {
                 val priority = vector * factor.normal
@@ -59,7 +60,7 @@ class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2PriorityB
     def enqueue(seeds: Set[Seed], seed: Seed, v: V) = {
         vectors = vectors + (seed -> (v, seeds))
         for (item <- seeds) {
-             val qq = (
+            val qq = (
                 item -> (
                     (combinepolicy(
                         priorities.getOrElse(
@@ -72,7 +73,7 @@ class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2PriorityB
                     )
                 )
             )
-//            this.log("QQ %s %s",qq._1,qq._2)
+            //            this.log("QQ %s %s",qq._1,qq._2)
             priorities = priorities + qq
         }
 
@@ -91,7 +92,7 @@ class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2PriorityB
         average = average + v
         target = target + (v, {
             this.debug("accepted %s with %s in %s", seed, v * target.average.normal, target.priority())
-             storage ! seed
+            storage ! seed
         })
 
         newfactor = target.normal - average.normal
@@ -124,7 +125,7 @@ class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2PriorityB
                     for (seed <- seeds) {
                         dispatcher ! seed
                     }
-                    
+
                     storage ! seed
                     1
                 }
@@ -142,7 +143,7 @@ class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2PriorityB
                     this.debug("target*central = %s",
                         target.normal * central)
 
-                        factor = newfactor
+                    factor = newfactor
                     enqueue(seeds, seed, v)
                     queue.clear()
 
@@ -154,7 +155,7 @@ class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2PriorityB
                         1
                     }
                 }
- 
+
                 case 2 => {
                     //Do work
                     this.log("Estimating phase,  attitude = %s, priority = %s, seed = %s",
@@ -169,7 +170,7 @@ class EvaluatePriorityMatrix(storage: Storage,sample : SampleHierarchy2PriorityB
                     enqueue(seeds, seed, v)
                     sample ! (seed, factor * v.normal)
                     2
-                } 
+                }
             }
 
             case dispatcher: Dispatcher => {

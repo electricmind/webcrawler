@@ -91,7 +91,8 @@ trait TreeApproximator[F, V] extends Iterable[(Vector[F], V)] {
     def energy: Double
     def energy_ : Double
     def energy2: Double
-    //    def dispersy : Double
+
+    def dispersion: Double
 
     def iterator: collection.Iterator[(Vector[F], V)] =
         new TreeApproximator.Iterator[F, V](this)
@@ -105,6 +106,9 @@ trait TreeApproximator[F, V] extends Iterable[(Vector[F], V)] {
     def rectify(n: Int): Tree[F, V] // = this
     def align(v: Vector[F]): (Tree[F, V], Vector[F])
     def align()(implicit ord: Ordering[F]): (Tree[F, V], Vector[F]) = align(Vector[F]())
+
+
+
 }
 
 class TreeApproximatorEmpty[F, V](implicit ord: Ordering[F]) extends TreeApproximator[F, V] {
@@ -113,9 +117,10 @@ class TreeApproximatorEmpty[F, V](implicit ord: Ordering[F]) extends TreeApproxi
     def align(v: Vector[F]): (Tree[F, V], Vector[F]) = (this, Vector[F]())
     def apply(average: Vector[F]): V = value
     val average: Vector[F] = Vector[F]()
-    def energy : Double = 0.0d
+    def energy: Double = 0.0d
     def energy_ : Double = 0.0d
-    
+    def dispersion = 0.0d
+
     def energy2: Double = 0d
     val n: Int = 0
     def path(vector: ru.wordmetrix.webcrawler.Vector[F]): Stream[Int] = Stream()
@@ -130,6 +135,16 @@ class TreeApproximatorNode[F, V](val child1: TreeApproximator[F, V],
 
     val n = child1.n + child2.n
 
+    val dispersion: Double = (child1, child2) match {
+        case (c1: Leaf[F, V], c2: Leaf[F, V]) => (c1.average - c2.average).sqr
+        //        case (leaf: Leaf[F, V], node: Node[F, V]) =>
+        //            (leaf.average - node.average).sqr + node.dispersion
+
+        //        case (node: Node[F, V], leaf: Leaf[F, V]) =>
+        //            (leaf.average - node.average).sqr + node.dispersion
+
+        case (c1, c2)                         => (c1.dispersion * c1.n + c2.dispersion * c2.n) / n
+    }
     def nearest(vector: Vector[F]) = List(child1, child2).map(xv =>
         (vector * xv.average.normal, xv)).sortBy(-_._1).map(_._2)
 
@@ -142,16 +157,15 @@ class TreeApproximatorNode[F, V](val child1: TreeApproximator[F, V],
     }
     def apply(vector: Vector[F]): V = nearest(vector).head(vector)
 
-    
     def energy = energy_ / n
-    
+
     lazy val energy_ = (
-        child1.energy_  +
-        child2.energy_  + {
+        child1.energy_ +
+        child2.energy_ + {
             for ((average1, _) <- child1; (average2, _) <- child2)
                 yield (average1 - average2).sqr
         }.sum
-    ) 
+    )
 
     def energy2 = {
         (child1.average.normal - child2.average.normal).norm + child1.energy2 + child2.energy2
@@ -216,6 +230,8 @@ class TreeApproximatorLeaf[F, V](val average: Vector[F], val value: V)
     def +(vector: Vector[F], value: V) = new TreeApproximatorNode[F, V](
         this, new TreeApproximatorLeaf[F, V](vector, value))
     val n = 1
+
+    def dispersion = 0.0d
 
     def apply(vector: Vector[F]): V = value
     def energy = 0.0

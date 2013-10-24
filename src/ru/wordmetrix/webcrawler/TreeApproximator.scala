@@ -88,8 +88,10 @@ trait TreeApproximator[F, V] extends Iterable[(Vector[F], V)] {
     def +(vector: Vector[F], value: V): Tree[F, V] //= new TreeApproximatorLeaf(vector,value)
     val n: Int // = 0
     def apply(average: Vector[F]): V
-    def energy: Double
+
+    def energy = Math.sqrt(energy_) / n / n
     def energy_ : Double
+    
     def energy2: Double
 
     def dispersion: Double
@@ -107,7 +109,24 @@ trait TreeApproximator[F, V] extends Iterable[(Vector[F], V)] {
     def align(v: Vector[F]): (Tree[F, V], Vector[F])
     def align()(implicit ord: Ordering[F]): (Tree[F, V], Vector[F]) = align(Vector[F]())
 
-
+    def cluster(v: Vector[F]) = {
+        val path : Stream[Int] = this.path(v)
+        def estimate(tree: Tree[F, V], path: Stream[Int]) : (Boolean,Tree[F,V], Double) = {
+            path match {
+                case n #:: m1 #:: m2 #:: m3 #:: Stream() => (true, tree, tree.energy)
+                case n #:: path => 
+                    val qq = estimate(tree / n, path)
+                    //println("!!!!",path,qq._1,qq._3,tree.n, tree.energy, tree.energy / qq._3)
+                    qq match {
+                    case (true, t, e) if 0.8 < tree.energy / e => (false, t, e)
+                    case (true, t, e)               => (true, tree, tree.energy)
+                    case (false, t, e)              => (false, t, e)
+                }
+            }
+        }
+        println(path.mkString(" / "))
+        estimate(this, path)._2
+    }
 
 }
 
@@ -117,7 +136,6 @@ class TreeApproximatorEmpty[F, V](implicit ord: Ordering[F]) extends TreeApproxi
     def align(v: Vector[F]): (Tree[F, V], Vector[F]) = (this, Vector[F]())
     def apply(average: Vector[F]): V = value
     val average: Vector[F] = Vector[F]()
-    def energy: Double = 0.0d
     def energy_ : Double = 0.0d
     def dispersion = 0.0d
 
@@ -157,7 +175,6 @@ class TreeApproximatorNode[F, V](val child1: TreeApproximator[F, V],
     }
     def apply(vector: Vector[F]): V = nearest(vector).head(vector)
 
-    def energy = energy_ / n
 
     lazy val energy_ = (
         child1.energy_ +
@@ -234,7 +251,6 @@ class TreeApproximatorLeaf[F, V](val average: Vector[F], val value: V)
     def dispersion = 0.0d
 
     def apply(vector: Vector[F]): V = value
-    def energy = 0.0
     def energy_ = 0.0
     def energy2 = 0.0
     def /(n: Int) = this

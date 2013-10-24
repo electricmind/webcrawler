@@ -10,6 +10,7 @@ import scala.util.Random.nextGaussian
 import java.awt.Paint
 import java.awt.BasicStroke
 import scala.swing.event.Key._
+import java.awt.Point
 // TODO: Select cluster by mouse pointer
 // TODO: try paint all clusters inot different tinges.
 object Draw2DMap extends SimpleSwingApplication {
@@ -35,7 +36,7 @@ object Draw2DMap extends SimpleSwingApplication {
 
         (1 until n)
             .map(_ % nc)
-            .map(x => (randomVector(d, dimension, centroids(x)),x))
+            .map(x => (randomVector(d, dimension, centroids(x)), x))
             .foldLeft(TreeApproximator[Int, Int]())({
                 case (tree, (key, value)) =>
                     tree + (key, value)
@@ -48,9 +49,10 @@ object Draw2DMap extends SimpleSwingApplication {
         var dimension = 3
         var tree = generate2tree1(dispersy, n, dimension)
         var showalign = false
+        var cluster = tree
+        var nearest = tree
 
         def regenerate() = {
-            println(dimension)
             tree = generate2tree1(dispersy, n, dimension)
             this.repaint()
         }
@@ -81,13 +83,19 @@ object Draw2DMap extends SimpleSwingApplication {
 
             case KeyPressed(_, Enter, _, _) => {
                 showalign = !showalign
-                println(showalign)
                 repaint()
             }
 
+            case MouseMoved(_, p, _) =>
+             
+                cluster = tree.cluster(Vector(1 -> px(p), 2 -> py(p)))
+                nearest = tree.path(Vector(1 -> px(p), 2 -> py(p))).foldLeft(tree) {
+                    case (tree, n) => tree / n
+                }
+                this.repaint()
+
             case KeyReleased(_, Space, 128, _) => {
                 tree = tree.align(Vector(1 -> 1.0))._1
-                println("align")
                 repaint()
             }
 
@@ -103,25 +111,29 @@ object Draw2DMap extends SimpleSwingApplication {
                 tree = tree.rectify(n / 4)
                 println("rectify")
                 this.repaint()
+
+//            case x              => println(x)
             case k: KeyPressed  => println(k)
             case k: KeyTyped    => println(k)
             case k: KeyReleased => println(k)
 
         }
+
+        def xp(x: Double) = (x / 4 * size.width + size.width / 2).toInt
+        def yp(y: Double) = (y / 4 * size.height + size.height / 2).toInt
+
+        def px(p: Point) = ((p.x - size.width / 2d) * 4d / size.width)
+        def py(p: Point) = ((p.y - size.height / 2d) * 4d / size.height)
+
+        def point(node: Tree[Int, Int]): (Int, Int) = point(node.average, node.n)
+        def point(vector: Vector[Int], n: Int): (Int, Int) = point(vector / n)
+        def point(vector: Vector[Int]) =
+            vector.toMap.withDefaultValue(0.0) match {
+                case v => (xp(v(1)), yp(v(2)))
+            }
         val draw = new Panel {
             background = Color.white
             maximize()
-
-            def xp(x: Double) = (x / 4 * size.width + size.width / 2).toInt
-
-            def yp(y: Double) = (y / 4 * size.height + size.height / 2).toInt
-
-            def point(node: Tree[Int, Int]): (Int, Int) = point(node.average, node.n)
-            def point(vector: Vector[Int], n: Int): (Int, Int) = point(vector / n)
-            def point(vector: Vector[Int]) =
-                vector.toMap.withDefaultValue(0.0) match {
-                    case v => (xp(v(1)), yp(v(2)))
-                }
 
             def drawNode(tree: Tree[Int, Int])(implicit g: Graphics2D): (Int, Int, Int) = {
                 val (x, y) = point(tree)
@@ -204,11 +216,31 @@ object Draw2DMap extends SimpleSwingApplication {
                             (c, da, l1)
                         }
                     })
-                    case false => drawNode(tree)(g)
+                    case false => {
+                        drawNode(tree)(g)
+                        def drawTree(node: Tree[Int, Int], color: Color) = {
+                            drawPoint(point(node),color)
+                        }
+
+                        def drawPoint(p: (Int, Int), color : Color) = p match {
+                            case (x, y) =>
+                                
+                                g.setColor(color)
+                                g.setStroke(new BasicStroke(4))
+
+                                g.drawOval(x - 3, y - 3, 7, 7)
+
+                        }
+                        drawTree(cluster, Color.green)
+                        cluster.foreach {
+                            case (v, _) => drawPoint(point(v), Color.cyan)
+                        }
+                        drawTree(nearest, Color.red)
+                    }
                 }
             }
         }
-        listenTo(draw.mouse.clicks, draw.keys)
+        listenTo(draw.mouse.clicks, draw.mouse.moves, draw.keys)
         draw.focusable = true
         contents = draw
 

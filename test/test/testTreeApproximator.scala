@@ -26,6 +26,21 @@ class testTreeApproximator extends FlatSpec with Matchers {
     lazy val t243 = (TreeApproximator(v2 -> 2) + (v4, 4) + (v3, 3))
     lazy val t630731 = (TreeApproximator(v6 -> 6) + (v30, 30) + (v31, 31) + (v7, 7))
 
+    "An energy" should "be implemented" in {
+        TreeApproximator[String, Int]().energy should be(0)
+        TreeApproximator(v1 -> 1).energy should be(0)
+        TreeApproximator(v1 -> 1, v2 -> 1).energy_ should be(2)
+        TreeApproximator(v1 -> 1, v2 -> 1, v3 -> 1).energy_ should be(1 + 1 + 2)
+        TreeApproximator(v1 -> 1, v2 -> 1, v3 -> 1, v4 -> 1).energy_ should
+            be(1 + 1 + 2 + 3 + 2 + 2)
+
+        TreeApproximator(v1 -> 1, v2 -> 1).energy should be(1)
+        TreeApproximator(v1 -> 1, v2 -> 1, v3 -> 1).energy should
+            be((1 + 1 + 2) / 3.)
+        TreeApproximator(v1 -> 1, v2 -> 1, v3 -> 1, v4 -> 1).energy should
+            be((1 + 1 + 2 + 3 + 2 + 2) / 4.)
+    }
+
     "A leaf " should "be created from one vector" in {
         TreeApproximator(v1 -> 1).average should be(v1)
         TreeApproximator(v1 -> 1).value should be(1)
@@ -45,7 +60,7 @@ class testTreeApproximator extends FlatSpec with Matchers {
     }
 
     "A node" should "be created from two vectors" in {
-        
+
         t12.average should be(v1 + v2)
         t12.n should be(2)
 
@@ -57,7 +72,7 @@ class testTreeApproximator extends FlatSpec with Matchers {
     }
 
     "A node's nearest" should "return nearest leaf" in {
-        val t12 = (TreeApproximator(v1 -> 1) + (v2, 2)).asInstanceOf[TreeApproximatorNode[Int,Int]]
+        val t12 = (TreeApproximator(v1 -> 1) + (v2, 2)).asInstanceOf[TreeApproximatorNode[Int, Int]]
         t12.nearest(v1).head.average should be(v1)
         t12.nearest(v1).head.value should be(1)
     }
@@ -203,6 +218,9 @@ class testTreeApproximator extends FlatSpec with Matchers {
     //        TreeApproximator(v1 -> 1).toIterator.size should be(1)
     //        println(TreeApproximator(v1 -> 1))
     //    }
+    "A leaf" should "have 1 items iterator" in {
+        TreeApproximator(Vector("A" -> 1.0) -> 1).size should be(1)
+    }
 
     "A node" should "have 2 items iterator" in {
         t12.toIterator.size should be(2)
@@ -217,8 +235,8 @@ class testTreeApproximator extends FlatSpec with Matchers {
         t630731.toIterator.size should be(4)
     }
 
-    "An align"  should "align" in {
-        val tree = (TreeApproximator(v3 -> 3) + (v6, 6) + (v14, 14) + (v30,30) + (v60,60)).rectify(10).align()._1
+    "An align" should "align" in {
+        val tree = (TreeApproximator(v3 -> 3) + (v6, 6) + (v14, 14) + (v30, 30) + (v60, 60)).rectify(10).align()._1
         println(tree.map(_._2))
         println(tree / 1 / 1 average)
         println(tree / 1 / 2 average)
@@ -226,7 +244,7 @@ class testTreeApproximator extends FlatSpec with Matchers {
         println(tree / 2 / 2 average)
         println(tree / 2 / 2 / 1 average)
         println(tree / 2 / 2 / 2 average)
-        for ( (average,_) <- tree) {
+        for ((average, _) <- tree) {
             println(average)
         }
     }

@@ -55,7 +55,9 @@ class Vector[F](val self: List[(F, Double)])(implicit accuracy: Double = 0.0001,
         new Vector(map({ case (x, y) => (x, y / z) }).toList)
     }
 
-    lazy val norm = Math.pow(map(_._2).map(Math.pow(_, 2)).sum, 0.5)
+    lazy val sqr = map(_._2).map(Math.pow(_, 2)).sum
+    val norm = Math.pow(sqr, 0.5)
+    
     def normal() = {
         this / norm
     }

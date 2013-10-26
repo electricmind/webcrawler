@@ -17,17 +17,13 @@ object Clusters {
     def average(x: scala.collection.immutable.Vector[Double]) = x.sum
 }
 import Clusters._
-/*
- * TODO: the problem that should be resolved is the distances are already diversities so dispersy computation should be simplified a lot
- */
+
 class Cluster[F](val vector: scala.collection.immutable.Vector[Vector[F]],
-                 val average: Double = 0d,
-                 val average_of_squares: Double = 0d) extends Iterable[Vector[F]] {
+                 val squares: Double = 0d) extends Iterable[Vector[F]] {
     def iterator = vector.iterator
 
     def this(vector: scala.collection.immutable.Vector[Vector[F]]) = this(
         vector.toVector,
-        average(pairs(vector).map({ case (x, y) => (x - y).norm }).toVector),
         average(pairs(vector).map({ case (x, y) => (x - y).sqr }).toVector)
     )
 
@@ -41,13 +37,11 @@ class Cluster[F](val vector: scala.collection.immutable.Vector[Vector[F]],
 
     val coef = 2
 
-    def dispersion: Double = if (vector.length < 2)
-        0 else average_of_squares / (vector.length - 1) - Math.pow(average / (vector.length - 1), 2)
+    def n = vector.length - 1
+    def dispersion: Double = if (n < 1) 0 else squares / n 
 
     private def factory(v: scala.collection.immutable.Vector[Vector[F]], distance: Double) = new Cluster[F](
-        v,
-        average + distance,
-        average_of_squares + distance * distance
+        v, squares + distance*distance
     )
 
     def :+(v: Vector[F]) = factory(vector :+ v, (vector.last - v).norm)
@@ -55,11 +49,10 @@ class Cluster[F](val vector: scala.collection.immutable.Vector[Vector[F]],
     def +:(v: Vector[F]) = factory(v +: vector, (vector.head - v).norm)
 
     def check(distance: Double) = {
-        println(average / (vector.length - 1), distance, dispersion)
-        (average / (vector.length - 1) - distance) match {
-            case x => x * x < dispersion * 2 * 2
-        }
+        println("distance, dispersion %s %s".format(distance, dispersion))
+        distance * distance < dispersion * coef * coef
     }
+    
     def unionIfCheck(that: Cluster[F]) = (this.last - that.head).norm match {
         case x => if (check(x) && that.check(x))
             Some(union(that, x))
@@ -71,8 +64,7 @@ class Cluster[F](val vector: scala.collection.immutable.Vector[Vector[F]],
 
     def union(that: Cluster[F], distance: Double) = new Cluster[F](
         vector ++ that.vector,
-        average + that.average + distance,
-        average_of_squares + that.average_of_squares + distance * distance
+        squares + that.squares + distance * distance
     )
 }
 

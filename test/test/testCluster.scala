@@ -155,28 +155,27 @@ class testCluster extends FlatSpec with Matchers {
 
         (new Cluster(v1, v1, v3)
             unionIfCheck new Cluster(v6, v16, v16)) should be(None)
-        
-         (new Cluster(v1, v2, v3)
+
+        (new Cluster(v1, v2, v3)
             unionIfCheck new Cluster(v4, v10, v14)) should be(None)
     }
-    
+
     "A trivial cluster" should "pass the union test" in {
-        new Cluster().check(10) should be (true)
-        new Cluster(v1).check(10) should be (true)
-        new Cluster(v1,v2).check(10) should be (false)
+        new Cluster().check(10) should be(true)
+        new Cluster(v1).check(10) should be(true)
+        new Cluster(v1, v2).check(10) should be(false)
     }
-    
+
     "A simple chain" should "be clustered" in {
         Clusters(List[Vector[Int]]()).size should be(0)
-//        Clusters(List(v1)).size should be(1)
-        Clusters(List(v1,v2)).size should be(1)
-        Clusters(List(v1,v2,v4)).size should be(1)
-        Clusters(List(v1,v2,v4,v10)).size should be(1)
-        Clusters(List(v1,v2,v4,v10,v3)).size should be(1)
-        
-        
-        Clusters(List(v1,v2,v3)).size should be(1)
-     /*   println("1 2 3 =        " + Clusters(List(v1,v2,v3)).head)
+        //        Clusters(List(v1)).size should be(1)
+        Clusters(List(v1, v2)).size should be(1)
+        Clusters(List(v1, v2, v4)).size should be(1)
+        Clusters(List(v1, v2, v4, v10)).size should be(1)
+        Clusters(List(v1, v2, v4, v10, v3)).size should be(1)
+
+        Clusters(List(v1, v2, v3)).size should be(1)
+        /*   println("1 2 3 =        " + Clusters(List(v1,v2,v3)).head)
         
         println("1 2 3 4 =      " + Clusters(List(v1,v2,v3, v4)).head)
         println("1 2 3 4 =      " + Clusters(List(v1,v2,v3, v4)))
@@ -186,16 +185,27 @@ class testCluster extends FlatSpec with Matchers {
         
     */
         println("1 2 3 4 10 14")
-/*        val c1 :: c2 :: _ = Clusters(List(v1,v2,v3,v4,v10,v14)).toList
+        /*        val c1 :: c2 :: _ = Clusters(List(v1,v2,v3,v4,v10,v14)).toList
         println("c1 = " + c1)
         println("c2 = " + c2)*/
-    
-        Clusters(List(v1,v3,v3,v2,v4,v10,v10,v14)).size should be(2)
-               val c1 :: c2 :: cs = Clusters(List(v1,v3,v3,v2,v4,v10,v10,v14)).toList
+
+        Clusters(List(v1, v3, v3, v2, v4, v10, v10, v14)).size should be(2)
+        val c1 :: c2 :: cs = Clusters(List(v1, v3, v3, v2, v4, v10, v10, v14)).toList
         println("c1 = " + c1)
         println("c2 = " + c2)
         println("cs = " + cs)
-        Clusters(List(v1,v1,v2,v2,v4,v4,v10,v10,v3,v3,v14,v14)).size should be(6)
+        Clusters(List(v1, v1, v2, v2, v4, v4, v10, v10, v3, v3, v14, v14)).size should be(6)
     }
 
+    "A simple clouds" should "be clustered" in {
+        val tree = List(v1, v3, v3, v2, v4, v10, v10, v14).zipWithIndex
+            .foldLeft(TreeApproximator[Int, Int]())({
+                case (tree, (v, va)) => tree + (v, va)
+            }).rectify(4).align()._1
+       Clusters(tree) foreach {
+           case x => println(":: " + x)
+       }
+       Clusters(tree).size should be(2)
+       
+    }
 }

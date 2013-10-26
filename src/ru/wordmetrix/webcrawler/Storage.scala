@@ -30,14 +30,14 @@ class Storage()(implicit val cfg: CFG) extends Actor with CFGAware {
                 fout.close()
             }
 
-            case (seed: WebCrawler.Seed, intell: WebCrawler.Intell) => {
+            case (seed: WebCrawler.Seed, intel: WebCrawler.Intel) => {
                 this.log("Datum %s has come", seed)
 
                 val file = new OutputStreamWriter(
                     new FileOutputStream(
                         new File(new File(cfg.path, "tmp"), seedToFilename(seed))))
 
-                file.write(intell)
+                file.write(intel)
                 file.close()
             }
 

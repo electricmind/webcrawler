@@ -13,7 +13,7 @@ import ru.wordmetrix.webcrawler.LinkContext.Feature
 /*
  * Gather analyzes a page and elicits links and useful load.
  */
-class Gather(storage: Storage, queue: Actor, sample : SampleHierarchy2PriorityBase)(implicit val cfg: CFG)
+class Gather(storage: Storage, queue: Actor, sample: SampleHierarchy2PriorityBase)(implicit val cfg: CFG)
         extends Actor with CFGAware {
     override val name = "Gather"
 
@@ -24,19 +24,17 @@ class Gather(storage: Storage, queue: Actor, sample : SampleHierarchy2PriorityBa
             new InputSource(new CharArrayReader(page.toArray)),
             new SAXFactoryImpl().newSAXParser())
 
-            
-            
     def page2xml(page: WebCrawler.Page): scala.xml.NodeSeq =
         (page2xml_whole(page) \\ "body")
-//        ((page2xml_whole(page) \\ "div").
-//            filter(
-//                x => x.attribute("id").getOrElse("").toString ==
-//                    "mw-content-text"))
+    //        ((page2xml_whole(page) \\ "div").
+    //            filter(
+    //                x => x.attribute("id").getOrElse("").toString ==
+    //                    "mw-content-text"))
 
     def xml2seeds(xml: scala.xml.NodeSeq, base: URI) = (xml \\ "a").
         map(x => x.attribute("href")).flatten.
-        map(x => WebCrawler.normalize(base,x.toString)).
-//        map(x => {println(x); x}).
+        map(x => WebCrawler.normalize(base, x.toString)).
+        //        map(x => {println(x); x}).
         filter(x => x.getHost() == "en.wikipedia.org").
         filter(x => {
             val id = x.toString
@@ -53,7 +51,11 @@ class Gather(storage: Storage, queue: Actor, sample : SampleHierarchy2PriorityBa
             case (x, y) => (x -> y.length.toDouble)
         }).toList)
 
-    def xml2intell(xml: scala.xml.NodeSeq) = xml.text
+    def xml2intel(xml: scala.xml.NodeSeq) = new Html2Ascii(
+        xml \\ "div" filter (
+            x => x.attribute("id").getOrElse("").toString == "mw-content-text"
+        )
+    ).wrap()
 
     def act() = loop {
         react {
@@ -61,13 +63,13 @@ class Gather(storage: Storage, queue: Actor, sample : SampleHierarchy2PriorityBa
                 this.debug("Gather data from %s", seed)
                 try {
                     val xml = page2xml(page)
-                    
+
                     //this.debug("%s",xml.map(x => new LinkContext().extract( x )).reduce(_ ++ _))//(x : Map[WebCrawler.Seed,Vector[Feature]],y :Map[WebCrawler.Seed,Vector[Feature]]) => x ++ x))
                     //this.debug("%s",new LinkContext().extract(page2xml_whole(page)))
-//                    println("!!",(/*(xml2seeds(xml, seed),*/ seed))
+                    //                    println("!!",(/*(xml2seeds(xml, seed),*/ seed))
                     sample ! new LinkContext(seed).extract(page2xml_whole(page))
-                    storage ! ((seed, xml2intell(xml)))
-                    queue ! ((xml2seeds(xml, seed), seed, xml2vector(xml))) 
+                    storage ! ((seed, xml2intel(xml)))
+                    queue ! ((xml2seeds(xml, seed), seed, xml2vector(xml)))
                 } catch {
                     case x => log("Gathering failed on %s: %s", seed, x)
                 }

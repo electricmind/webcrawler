@@ -9,7 +9,7 @@ object WebCrawler extends App {
     
     type Seed = URI
     type Page = String
-    type Intell = String
+    type Intel = String
     type Word = String
     type Priority = Double
     type Vector = List[(Word,Priority)]

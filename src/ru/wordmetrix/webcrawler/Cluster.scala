@@ -1,26 +1,29 @@
 package ru.wordmetrix.webcrawler
 
 object Clusters {
-    def apply[F, V](tree: TreeApproximator[F, V]): Clusters[F] = {
-        this(pairs(tree))
-    }
-
     type V[V] = scala.collection.immutable.Vector[V]
     def V = scala.collection.immutable.Vector
 
     type Item[F, V] = (Vector[F], V)
     type Pair[F, V] = (Item[F, V], Item[F, V])
 
-    def apply[F, V](pairs: List[Pair[F, V]]) = pairs.foldLeft(new Clusters[F]()) {
+    private
+    def fromPairs[F, V](pairs: Iterable[Pair[F, V]]) = pairs.foldLeft(new Clusters[F]()) {
         case (cs, ((v1, va1), (v2, va2))) => cs + (v1, v2)
     }
 
-    def pairs[F, V](tree: TreeApproximator[F, V]) = tree.sliding(2).map({
+    def apply[F, V](tree: Iterable[Item[F,V]]): Clusters[F] = {
+        fromPairs(pairs(tree))
+    }
+
+    def apply[F](chain: Seq[Vector[F]]): Clusters[F] = apply(chain.zipWithIndex)
+    
+    def pairs[F, V](tree: Iterable[(Vector[F], V)]) = tree.sliding(2).map({
         case (v1, value1) :: (v2, value2) :: _ =>
             ((v1 - v2).sqr, ((v1, value1), (v2, value2)))
-    }).toList.sortBy(_._1).map(_._2)
+    }).toList.sortBy(_._1).map(_._2).toSeq
 
-    def pairs[F](vectors: V[Vector[F]]) = {
+    def pairs[F](vectors: Seq[Vector[F]]) = {
         vectors.sliding(2).filter(_.length == 2).map {
             case scala.collection.immutable.Vector(v1, v2) => (v1, v2)
         }
@@ -60,7 +63,7 @@ class Cluster[F](val vector: V[Vector[F]],
 
     def check(distance: Double) = {
         println("distance, dispersion %s %s".format(distance, dispersion))
-        distance * distance < dispersion * coef * coef
+        n < 1 || distance * distance < dispersion * coef * coef
     }
 
     def unionIfCheck(that: Cluster[F]) = (this.last - that.head).norm match {

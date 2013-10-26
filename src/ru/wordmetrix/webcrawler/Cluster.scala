@@ -1,34 +1,44 @@
 package ru.wordmetrix.webcrawler
 
 object Clusters {
-    def apply[F, V](tree: TreeApproximator[F, V]) = {
-        tree.sliding(2).map({
-            case (v1, value1) :: (v2, value2) :: _ =>
-                ((v1 - v2).sqr, ((v1, value1), (v2, value2)))
-        }).toList.sortBy(_._1).foldLeft(new Clusters[F]()) {
-            case (cs, (distance, ((v1, va1), (v2, va2)))) => cs + (v1, v2)
-        }
+    def apply[F, V](tree: TreeApproximator[F, V]): Clusters[F] = {
+        this(pairs(tree))
     }
-    def pairs[F](vectors: scala.collection.immutable.Vector[Vector[F]]) = {
+
+    type V[V] = scala.collection.immutable.Vector[V]
+    def V = scala.collection.immutable.Vector
+
+    type Item[F, V] = (Vector[F], V)
+    type Pair[F, V] = (Item[F, V], Item[F, V])
+
+    def apply[F, V](pairs: List[Pair[F, V]]) = pairs.foldLeft(new Clusters[F]()) {
+        case (cs, ((v1, va1), (v2, va2))) => cs + (v1, v2)
+    }
+
+    def pairs[F, V](tree: TreeApproximator[F, V]) = tree.sliding(2).map({
+        case (v1, value1) :: (v2, value2) :: _ =>
+            ((v1 - v2).sqr, ((v1, value1), (v2, value2)))
+    }).toList.sortBy(_._1).map(_._2)
+
+    def pairs[F](vectors: V[Vector[F]]) = {
         vectors.sliding(2).filter(_.length == 2).map {
             case scala.collection.immutable.Vector(v1, v2) => (v1, v2)
         }
     }
-    def average(x: scala.collection.immutable.Vector[Double]) = x.sum
+    def average(x: V[Double]) = x.sum
 }
 import Clusters._
 
-class Cluster[F](val vector: scala.collection.immutable.Vector[Vector[F]],
+class Cluster[F](val vector: V[Vector[F]],
                  val squares: Double = 0d) extends Iterable[Vector[F]] {
     def iterator = vector.iterator
 
-    def this(vector: scala.collection.immutable.Vector[Vector[F]]) = this(
+    def this(vector: V[Vector[F]]) = this(
         vector.toVector,
         average(pairs(vector).map({ case (x, y) => (x - y).sqr }).toVector)
     )
 
     def this(vs: Vector[F]*) = this(vs.toVector)
-    //    def this() = this(scala.collection.immutable.Vector())
 
     def edge = Set(vector.head) | Set(vector.last)
 
@@ -38,10 +48,10 @@ class Cluster[F](val vector: scala.collection.immutable.Vector[Vector[F]],
     val coef = 2
 
     def n = vector.length - 1
-    def dispersion: Double = if (n < 1) 0 else squares / n 
+    def dispersion: Double = if (n < 1) 0 else squares / n
 
-    private def factory(v: scala.collection.immutable.Vector[Vector[F]], distance: Double) = new Cluster[F](
-        v, squares + distance*distance
+    private def factory(v: V[Vector[F]], distance: Double) = new Cluster[F](
+        v, squares + distance * distance
     )
 
     def :+(v: Vector[F]) = factory(vector :+ v, (vector.last - v).norm)
@@ -52,7 +62,7 @@ class Cluster[F](val vector: scala.collection.immutable.Vector[Vector[F]],
         println("distance, dispersion %s %s".format(distance, dispersion))
         distance * distance < dispersion * coef * coef
     }
-    
+
     def unionIfCheck(that: Cluster[F]) = (this.last - that.head).norm match {
         case x => if (check(x) && that.check(x))
             Some(union(that, x))
@@ -69,8 +79,9 @@ class Cluster[F](val vector: scala.collection.immutable.Vector[Vector[F]],
 }
 
 class Clusters[F](
-        val heads: Map[Vector[F], Cluster[F]] = Map[Vector[F], Cluster[F]](),
-        val lasts: Map[Vector[F], Cluster[F]] = Map[Vector[F], Cluster[F]]()) extends Iterable[Cluster[F]] {
+    val heads: Map[Vector[F], Cluster[F]] = Map[Vector[F], Cluster[F]](),
+    val lasts: Map[Vector[F], Cluster[F]] = Map[Vector[F], Cluster[F]]())
+        extends Iterable[Cluster[F]] {
 
     def iterator = heads.values.toIterator
 

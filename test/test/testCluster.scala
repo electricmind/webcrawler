@@ -9,6 +9,7 @@ import Math.abs
 class testCluster extends FlatSpec with Matchers {
 
     val v1 = Vector(1 -> 1, 4 -> 0)
+    val v10 = Vector(1 -> 0, 4 -> 1)
     val v11 = Vector(1 -> 1, 4 -> 1)
     val v21 = Vector(1 -> 1, 5 -> 1)
     val v2 = Vector(2 -> 1, 4 -> 0)
@@ -154,7 +155,47 @@ class testCluster extends FlatSpec with Matchers {
 
         (new Cluster(v1, v1, v3)
             unionIfCheck new Cluster(v6, v16, v16)) should be(None)
-
+        
+         (new Cluster(v1, v2, v3)
+            unionIfCheck new Cluster(v4, v10, v14)) should be(None)
+    }
+    
+    "A trivial cluster" should "pass the union test" in {
+        new Cluster().check(10) should be (true)
+        new Cluster(v1).check(10) should be (true)
+        new Cluster(v1,v2).check(10) should be (false)
+    }
+    
+    "A simple chain" should "be clustered" in {
+        Clusters(List[Vector[Int]]()).size should be(0)
+//        Clusters(List(v1)).size should be(1)
+        Clusters(List(v1,v2)).size should be(1)
+        Clusters(List(v1,v2,v4)).size should be(1)
+        Clusters(List(v1,v2,v4,v10)).size should be(1)
+        Clusters(List(v1,v2,v4,v10,v3)).size should be(1)
+        
+        
+        Clusters(List(v1,v2,v3)).size should be(1)
+     /*   println("1 2 3 =        " + Clusters(List(v1,v2,v3)).head)
+        
+        println("1 2 3 4 =      " + Clusters(List(v1,v2,v3, v4)).head)
+        println("1 2 3 4 =      " + Clusters(List(v1,v2,v3, v4)))
+    
+        println("1 2 3 4 10 =   " + Clusters(List(v1,v2,v3, v4, v10)).head)
+        println("1 2 3 4 10 =   " + Clusters(List(v1,v2,v3, v4, v10)).drop(1).head)
+        
+    */
+        println("1 2 3 4 10 14")
+/*        val c1 :: c2 :: _ = Clusters(List(v1,v2,v3,v4,v10,v14)).toList
+        println("c1 = " + c1)
+        println("c2 = " + c2)*/
+    
+        Clusters(List(v1,v3,v3,v2,v4,v10,v10,v14)).size should be(2)
+               val c1 :: c2 :: cs = Clusters(List(v1,v3,v3,v2,v4,v10,v10,v14)).toList
+        println("c1 = " + c1)
+        println("c2 = " + c2)
+        println("cs = " + cs)
+        Clusters(List(v1,v1,v2,v2,v4,v4,v10,v10,v3,v3,v14,v14)).size should be(6)
     }
 
 }

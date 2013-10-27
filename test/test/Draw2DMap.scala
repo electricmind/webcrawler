@@ -25,7 +25,7 @@ object Draw2DMap extends SimpleSwingApplication {
 
     def randomVector(d: Double, dimension: Int, av: Vector[Int]) =
         ((3 to dimension).map(
-            dim => Vector(dim -> (nextGaussian * d))
+            dim => Vector(dim -> Math.abs(nextGaussian * d))
         ).fold(Vector(
                 1 -> (nextGaussian * d),
                 2 -> (nextGaussian * d)
@@ -91,9 +91,12 @@ object Draw2DMap extends SimpleSwingApplication {
             }
 
             case MouseMoved(_, p, _) =>
-
-                cluster1 = tree.cluster(Vector(1 -> px(p), 2 -> py(p)))
-                nearest = tree.path(Vector(1 -> px(p), 2 -> py(p))).foldLeft(tree) {
+                val x = px(p)
+                val y = py(p)
+                val z = Math.sqrt(Math.max(0,1 - x*x - y*y))
+                val v = Vector(1->x, 2->y, 3->z)
+                cluster1 = tree.cluster(v)
+                nearest = tree.path(v).foldLeft(tree) {
                     case (tree, n) => tree / n
                 }
                 

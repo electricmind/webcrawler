@@ -62,8 +62,6 @@ class Cluster[F](val vector: V[Vector[F]],
     def +:(v: Vector[F]) = factory(v +: vector, (vector.head - v).norm)
 
     def check(distance: Double) = {
-        println("distance, dispersion %s %s".format(distance, dispersion))
-        println(       n < 1 || distance * distance < dispersion * coef * coef)
         n < 1 || distance * distance < dispersion * coef * coef
     }
 

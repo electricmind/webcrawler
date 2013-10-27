@@ -49,7 +49,7 @@ class Html2Ascii(page: scala.xml.NodeSeq) {
                     case nodes => dump(nodes)
                 } mkString (" | ")
                 case nodes => dump(nodes)
-            } mkString ("\n-\n" * 60)) + "\n" + "=" * 60 + "\n"
+            } mkString ("\n" + "-" * 60 + "\n")) + "\n" + "=" * 60 + "\n"
 
             case <br/> => "\n"
 

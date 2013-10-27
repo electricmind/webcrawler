@@ -21,6 +21,8 @@ object Draw2DMap extends SimpleSwingApplication {
         case color :: colors => colors :+ color
     }).map(_.head)
 
+    type Value = (Vector[Int], Set[Vector[Int]], Int)
+
     def randomVector(d: Double, dimension: Int, av: Vector[Int]) =
         ((3 to dimension).map(
             dim => Vector(dim -> (nextGaussian * d))
@@ -37,9 +39,9 @@ object Draw2DMap extends SimpleSwingApplication {
         (1 until n)
             .map(_ % nc)
             .map(x => (randomVector(d, dimension, centroids(x)), x))
-            .foldLeft(TreeApproximator[Int, Int]())({
-                case (tree, (key, value)) =>
-                    tree + (key, value)
+            .foldLeft(TreeApproximator[Int, Value]())({
+                case (tree, (key, cid)) =>
+                    tree + (key, (key, Set(), cid))
             })
     }
     def top = new MainFrame {
@@ -49,8 +51,10 @@ object Draw2DMap extends SimpleSwingApplication {
         var dimension = 3
         var tree = generate2tree1(dispersy, n, dimension)
         var showalign = false
-        var cluster = tree
+        var cluster1 : Iterable[(Vector[Int],Value)] = tree
+        var cluster2 : Iterable[(Vector[Int],Value)] = Set()
         var nearest = tree
+        var clusters = Clusters(tree)
 
         def regenerate() = {
             tree = generate2tree1(dispersy, n, dimension)
@@ -87,15 +91,53 @@ object Draw2DMap extends SimpleSwingApplication {
             }
 
             case MouseMoved(_, p, _) =>
-             
-                cluster = tree.cluster(Vector(1 -> px(p), 2 -> py(p)))
+
+                cluster1 = tree.cluster(Vector(1 -> px(p), 2 -> py(p)))
                 nearest = tree.path(Vector(1 -> px(p), 2 -> py(p))).foldLeft(tree) {
                     case (tree, n) => tree / n
                 }
+                
+                cluster2 = nearest.value._2.map(x => (x,(x,nearest.value._2,0)))
+                println("cluster2: " + nearest.value._2)
+                
                 this.repaint()
 
             case KeyReleased(_, Space, 128, _) => {
                 tree = tree.align(Vector(1 -> 1.0))._1
+
+                clusters = Clusters(tree)
+                println("clusters: n=%s".format(clusters.size))
+                
+                val map = clusters.foldLeft(Map[Vector[Int], Set[Vector[Int]]]()) {
+                    case (map, vs) =>
+                        val set = vs.toSet
+                        vs.foldLeft(map) {
+                            case (map, v) => map + (v -> set)
+                        }
+                }
+
+                def bind[F, V](tree: Tree[F, V], map: V => V): Tree[F, V] = {
+                    println(tree)
+                    tree match {
+                        case empty: Empty[F, V] => empty
+                        case leaf: Leaf[F, V] =>
+                            println("leaf")
+                            new Leaf[F, V](leaf.average, map(leaf.value))
+                        case node: Node[F, V] =>
+                            println("node")
+                            new Node[F, V](bind(node.child1,map), bind(node.child2,map))
+                    }
+                }
+                println("map.size= " + map.size)
+                tree = bind(tree, {
+                    case (v, _, id) =>
+                        println("v=" + v)
+                        println("map(v)=" + map(v))
+                        println("id=" + id)
+                        
+                        (v, map(v), id)
+                })
+
                 repaint()
             }
 
@@ -112,7 +154,7 @@ object Draw2DMap extends SimpleSwingApplication {
                 println("rectify")
                 this.repaint()
 
-//            case x              => println(x)
+            //            case x              => println(x)
             case k: KeyPressed  => println(k)
             case k: KeyTyped    => println(k)
             case k: KeyReleased => println(k)
@@ -125,33 +167,42 @@ object Draw2DMap extends SimpleSwingApplication {
         def px(p: Point) = ((p.x - size.width / 2d) * 4d / size.width)
         def py(p: Point) = ((p.y - size.height / 2d) * 4d / size.height)
 
-        def point(node: Tree[Int, Int]): (Int, Int) = point(node.average, node.n)
+        def point(node: Tree[Int, Value]): (Int, Int) = point(node.average, node.n)
         def point(vector: Vector[Int], n: Int): (Int, Int) = point(vector / n)
         def point(vector: Vector[Int]) =
             vector.toMap.withDefaultValue(0.0) match {
                 case v => (xp(v(1)), yp(v(2)))
             }
+
         val draw = new Panel {
             background = Color.white
             maximize()
 
-            def drawNode(tree: Tree[Int, Int])(implicit g: Graphics2D): (Int, Int, Int) = {
+            def drawNode(tree: Tree[Int, Value])(implicit g: Graphics2D): (Int, Int, Int) = {
                 val (x, y) = point(tree)
 
                 val level = tree match {
-                    case node: Node[Int, Int] => {
+                    case node: Node[Int, Value] => {
                         g.setStroke(new BasicStroke(1))
                         g.drawOval(x - 3, y - 3, 5, 5)
 
                         g.setStroke(new BasicStroke());
                         (drawNode(node.child1) match {
-                            case (x1, y1, level) => g.setColor(Color.red); g.setStroke(new BasicStroke(level)); g.drawLine(x, y, x1, y1); level
+                            case (x1, y1, level) =>
+                                g.setColor(Color.red);
+                                g.setStroke(new BasicStroke(level));
+                                g.drawLine(x, y, x1, y1);
+                                level
                         }) + (
                             drawNode(node.child2) match {
-                                case (x2, y2, level) => g.setColor(Color.blue); g.setStroke(new BasicStroke(level)); g.drawLine(x, y, x2, y2); level
+                                case (x2, y2, level) =>
+                                    g.setColor(Color.blue);
+                                    g.setStroke(new BasicStroke(level));
+                                    g.drawLine(x, y, x2, y2);
+                                    level
                             })
                     }
-                    case leaf: Leaf[Int, Int] =>
+                    case leaf: Leaf[Int, Value] =>
                         g.setStroke(new BasicStroke(1))
                         val r = (3 * (tree.average / tree.n).toMap.withDefaultValue(0.0)(3)).toInt + 5
                         g.drawOval(x - r, y - r, r * 2 + 1, r * 2 + 1)
@@ -185,7 +236,7 @@ object Draw2DMap extends SimpleSwingApplication {
                     }).sliding(2).foldLeft((colors.next, 0d, List[Double]()))({
                         case ((color, distance, l), List((v1, (x1, y1)), (v2, (x2, y2)))) => {
                             val d = (v2 - v1).norm
-                            println(l)
+                            
                             val (c, da, l1) = if (l.length < 3) {
                                 g.setColor(color)
                                 (color, d + distance, d :: l)
@@ -218,21 +269,22 @@ object Draw2DMap extends SimpleSwingApplication {
                     })
                     case false => {
                         drawNode(tree)(g)
-                        def drawTree(node: Tree[Int, Int], color: Color) = {
-                            drawPoint(point(node),color)
+
+                        def drawTree(node: Tree[Int, Value], color: Color) = {
+                            drawPoint(point(node), color)
                         }
 
-                        def drawPoint(p: (Int, Int), color : Color) = p match {
+                        def drawPoint(p: (Int, Int), color: Color) = p match {
                             case (x, y) =>
-                                
+
                                 g.setColor(color)
                                 g.setStroke(new BasicStroke(4))
 
                                 g.drawOval(x - 3, y - 3, 7, 7)
 
                         }
-                        drawTree(cluster, Color.green)
-                        cluster.foreach {
+                        //drawTree(cluster1, Color.green)
+                        cluster2.foreach {
                             case (v, _) => drawPoint(point(v), Color.cyan)
                         }
                         drawTree(nearest, Color.red)

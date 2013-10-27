@@ -135,14 +135,12 @@ object Draw2DMap extends SimpleSwingApplication {
                 val z = Math.sqrt(Math.max(0, 1 - x * x - y * y))
                 val v = Vector(1 -> x, 2 -> y, 3 -> z)
                 cluster1 = tree.cluster(v)
-                nearest = tree.path(v).foldLeft(tree) {
-                    case (tree, n) => tree / n
+                nearest = tree.leaf(v)
+                cluster2 = 
+                    (debug.time("nearest") { tree(v) }) match {
+                    case (n,c,i) =>
+                            c.map(x => (x, (x, c, i)))
                 }
-
-                cluster2 = debug.time("nearest") {
-                    nearest.value._2.map(x => (x, (x, nearest.value._2, 0)))
-                }
-
                 this.repaint()
 
             case KeyReleased(_, Space, 128, _) => {

@@ -11,16 +11,25 @@ import java.awt.Paint
 import java.awt.BasicStroke
 import scala.swing.event.Key._
 import java.awt.Point
+import java.io.File
+import Math._
 // TODO: Select cluster by mouse pointer
 // TODO: try paint all clusters inot different tinges.
-object Draw2DMap extends SimpleSwingApplication {
 
+object Draw2DMap extends SimpleSwingApplication {
+    implicit val cfg = CFG(List("-d"))
     val colors = Iterator.iterate(List(
         Color.red, Color.orange, Color.yellow,
         Color.green, Color.blue, Color.magenta))({
         case color :: colors => colors :+ color
-    }).map(_.head)
+    }).map(_.head).toStream
 
+    var args = scala.collection.Iterator[String]()
+
+    override def startup(args: Array[String]) {
+        this.args = (0 until args.size) map { x => args(x) } toIterator;
+        super.startup(args)
+    }
     type Value = (Vector[Int], Set[Vector[Int]], Int)
 
     def randomVector(d: Double, dimension: Int, av: Vector[Int]) =
@@ -31,33 +40,63 @@ object Draw2DMap extends SimpleSwingApplication {
                 2 -> (nextGaussian * d)
             ))(_ + _) + av).normal
 
-    def generate2tree1(d: Double, n: Int, dimension: Int, nc: Int = 4) = {
+    def generate2tree1(cloud: Iterable[(Vector[Int], Int)], d: Double, n: Int, dimension: Int) =
 
-        val centroids = (1 to nc).map(
-            x => randomVector(100d, dimension, Vector[Int]())).toArray
+        cloud.foldLeft(TreeApproximator[Int, Value]())({
+            case (tree, (key, cid)) =>
+                tree + (key, (key, Set(), cid)) rectify(2)
+        })
 
-        (1 until n)
-            .map(_ % nc)
-            .map(x => (randomVector(d, dimension, centroids(x)), x))
-            .foldLeft(TreeApproximator[Int, Value]())({
-                case (tree, (key, cid)) =>
-                    tree + (key, (key, Set(), cid))
-            })
-    }
     def top = new MainFrame {
         title = "Convert Celsius / Fahrenheit"
+        size = new Dimension(640, 480)
         var n = 50
         var dispersy = 0.5
         var dimension = 3
-        var tree = generate2tree1(dispersy, n, dimension)
         var showalign = false
-        var cluster1 : Iterable[(Vector[Int],Value)] = tree
-        var cluster2 : Iterable[(Vector[Int],Value)] = Set()
+        var cluster1: Iterable[(Vector[Int], Value)] = tree
+        var cluster2: Iterable[(Vector[Int], Value)] = Set()
+
+        val cloud = scala.collection.Iterator.continually[Iterable[(Vector[Int], Int)]] {
+            val nc = 4
+            if (args.hasNext) {
+                val data = (io.Source.fromFile(new java.io.File(args.next)).getLines map {
+                    case x => x.split(" ") match {
+                        case Array(sx, sy) => Some((sx.toDouble, sy.toDouble))
+                        case _             => None
+                    }
+                } flatten) toStream
+
+                val maxx = data.map(_._1).max
+                val maxy = data.map(_._2).max
+                val minx = data.map(_._1).min
+                val miny = data.map(_._2).min
+
+                data map {
+                    case (x, y) =>
+                        val xx = 2 * (x - minx) / (maxx - minx) - 1
+                        val yy = 2 * (y - miny) / (maxy - miny) - 1
+                        val zz = sqrt(max(0,1 - xx * xx - yy * yy))
+                        (Vector(1 -> -xx, 2 -> -yy, 3 -> zz).normal, 0)
+                }
+
+            } else {
+
+                val centroids = (1 to nc).map(
+                    x => randomVector(100d, dimension, Vector[Int]())).toArray
+
+                (1 until n)
+                    .map(_ % nc)
+                    .map(x => (randomVector(dispersy, dimension, centroids(x)), x))
+            }
+        }
+
+        var tree = generate2tree1(cloud.next, dispersy, n, dimension)
         var nearest = tree
         var clusters = Clusters(tree)
 
         def regenerate() = {
-            tree = generate2tree1(dispersy, n, dimension)
+            tree = generate2tree1(cloud.next, dispersy, n, dimension)
             this.repaint()
         }
 
@@ -93,29 +132,36 @@ object Draw2DMap extends SimpleSwingApplication {
             case MouseMoved(_, p, _) =>
                 val x = px(p)
                 val y = py(p)
-                val z = Math.sqrt(Math.max(0,1 - x*x - y*y))
-                val v = Vector(1->x, 2->y, 3->z)
+                val z = Math.sqrt(Math.max(0, 1 - x * x - y * y))
+                val v = Vector(1 -> x, 2 -> y, 3 -> z)
                 cluster1 = tree.cluster(v)
                 nearest = tree.path(v).foldLeft(tree) {
                     case (tree, n) => tree / n
                 }
-                
-                cluster2 = nearest.value._2.map(x => (x,(x,nearest.value._2,0)))
-                
+
+                cluster2 = debug.time("nearest") {
+                    nearest.value._2.map(x => (x, (x, nearest.value._2, 0)))
+                }
+
                 this.repaint()
 
             case KeyReleased(_, Space, 128, _) => {
-                tree = tree.align(Vector(1 -> 1.0))._1
+                tree = debug.time("align") {
+                    tree.align(Vector(1 -> 1.0))._1
+                }
 
-                clusters = Clusters(tree)
-                println("clusters: n=%s".format(clusters.size))
-                
-                val map = clusters.foldLeft(Map[Vector[Int], Set[Vector[Int]]]()) {
-                    case (map, vs) =>
-                        val set = vs.toSet
-                        vs.foldLeft(map) {
-                            case (map, v) => map + (v -> set)
-                        }
+                clusters = debug.time("tree size: n=%s".format(tree.n)) {
+                    Clusters(tree)
+                }
+
+                val map = debug.time("clusters: n=%s".format(clusters.size)) {
+                    clusters.foldLeft(Map[Vector[Int], Set[Vector[Int]]]()) {
+                        case (map, vs) =>
+                            val set = vs.toSet
+                            vs.foldLeft(map) {
+                                case (map, v) => map + (v -> set)
+                            }
+                    }
                 }
 
                 def bind[F, V](tree: Tree[F, V], map: V => V): Tree[F, V] = {
@@ -124,15 +170,17 @@ object Draw2DMap extends SimpleSwingApplication {
                         case leaf: Leaf[F, V] =>
                             new Leaf[F, V](leaf.average, map(leaf.value))
                         case node: Node[F, V] =>
-                            new Node[F, V](bind(node.child1,map), bind(node.child2,map))
+                            new Node[F, V](bind(node.child1, map), bind(node.child2, map))
                     }
                 }
                 println("map.size= " + map.size)
-                tree = bind(tree, {
-                    case (v, _, id) =>
-                        (v, map(v), id)
-                })
+                tree = debug.time("bind tree") {
+                    bind(tree, {
 
+                        case (v, _, id) =>
+                            (v, map(v), id)
+                    })
+                }
                 repaint()
             }
 
@@ -145,7 +193,9 @@ object Draw2DMap extends SimpleSwingApplication {
                 regenerate()
             }
             case _: MouseClicked | KeyReleased(_, Space, _, _) =>
-                tree = tree.rectify(n / 4)
+                tree = debug.time("rectify") {
+                    tree.rectify(n / 4)
+                }
                 println("rectify")
                 this.repaint()
 
@@ -225,13 +275,14 @@ object Draw2DMap extends SimpleSwingApplication {
                 g.drawString(""" - Left - to increase dispersy""", 10, 310)
                 g.drawString(""" - Right - to decrease dispersy""", 10, 340)
                 g.drawString(""" - Escape - to restart""", 10, 370)
+                val icolors = colors.toIterator
                 showalign match {
                     case true => tree.map({
                         case (average, _) => (average, point(average))
-                    }).sliding(2).foldLeft((colors.next, 0d, List[Double]()))({
+                    }).sliding(2).foldLeft((icolors.next, 0d, List[Double]()))({
                         case ((color, distance, l), List((v1, (x1, y1)), (v2, (x2, y2)))) => {
                             val d = (v2 - v1).norm
-                            
+
                             val (c, da, l1) = if (l.length < 3) {
                                 g.setColor(color)
                                 (color, d + distance, d :: l)
@@ -246,7 +297,7 @@ object Draw2DMap extends SimpleSwingApplication {
                                     println("new  " + d + " " + av + " " + sigma
                                     )
                                     g.setColor(Color.black)
-                                    (colors.next, d, List())
+                                    (icolors.next, d, List())
                                 }
                             }
                             g.setStroke(new BasicStroke(1))

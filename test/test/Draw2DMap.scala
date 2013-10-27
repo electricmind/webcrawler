@@ -98,7 +98,6 @@ object Draw2DMap extends SimpleSwingApplication {
                 }
                 
                 cluster2 = nearest.value._2.map(x => (x,(x,nearest.value._2,0)))
-                println("cluster2: " + nearest.value._2)
                 
                 this.repaint()
 
@@ -117,24 +116,17 @@ object Draw2DMap extends SimpleSwingApplication {
                 }
 
                 def bind[F, V](tree: Tree[F, V], map: V => V): Tree[F, V] = {
-                    println(tree)
                     tree match {
                         case empty: Empty[F, V] => empty
                         case leaf: Leaf[F, V] =>
-                            println("leaf")
                             new Leaf[F, V](leaf.average, map(leaf.value))
                         case node: Node[F, V] =>
-                            println("node")
                             new Node[F, V](bind(node.child1,map), bind(node.child2,map))
                     }
                 }
                 println("map.size= " + map.size)
                 tree = bind(tree, {
                     case (v, _, id) =>
-                        println("v=" + v)
-                        println("map(v)=" + map(v))
-                        println("id=" + id)
-                        
                         (v, map(v), id)
                 })
 

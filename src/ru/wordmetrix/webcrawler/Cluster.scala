@@ -48,7 +48,7 @@ class Cluster[F](val vector: V[Vector[F]],
     override def head = vector.head
     override def last = vector.last
 
-    val coef = 2
+    val coef = 3
 
     def n = vector.length - 1
     def dispersion: Double = if (n < 1) 0 else squares / n

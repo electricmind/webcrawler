@@ -1,5 +1,5 @@
 package test
-import ru.wordmetrix.webcrawler.{ Vector, TreeApproximator, debug, CFG, Use }
+import ru.wordmetrix.webcrawler.{ Vector, TreeApproximator, debug, CFG, Use, SmartFile }
 import Use._
 
 import TreeApproximator._
@@ -23,53 +23,12 @@ object ArrangeText extends App {
         }
     }
     implicit def string2File(s: String) = new File(s)
-    implicit def string2Array(s: String): Array[Byte] =
-        s.toArray.map(c => c.toByte)
+    implicit def vectors2Vectors(v : Vector[Word]) : Vector[String] = Vector(v.map {
+        case (x,y) => (string2word.inverted(x) -> y)
+    } toList)
+    
+    import SmartFile._
 
-    object SmartFile {
-        implicit def file2SmartFile(f: File) = new SmartFile(f)
-    }
-
-    import SmartFile.file2SmartFile
-
-    class SmartFile(val file: File) {
-        def /(f: SmartFile) = new SmartFile(new File(file, f.file.toString))
-        def /(f: String) = new SmartFile(new File(file, f))
-        def /(f: Int) = new SmartFile(new File(file, f.toString))
-        def /(f: File) = new SmartFile(new File(file, f.toString))
-
-        def write(ss: Traversable[String]): Unit =
-            write(ss.mkString("\n"))
-
-        def write(a: Array[Byte]) = {
-            file.getParentFile().mkdirs() //    path.mkdirs()
-            val fn = new FileOutputStream(file)
-            fn.write(a)
-            fn.close()
-        }
-
-        def read() = {
-            val fin = new FileInputStream(file)
-            val buf = new Array[Byte](fin.available())
-            fin.read(buf)
-            fin.close()
-            buf
-        }
-
-        def readLines() = io.Source.fromFile(file).getLines
-
-        def copyTo(foutname: SmartFile) = {
-            println("%s -> %s".format(file, foutname))
-            foutname.write(file.read())
-        }
-
-        def write(v: Vector[Word]): Unit = write(v.toList.sortBy(- _._2).map {
-            case (x, y) => "%6d %-40s : %4.3f".format(x, string2word.inverted(x), y)
-        })
-        
-        override def toString = file.toString
-        
-    }
 
     def arrange_tree(tree: Tree[Word, File], path: File): Unit = tree match {
         case node: Node[Word, File] => {

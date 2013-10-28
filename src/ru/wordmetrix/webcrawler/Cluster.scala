@@ -68,7 +68,7 @@ class Cluster[F](val vector: V[Vector[F]],
     def unionIfCheck(that: Cluster[F]) = (this.last - that.head).norm match {
         case x => if (check(x) && that.check(x)) {
             println("join")
-            
+
             Some(union(that, x))
         } else {
             println("discard")
@@ -79,14 +79,17 @@ class Cluster[F](val vector: V[Vector[F]],
     def union(that: Cluster[F]): Cluster[F] = union(that, (last - that.head).norm)
 
     def union(that: Cluster[F], distance: Double) = {
-        println("Union this: " +  vector )
-        println("Union that: " +  that.vector )
+        println("Union this: " + vector)
+        println("Union that: " + that.vector)
         new Cluster[F](
-        vector ++ that.vector,
-        squares + that.squares + distance * distance
-    )}
+            vector ++ that.vector,
+            squares + that.squares + distance * distance
+        )
+    }
 }
 
+
+// TODO: rearrange clusters into a chain
 class Clusters[F](
     val heads: Map[Vector[F], Cluster[F]] = Map[Vector[F], Cluster[F]](),
     val lasts: Map[Vector[F], Cluster[F]] = Map[Vector[F], Cluster[F]]())
@@ -94,10 +97,18 @@ class Clusters[F](
 
     def iterator = heads.values.toIterator
 
+    def map = foldLeft(Map[Vector[F], Set[Vector[F]]]()) {
+        case (map, vs) =>
+            val set = vs.toSet
+            vs.foldLeft(map) {
+                case (map, v) => map + (v -> set)
+            }
+    }
+
     def +(v1: Vector[F], v2: Vector[F]): Clusters[F] = {
         (heads.get(v2), lasts.get(v1)) match {
             case (Some(c1), Some(c2)) =>
-                println(1,v1,v2)
+                println(1, v1, v2)
                 c2.unionIfCheck(c1) match {
                     case Some(c) => new Clusters(
                         (heads - v2) + (c.head -> c),
@@ -107,7 +118,7 @@ class Clusters[F](
                 }
 
             case (Some(c1), None) =>
-                println(2,v1,v2)
+                println(2, v1, v2)
                 (v1 +: c1) match {
                     case c => new Clusters(
                         (heads - v2) + (c.head -> c),
@@ -116,7 +127,7 @@ class Clusters[F](
                 }
 
             case (None, Some(c2)) =>
-                println(3,v1,v2)
+                println(3, v1, v2)
 
                 (c2 :+ v2) match {
                     case c => new Clusters(
@@ -126,7 +137,7 @@ class Clusters[F](
                 }
 
             case (None, None) =>
-                println(4,v1,v2)
+                println(4, v1, v2)
 
                 new Cluster(v1, v2) match {
                     case c => new Clusters(

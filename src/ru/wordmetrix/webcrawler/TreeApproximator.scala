@@ -83,7 +83,31 @@ object TreeApproximator {
 }
 
 trait TreeApproximator[F, V] extends Iterable[(Vector[F], V)] {
-    val average: Vector[F] //= Vector[F]() // = null //TODO : Create an ability to have empty vectors
+    implicit val ord: Ordering[F]
+    val average: Vector[F]
+    // = Vector[F]()
+    // = null 
+    // TODO : Create an ability to have empty vectors
+
+    def bind(
+        clusters: Map[Vector[F], Iterable[Vector[F]]]): Tree[F, Iterable[Vector[F]]] =
+        bindleaf({ case (v, va) => clusters(v) })
+
+    def bind[R](map: V => R): Tree[F, R] =
+        bindleaf[R]({ case (v, va) => map(va) })
+
+    def bindleaf[R](map: (Vector[F], V) => R): Tree[F, R] = {
+        this match {
+            case empty: Empty[F, V] => new Empty[F, R]()
+            case leaf: Leaf[F, V] =>
+                new Leaf[F, R](leaf.average, map(leaf.average, leaf.value))
+                
+            case node: Node[F, V] => new Node[F, R](
+                node.child1.bindleaf(map),
+                node.child2.bindleaf(map)
+            )
+        }
+    }
 
     def +(vector: Vector[F], value: V): Tree[F, V] //= new TreeApproximatorLeaf(vector,value)
     val n: Int // = 0
@@ -94,10 +118,10 @@ trait TreeApproximator[F, V] extends Iterable[(Vector[F], V)] {
 
     @tailrec
     final def get[R](f: Leaf[F, V] => R)(vector: Vector[F]): R = this match {
-        case _: Empty[F, V] => 
+        case _: Empty[F, V] =>
             throw new java.lang.IndexOutOfBoundsException()
         case leaf: Leaf[F, V] => f(leaf)
-        
+
         case node: Node[F, V] => node.nearest(vector).head.get[R](f)(vector)
     }
 
@@ -142,11 +166,11 @@ trait TreeApproximator[F, V] extends Iterable[(Vector[F], V)] {
 
 }
 
-class TreeApproximatorEmpty[F, V](implicit ord: Ordering[F]) extends TreeApproximator[F, V] {
+class TreeApproximatorEmpty[F, V](implicit val ord: Ordering[F]) extends TreeApproximator[F, V] {
     def /(n: Int): Tree[F, V] = this
     def +(vector: Vector[F], value: V): Tree[F, V] = new Leaf(vector, value)
     def align(v: Vector[F]): (Tree[F, V], Vector[F]) = (this, Vector[F]())
-//    def apply(average: Vector[F]): V = value
+    //    def apply(average: Vector[F]): V = value
     val average: Vector[F] = Vector[F]()
     def energy_ : Double = 0.0d
     def dispersion = 0.0d
@@ -158,7 +182,7 @@ class TreeApproximatorEmpty[F, V](implicit ord: Ordering[F]) extends TreeApproxi
 }
 
 class TreeApproximatorNode[F, V](val child1: TreeApproximator[F, V],
-                                 val child2: TreeApproximator[F, V])
+                                 val child2: TreeApproximator[F, V])(implicit val ord: Ordering[F])
         extends TreeApproximator[F, V] {
     val average = (child1.average + child2.average) clearMinors (4000)
 
@@ -184,7 +208,7 @@ class TreeApproximatorNode[F, V](val child1: TreeApproximator[F, V],
             )
         }
     }
-//    def apply(vector: Vector[F]): V = nearest(vector).head(vector)
+    //    def apply(vector: Vector[F]): V = nearest(vector).head(vector)
 
     lazy val energy_ = (
         child1.energy_ +
@@ -252,7 +276,9 @@ class TreeApproximatorNode[F, V](val child1: TreeApproximator[F, V],
     else this
 }
 
-class TreeApproximatorLeaf[F, V](val average: Vector[F], val value: V)
+class TreeApproximatorLeaf[F, V](
+    val average: Vector[F], val value: V)(
+        implicit val ord: Ordering[F])
         extends TreeApproximator[F, V] {
     def +(vector: Vector[F], value: V) = new TreeApproximatorNode[F, V](
         this, new TreeApproximatorLeaf[F, V](vector, value))
@@ -260,7 +286,7 @@ class TreeApproximatorLeaf[F, V](val average: Vector[F], val value: V)
 
     def dispersion = 0.0d
 
-//    def apply(vector: Vector[F]): V = value
+    //    def apply(vector: Vector[F]): V = value
     def energy_ = 0.0
     def energy2 = 0.0
     def /(n: Int) = this

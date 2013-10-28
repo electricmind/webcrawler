@@ -153,32 +153,18 @@ object Draw2DMap extends SimpleSwingApplication {
                 }
 
                 val map = debug.time("clusters: n=%s".format(clusters.size)) {
-                    clusters.foldLeft(Map[Vector[Int], Set[Vector[Int]]]()) {
-                        case (map, vs) =>
-                            val set = vs.toSet
-                            vs.foldLeft(map) {
-                                case (map, v) => map + (v -> set)
-                            }
-                    }
+                    clusters.map
                 }
 
-                def bind[F, V](tree: Tree[F, V], map: V => V): Tree[F, V] = {
-                    tree match {
-                        case empty: Empty[F, V] => empty
-                        case leaf: Leaf[F, V] =>
-                            new Leaf[F, V](leaf.average, map(leaf.value))
-                        case node: Node[F, V] =>
-                            new Node[F, V](bind(node.child1, map), bind(node.child2, map))
-                    }
-                }
-                println("map.size= " + map.size)
-                tree = debug.time("bind tree") {
-                    bind(tree, {
-
+                tree = debug.time("bind tree, map.size= " + map.size) {
+                    tree.bind({
                         case (v, _, id) =>
                             (v, map(v), id)
                     })
                 }
+                
+//                tree.bind(clusters.map)
+                
                 repaint()
             }
 

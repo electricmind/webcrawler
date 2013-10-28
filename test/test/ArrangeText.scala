@@ -1,5 +1,7 @@
 package test
-import ru.wordmetrix.webcrawler.{ Vector, TreeApproximator, debug, CFG }
+import ru.wordmetrix.webcrawler.{ Vector, TreeApproximator, debug, CFG, Use }
+import Use._
+
 import TreeApproximator._
 import java.io._
 import ru.wordmetrix.webcrawler.Clusters
@@ -39,14 +41,7 @@ object ArrangeText extends App {
         fin.close()
     }
 
-    class Use[A](a: A) {
-        def use [B](f: A => B) = f(a)
-    }
-    implicit def aToUse[A](a: A) = new Use(a)
-
-    // 1 use (x => x + 1)
-
-    def arrange_cluster(map: Iterable[Iterable[Vector[Word]]], tree: Tree[Word, File], path : File) = {
+    def arrange_cluster(map: Iterable[Iterable[Vector[Word]]], tree: Tree[Word, File], path: File) = {
         val v2f = tree.toMap
         map.zipWithIndex foreach {
             case (vs, i) => vs foreach {
@@ -100,14 +95,13 @@ object ArrangeText extends App {
                     tree.rectify(tree.n)
                 }
         })
-        
+
         def tree_aligned = tree_opt.align()._1
 
-        
-       // arrange_tree(tree_opt.aligned, new File(target))
+        // arrange_tree(tree_opt.aligned, new File(target))
         tree_aligned use {
             tree => arrange_cluster(debug.time("clustering") { Clusters(tree) }, tree, new File(target))
-        } 
-        
+        }
+
     }
 }

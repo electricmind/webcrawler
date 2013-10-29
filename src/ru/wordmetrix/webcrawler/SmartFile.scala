@@ -3,12 +3,17 @@ package ru.wordmetrix.webcrawler
 import java.io.File
 import java.io.FileOutputStream
 import java.io.FileInputStream
+import SmartFile._
+import java.io.FileWriter
+import java.io.FileReader
+import java.io.File
+
 object SmartFile {
-    implicit def file2SmartFile(f: File) = new SmartFile(f)
+    implicit def fromFile(f: File) = new SmartFile(f)
+    implicit def fromString(s : String) = new SmartFile(new File(s))
     implicit def string2Array(s: String): Array[Byte] = s.toArray.map(c => c.toByte)
 
 }
-import SmartFile._
 
 class SmartFile(val file: File) {
     def /(f: SmartFile) = new SmartFile(new File(file, f.file.toString))
@@ -26,6 +31,9 @@ class SmartFile(val file: File) {
         fn.close()
     }
 
+    def writer = new FileWriter(file)
+//    def reader = new FileReader(file)
+    
     def read() = {
         val fin = new FileInputStream(file)
         val buf = new Array[Byte](fin.available())

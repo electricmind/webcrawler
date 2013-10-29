@@ -29,7 +29,6 @@ object ArrangeText extends App {
     
     import SmartFile._
 
-
     def arrange_tree(tree: Tree[Word, File], path: File): Unit = tree match {
         case node: Node[Word, File] => {
             path / "1" / "vocabulary.txt" write (node.child1.average.normal - node.child2.average.normal)

@@ -11,9 +11,9 @@ import java.awt.Paint
 import java.awt.BasicStroke
 import scala.swing.event.Key._
 import java.awt.Point
-import java.io.File
 import Math._
-// TODO: Select cluster by mouse pointer
+import SmartFile._
+
 // TODO: try paint all clusters inot different tinges.
 
 object Draw2DMap extends SimpleSwingApplication {
@@ -60,7 +60,7 @@ object Draw2DMap extends SimpleSwingApplication {
         val cloud = scala.collection.Iterator.continually[Iterable[(Vector[Int], Int)]] {
             val nc = 4
             if (args.hasNext) {
-                val data = (io.Source.fromFile(new java.io.File(args.next)).getLines map {
+                val data = (args.next.readLines map {
                     case x => x.split(" ") match {
                         case Array(sx, sy) => Some((sx.toDouble, sy.toDouble))
                         case _             => None

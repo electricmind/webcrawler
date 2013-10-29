@@ -9,7 +9,7 @@ import java.io.FileInputStream
 
 class Storage()(implicit val cfg: CFG) extends Actor with CFGAware {
     override val name = "Storage"
-
+    var amount = 0
     def seedToFilename(seed: WebCrawler.Seed) = """[/:\\]""".r.replaceAllIn("""https?://""".r.replaceFirstIn(seed.toString, ""), "-") match {
         case x if x.length > 120 => x.slice(0, 120) +
             x.slice(0, 120).hashCode.toString
@@ -39,6 +39,10 @@ class Storage()(implicit val cfg: CFG) extends Actor with CFGAware {
 
                 file.write(intel)
                 file.close()
+                amount += 1
+                if (amount >= cfg.amount) {
+                    System.exit(0)
+                }
             }
 
             case x => log("Store got something strange: %s", x)

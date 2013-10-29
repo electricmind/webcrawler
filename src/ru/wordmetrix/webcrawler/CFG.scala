@@ -19,6 +19,7 @@ object CFG {
         "targets" -> 9,
         "targeting" -> 0.01,
         "sampling" -> new File("sampling.lst"),
+        "amount" -> 1000,
         "sigma" -> 1.0)
 
     def apply(): CFG = this(List())
@@ -54,6 +55,9 @@ object CFG {
         case rkey("ps") :: path :: list =>
             CFG(list, map + ("samping" -> new File(path)), seeds)
 
+        case rkey("amount") :: value :: list =>
+            CFG(list, map + ("amount" -> value.toInt), seeds)
+
         case rkey("sigma") :: value :: list =>
             CFG(list, map + ("sigma" -> value.toDouble), seeds)
 
@@ -76,6 +80,7 @@ object CFG {
             map("servers").asInstanceOf[Int],
             map("targeting").asInstanceOf[Double],
             map("targets").asInstanceOf[Int],
+            map("amount").asInstanceOf[Int],
             map("sigma").asInstanceOf[Double],
             seeds.reverse)
     }
@@ -85,7 +90,7 @@ object CFG {
 */
 class CFG(val path: File, val sampling: File, val isdebug: Boolean, 
           val ish2p: Boolean, val servers: Int,
-          val targeting: Double, val targets: Int, 
+          val targeting: Double, val targets: Int, val amount: Int, 
           val sigma: Double, val seeds: List[URI]) {}
 
 object debug {

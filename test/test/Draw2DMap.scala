@@ -13,7 +13,6 @@ import scala.swing.event.Key._
 import java.awt.Point
 import java.io.File
 import Math._
-// TODO: Select cluster by mouse pointer
 // TODO: try paint all clusters inot different tinges.
 
 object Draw2DMap extends SimpleSwingApplication {

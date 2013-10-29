@@ -1,5 +1,5 @@
 package ru.wordmetrix.webcrawler
-
+import Use._
 object Clusters {
     type V[V] = scala.collection.immutable.Vector[V]
     def V = scala.collection.immutable.Vector
@@ -88,14 +88,63 @@ class Cluster[F](val vector: V[Vector[F]],
     }
 }
 
-
 // TODO: rearrange clusters into a chain
 class Clusters[F](
     val heads: Map[Vector[F], Cluster[F]] = Map[Vector[F], Cluster[F]](),
     val lasts: Map[Vector[F], Cluster[F]] = Map[Vector[F], Cluster[F]]())
         extends Iterable[Cluster[F]] {
 
-    def iterator = heads.values.toIterator
+    //    def iterator = heads.values.toIterator
+    //    def first: Cluster[F] = first(heads.head._2)
+
+    def iterator = {
+        def first(cluster: Cluster[F]): Cluster[F] = lasts.get(cluster.head) match {
+            case None          => cluster
+            case Some(cluster) => first(cluster)
+        }
+
+        def vectors = lasts.keySet
+
+        def subchain(cluster: Option[Cluster[F]], vectors: Set[Vector[F]]) = {
+            Iterator.iterate(cluster, vectors) {
+                case (Some(cluster), vectors) => heads.get(cluster.last) match {
+                    case Some(cluster) => (Some(cluster), vectors - cluster.head)
+                    case None          => (None, vectors)
+                }
+            }
+        }
+
+        def chain(cluster: Option[Cluster[F]], vectors: Set[Vector[F]]) = {
+            def nextchain(
+                vectors: Set[Vector[F]],
+                isubchain: Iterator[(Option[Cluster[F]], Set[Vector[F]])]) =
+                vectors.headOption match {
+                    case None => (None, vectors, isubchain)
+                    case Some(vector) =>
+                        first(lasts(vector)) use {
+                            cluster =>
+                                (vectors - cluster.last) use {
+                                    vectors =>
+                                        (Some(cluster),
+                                            vectors, subchain(Some(cluster),
+                                                vectors))
+                                }
+                        }
+                }
+            
+            Iterator.iterate(cluster, vectors, subchain(cluster, vectors)) {
+                case (cluster, vectors, isubchain) => isubchain.next match {
+                    case (Some(cluster), vectors) =>
+                        (Some(cluster), vectors - cluster.last, isubchain)
+                    case (None, vectors) => nextchain(vectors, isubchain)
+                }
+                case (None, vectors, isubchain) => nextchain(vectors, isubchain)
+            }
+        }
+        chain(None, vectors).takeWhile(_ != None).map {
+            case (Some(cluster), vectors, isubchain) => cluster
+        }
+    }
 
     def map = foldLeft(Map[Vector[F], Set[Vector[F]]]()) {
         case (map, vs) =>

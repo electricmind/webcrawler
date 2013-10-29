@@ -96,7 +96,8 @@ class Clusters[F](
 
     //    def iterator = heads.values.toIterator
     //    def first: Cluster[F] = first(heads.head._2)
-
+    println(2, heads)
+    println(2, lasts)
     def iterator = {
         def first(cluster: Cluster[F]): Cluster[F] = lasts.get(cluster.head) match {
             case None          => cluster
@@ -105,43 +106,62 @@ class Clusters[F](
 
         def vectors = lasts.keySet
 
-        def subchain(cluster: Option[Cluster[F]], vectors: Set[Vector[F]]) = {
-            Iterator.iterate(cluster, vectors) {
-                case (Some(cluster), vectors) => heads.get(cluster.last) match {
-                    case Some(cluster) => (Some(cluster), vectors - cluster.head)
-                    case None          => (None, vectors)
-                }
+        def subchain(cluster: Option[Cluster[F]]) = {
+            Iterator.iterate(cluster) {
+                case Some(cluster) => heads.get(cluster.last)
             }
         }
 
         def chain(cluster: Option[Cluster[F]], vectors: Set[Vector[F]]) = {
-            def nextchain(
-                vectors: Set[Vector[F]],
-                isubchain: Iterator[(Option[Cluster[F]], Set[Vector[F]])]) =
-                vectors.headOption match {
-                    case None => (None, vectors, isubchain)
-                    case Some(vector) =>
-                        first(lasts(vector)) use {
-                            cluster =>
-                                (vectors - cluster.last) use {
-                                    vectors =>
-                                        (Some(cluster),
-                                            vectors, subchain(Some(cluster),
-                                                vectors))
-                                }
-                        }
-                }
+            println(6, cluster, vectors)
             
-            Iterator.iterate(cluster, vectors, subchain(cluster, vectors)) {
-                case (cluster, vectors, isubchain) => isubchain.next match {
-                    case (Some(cluster), vectors) =>
-                        (Some(cluster), vectors - cluster.last, isubchain)
-                    case (None, vectors) => nextchain(vectors, isubchain)
+            def nextchain(vectors: Set[Vector[F]]) =
+                vectors.headOption match {
+                    case None =>
+                        println(10)
+                        None
+            
+                    case Some(vector) =>
+                        println(8, vector)
+                        val qq = first(lasts(vector)) use {
+                            cluster => Some(subchain(Some(cluster)))
+                        }
+                        println(15, qq)
+                        qq
                 }
-                case (None, vectors, isubchain) => nextchain(vectors, isubchain)
+
+            println(12, cluster)
+            val q = Iterator.iterate((cluster, vectors, subchain(cluster))) {
+                case (Some(cluster), vectors, isubchain) =>
+                    println(11, cluster, vectors)
+                    isubchain.next match {
+                        case Some(cluster) =>
+                            println(19,cluster)
+                            (Some(cluster), vectors - cluster.last, isubchain)
+                        case None => nextchain(vectors) match {
+                            case Some(isubchain) => isubchain.next match {
+                                case Some(cluster) => (Some(cluster), 
+                                        vectors - cluster.last, isubchain)
+                            }
+                            
+                            case None => (None, vectors, isubchain)
+                        } 
+                    }
+                case (None, vectors, isubchain) =>
+                    println(7, vectors)
+                    nextchain(vectors) match {
+                        case Some(isubchain) => isubchain.next match {
+                            case Some(cluster) => (Some(cluster), vectors - cluster.last, isubchain)
+                            
+                        } 
+                        case None => (None, vectors, isubchain)
+                    }
             }
+            println(14, q.next)
+            q
         }
-        chain(None, vectors).takeWhile(_ != None).map {
+        println("1", vectors)
+        chain(None, vectors).takeWhile(_._1 != None).map {
             case (Some(cluster), vectors, isubchain) => cluster
         }
     }

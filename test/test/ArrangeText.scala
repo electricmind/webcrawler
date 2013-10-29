@@ -5,6 +5,7 @@ import Use._
 import TreeApproximator._
 import java.io._
 import ru.wordmetrix.webcrawler.Clusters
+import SmartFile._
 
 object ArrangeText extends App {
     implicit lazy val cfg = CFG(List("-d"))
@@ -23,12 +24,9 @@ object ArrangeText extends App {
         }
     }
     implicit def string2File(s: String) = new File(s)
-    implicit def vectors2Vectors(v : Vector[Word]) : Vector[String] = Vector(v.map {
-        case (x,y) => (string2word.inverted(x) -> y)
+    implicit def vectors2Vectors(v: Vector[Word]): Vector[String] = Vector(v.map {
+        case (x, y) => (string2word.inverted(x) -> y)
     } toList)
-    
-    import SmartFile._
-
 
     def arrange_tree(tree: Tree[Word, File], path: File): Unit = tree match {
         case node: Node[Word, File] => {
@@ -46,12 +44,12 @@ object ArrangeText extends App {
     def arrange_cluster(map: Iterable[Iterable[Vector[Word]]], tree: Tree[Word, File], path: File) = {
         val v2f = tree.toMap
         val average = tree.average.normal
-
+        println("!!! ==>",map.size)        
         map.zipWithIndex foreach {
             case (vs, i) =>
                 path / i / "vocabulary.txt" write (vs.reduce(_ + _).normal - average.normal)
                 vs foreach {
-                    // TODO: The vector are lost sometimes
+                    // TODO: The vector is lost sometimes
                     case (v) => v2f.get(v) use {
                         case None =>
                             println("We met a problem with v: " + v)
@@ -66,6 +64,7 @@ object ArrangeText extends App {
                     }
                 }
         }
+        println("path",path)
     }
 
     override def main(args: Array[String]) {
@@ -75,7 +74,7 @@ object ArrangeText extends App {
             case Array(command, target, files @ _*) if command == "tree" ||
                 command == "cluster" => (command, target, files)
 
-            case Array(target, files @ _*) => ("tree", target, files)
+            case Array(target, files @ _*) => ("both", target, files)
 
             case _ =>
                 println("\nEnter: tree | cluster <PATH> [<FILE> [..]]\n")
@@ -124,11 +123,20 @@ object ArrangeText extends App {
         def tree_aligned = tree_opt.align()._1
 
         command match {
-            case "tree" => arrange_tree(tree_aligned, new File(target))
+            case "tree" => arrange_tree(tree_aligned, target)
             case "cluster" => tree_aligned use {
-                tree => arrange_cluster(debug.time("clustering") { Clusters(tree) }, tree, new File(target))
+                tree => arrange_cluster(debug.time("clustering") { Clusters(tree) }, tree, target)
             }
-            case "nothing" => println("Huh, boyz ...")
+            case "both" =>
+                
+                tree_aligned use {
+                tree => {  
+                        arrange_cluster(debug.time("clustering") { Clusters(tree) }, tree, target / "cluster")
+                        arrange_tree(tree, target / "tree")
+                    }
+            }
+                println("!!!")
+            case _ => println("Huh, boyz ...")
         }
     }
 }

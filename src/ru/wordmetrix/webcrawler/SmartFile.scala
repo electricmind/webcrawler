@@ -8,7 +8,6 @@ object SmartFile {
     implicit def string2SmartFile(s : String) = new SmartFile(new File(s))
     implicit def string2Array(s: String): Array[Byte] = s.toArray.map(c => c.toByte)
     implicit def smartfile2File(sf : SmartFile) = sf.file
-
 }
 import SmartFile._
 

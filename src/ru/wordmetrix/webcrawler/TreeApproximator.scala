@@ -85,9 +85,7 @@ object TreeApproximator {
 trait TreeApproximator[F, V] extends Iterable[(Vector[F], V)] {
     implicit val ord: Ordering[F]
     val average: Vector[F]
-    // = Vector[F]()
-    // = null 
-    // TODO : Create an ability to have empty vectors
+    
 
     def bind(
         clusters: Map[Vector[F], Iterable[Vector[F]]]): Tree[F, Iterable[Vector[F]]] =

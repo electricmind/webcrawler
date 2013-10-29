@@ -137,19 +137,21 @@ class Clusters[F](
                         case None => (None, vectors, isubchain)
                     }
                 }
-                case (None, vectors, isubchain) => nextchain(vectors) match {
-                    case Some(isubchain) => isubchain.next match {
-                        case Some(cluster) =>
-                            (Some(cluster), vectors - cluster.last, isubchain)
+                case (None, vectors, isubchain) =>
+                    nextchain(vectors) match {
+                        case Some(isubchain) =>
+                            isubchain.next match {
+                                case Some(cluster) =>
+                                    println(9)
+                                    (Some(cluster), vectors - cluster.last, isubchain)
 
+                            }
+                        case None =>
+                            (None, vectors, isubchain)
                     }
-                    case None => (None, vectors, isubchain)
-                }
             }
-
         }
-        println("1", vectors)
-        chain(None, vectors).takeWhile(_._1 != None).map {
+        chain(None, vectors).drop(1).takeWhile(_._1 != None).map {
             case (Some(cluster), vectors, isubchain) => cluster
         }
     }

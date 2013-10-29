@@ -96,13 +96,12 @@ class Clusters[F](
 
     //    def iterator = heads.values.toIterator
     //    def first: Cluster[F] = first(heads.head._2)
-    println(2, heads)
-    println(2, lasts)
     def iterator = {
-        def first(cluster: Cluster[F]): Cluster[F] = lasts.get(cluster.head) match {
-            case None          => cluster
-            case Some(cluster) => first(cluster)
-        }
+        def first(cluster: Cluster[F]): Cluster[F] =
+            lasts.get(cluster.head) match {
+                case None          => cluster
+                case Some(cluster) => first(cluster)
+            }
 
         def vectors = lasts.keySet
 
@@ -114,51 +113,40 @@ class Clusters[F](
 
         def chain(cluster: Option[Cluster[F]], vectors: Set[Vector[F]]) = {
             println(6, cluster, vectors)
-            
+
             def nextchain(vectors: Set[Vector[F]]) =
                 vectors.headOption match {
-                    case None =>
-                        println(10)
-                        None
-            
-                    case Some(vector) =>
-                        println(8, vector)
-                        val qq = first(lasts(vector)) use {
-                            cluster => Some(subchain(Some(cluster)))
-                        }
-                        println(15, qq)
-                        qq
+                    case None => None
+
+                    case Some(vector) => first(lasts(vector)) use {
+                        cluster => Some(subchain(Some(cluster)))
+                    }
                 }
 
-            println(12, cluster)
-            val q = Iterator.iterate((cluster, vectors, subchain(cluster))) {
-                case (Some(cluster), vectors, isubchain) =>
-                    println(11, cluster, vectors)
-                    isubchain.next match {
-                        case Some(cluster) =>
-                            println(19,cluster)
-                            (Some(cluster), vectors - cluster.last, isubchain)
-                        case None => nextchain(vectors) match {
-                            case Some(isubchain) => isubchain.next match {
-                                case Some(cluster) => (Some(cluster), 
-                                        vectors - cluster.last, isubchain)
-                            }
-                            
-                            case None => (None, vectors, isubchain)
-                        } 
-                    }
-                case (None, vectors, isubchain) =>
-                    println(7, vectors)
-                    nextchain(vectors) match {
+            Iterator.iterate((cluster, vectors, subchain(cluster))) {
+                case (Some(cluster), vectors, isubchain) => isubchain.next match {
+                    case Some(cluster) =>
+                        (Some(cluster), vectors - cluster.last, isubchain)
+
+                    case None => nextchain(vectors) match {
                         case Some(isubchain) => isubchain.next match {
-                            case Some(cluster) => (Some(cluster), vectors - cluster.last, isubchain)
-                            
-                        } 
+                            case Some(cluster) => (Some(cluster),
+                                vectors - cluster.last, isubchain)
+                        }
+
                         case None => (None, vectors, isubchain)
                     }
+                }
+                case (None, vectors, isubchain) => nextchain(vectors) match {
+                    case Some(isubchain) => isubchain.next match {
+                        case Some(cluster) =>
+                            (Some(cluster), vectors - cluster.last, isubchain)
+
+                    }
+                    case None => (None, vectors, isubchain)
+                }
             }
-            println(14, q.next)
-            q
+
         }
         println("1", vectors)
         chain(None, vectors).takeWhile(_._1 != None).map {

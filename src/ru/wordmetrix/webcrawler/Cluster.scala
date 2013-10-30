@@ -94,14 +94,11 @@ class Cluster[F](val vector: V[Vector[F]],
     }
 }
 
-// TODO: rearrange clusters into a chain
 class Clusters[F](
     val heads: Map[Vector[F], Cluster[F]] = Map[Vector[F], Cluster[F]](),
     val lasts: Map[Vector[F], Cluster[F]] = Map[Vector[F], Cluster[F]]())
         extends Iterable[Cluster[F]] {
 
-    //    def iterator = heads.values.toIterator
-    //    def first: Cluster[F] = first(heads.head._2)
     def iterator = {
         def first(cluster: Cluster[F]): Cluster[F] =
             lasts.get(cluster.head) match {
@@ -148,7 +145,6 @@ class Clusters[F](
                         case Some(isubchain) =>
                             isubchain.next match {
                                 case Some(cluster) =>
-                                    println(9)
                                     (Some(cluster), vectors - cluster.last, isubchain)
 
                             }

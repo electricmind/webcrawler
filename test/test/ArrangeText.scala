@@ -44,10 +44,10 @@ object ArrangeText extends App {
     def arrange_cluster(map: Iterable[Iterable[Vector[Word]]], tree: Tree[Word, File], path: File) = {
         val v2f = tree.toMap
         val average = tree.average.normal
-        println("!!! ==>",map.size)        
+        println("!!! ==>", map.size)
         map.zipWithIndex foreach {
             case (vs, i) =>
-                path / i / "vocabulary.txt" write (vs.reduce(_ + _).normal - average.normal)
+                path / "%04d".format(i) / "vocabulary.txt" write (vs.reduce(_ + _).normal - average.normal)
                 vs foreach {
                     // TODO: The vector is lost sometimes
                     case (v) => v2f.get(v) use {
@@ -60,11 +60,11 @@ object ArrangeText extends App {
                                         println("that is as good as " + x * v + " " + x.normal * v.normal + " " + (x - v).norm)
                                     }
                             }
-                        case Some(x) => x.copyTo(path / i / x.getName())
+                        case Some(x) => x.copyTo(path / "%04d".format(i) / x.getName())
                     }
                 }
         }
-        println("path",path)
+
     }
 
     override def main(args: Array[String]) {
@@ -128,14 +128,15 @@ object ArrangeText extends App {
                 tree => arrange_cluster(debug.time("clustering") { Clusters(tree) }, tree, target)
             }
             case "both" =>
-                
+
                 tree_aligned use {
-                tree => {  
-                        arrange_cluster(debug.time("clustering") { Clusters(tree) }, tree, target / "cluster")
-                        arrange_tree(tree, target / "tree")
-                    }
-            }
-               
+                    tree =>
+                        {
+                            arrange_cluster(debug.time("clustering") { Clusters(tree) }, tree, target / "cluster")
+                            arrange_tree(tree, target / "tree")
+                        }
+                }
+
             case _ => println("Huh, boyz ...")
         }
     }

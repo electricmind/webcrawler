@@ -8,7 +8,13 @@ object Clusters {
     type Pair[F, V] = (Item[F, V], Item[F, V])
 
     private def fromPairs[F, V](pairs: Iterable[Pair[F, V]]) = pairs.foldLeft(new Clusters[F]()) {
-        case (cs, ((v1, va1), (v2, va2))) => cs + (v1, v2)
+        case (cs, ((v1, va1), (v2, va2))) if v1 != v2 =>
+            assert(v1 != v2, "pairing failed")
+            cs + (v1, v2)
+        case (cs,_) => 
+            println("pairing failed")
+            cs
+    
     }
 
     def apply[F, V](tree: Iterable[Item[F, V]]): Clusters[F] = {

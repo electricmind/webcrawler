@@ -135,7 +135,7 @@ object ArrangeText extends App {
                         arrange_tree(tree, target / "tree")
                     }
             }
-                println("!!!")
+               
             case _ => println("Huh, boyz ...")
         }
     }

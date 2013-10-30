@@ -11,10 +11,10 @@ object Clusters {
         case (cs, ((v1, va1), (v2, va2))) if v1 != v2 =>
             assert(v1 != v2, "pairing failed")
             cs + (v1, v2)
-        case (cs,_) => 
+        case (cs, _) =>
             println("pairing failed")
             cs
-    
+
     }
 
     def apply[F, V](tree: Iterable[Item[F, V]]): Clusters[F] = {
@@ -96,65 +96,39 @@ class Cluster[F](val vector: V[Vector[F]],
 
 class Clusters[F](
     val heads: Map[Vector[F], Cluster[F]] = Map[Vector[F], Cluster[F]](),
-    val lasts: Map[Vector[F], Cluster[F]] = Map[Vector[F], Cluster[F]]())
+    val lasts: Map[Vector[F], Cluster[F]] = Map[Vector[F], Cluster[F]](),
+    val joinheads: Map[Vector[F], Vector[F]] = Map[Vector[F], Vector[F]](),
+    val joinlasts: Set[Vector[F]] = Set[Vector[F]]())
         extends Iterable[Cluster[F]] {
 
     def iterator = {
-        def first(cluster: Cluster[F]): Cluster[F] =
-            lasts.get(cluster.head) match {
-                case None          => cluster
-                case Some(cluster) => first(cluster)
-            }
-
-        def vectors = lasts.keySet
-
-        def subchain(cluster: Option[Cluster[F]]) = {
-            Iterator.iterate(cluster) {
-                case Some(cluster) => heads.get(cluster.last)
-            }
-        }
-
-        def chain(cluster: Option[Cluster[F]], vectors: Set[Vector[F]]) = {
-            println(6, cluster, vectors)
-
-            def nextchain(vectors: Set[Vector[F]]) =
-                vectors.headOption match {
-                    case None => None
-
-                    case Some(vector) => first(lasts(vector)) use {
-                        cluster => Some(subchain(Some(cluster)))
-                    }
-                }
-
-            Iterator.iterate((cluster, vectors, subchain(cluster))) {
-                case (Some(cluster), vectors, isubchain) => isubchain.next match {
-                    case Some(cluster) =>
-                        (Some(cluster), vectors - cluster.last, isubchain)
-
-                    case None => nextchain(vectors) match {
-                        case Some(isubchain) => isubchain.next match {
-                            case Some(cluster) => (Some(cluster),
-                                vectors - cluster.last, isubchain)
-                        }
-
-                        case None => (None, vectors, isubchain)
-                    }
-                }
-                case (None, vectors, isubchain) =>
-                    nextchain(vectors) match {
-                        case Some(isubchain) =>
-                            isubchain.next match {
-                                case Some(cluster) =>
-                                    (Some(cluster), vectors - cluster.last, isubchain)
-
-                            }
+        println("qq = " + (lasts.keySet -- joinlasts).toList.size)
+        println("qq = " + (heads.keySet -- joinlasts).toList.size)
+        println("qq = " + joinlasts.size)
+        (heads.keySet -- joinlasts).toList match {
+            case start :: starts => Iterator.iterate[(Option[Cluster[F]], List[Vector[F]])](
+                (Some(heads(start)), starts)) {
+                    case (Some(c), starts) => heads.get(c.last) match {
+                        case Some(c) =>
+                            println(4)
+                            (Some(c), starts)
                         case None =>
-                            (None, vectors, isubchain)
+                            println(2)
+
+                            joinheads.get(c.last) match {
+                                case Some(v) => (Some(heads(v)), starts)
+                                case None => starts match {
+                                    case start :: starts =>
+                                        println(1)
+                                        (heads.get(start), starts)
+                                    case List() => (None, List())
+                                }
+                            }
                     }
-            }
-        }
-        chain(None, vectors).drop(1).takeWhile(_._1 != None).map {
-            case (Some(cluster), vectors, isubchain) => cluster
+                } takeWhile (_._1 != None) map {
+                    case (Some(c), _) => c
+                }
+            case List() => Iterator.empty
         }
     }
 
@@ -171,11 +145,17 @@ class Clusters[F](
             case (Some(c1), Some(c2)) =>
                 println(1, v1, v2)
                 c2.unionIfCheck(c1) match {
-                    case Some(c) => new Clusters(
-                        (heads - v2) + (c.head -> c),
-                        (lasts - v1) + (c.last -> c)
-                    )
-                    case None => println("!!"); this
+                    case Some(c) =>
+                        println("joi")
+                        new Clusters(
+                            (heads - v2) + (c.head -> c),
+                            (lasts - v1) + (c.last -> c),
+                            joinheads, joinlasts
+                        )
+                    case None =>
+                        println("!!"); new Clusters(
+                            heads, lasts, joinheads + (v1 -> v2), joinlasts + v2)
+
                 }
 
             case (Some(c1), None) =>
@@ -183,7 +163,8 @@ class Clusters[F](
                 (v1 +: c1) match {
                     case c => new Clusters(
                         (heads - v2) + (c.head -> c),
-                        lasts + (c.last -> c)
+                        lasts + (c.last -> c),
+                        joinheads, joinlasts
                     )
                 }
 
@@ -193,7 +174,9 @@ class Clusters[F](
                 (c2 :+ v2) match {
                     case c => new Clusters(
                         heads + (c.head -> c),
-                        (lasts - v1) + (c.last -> c)
+                        (lasts - v1) + (c.last -> c),
+                        joinheads, joinlasts
+
                     )
                 }
 
@@ -203,9 +186,11 @@ class Clusters[F](
                 new Cluster(v1, v2) match {
                     case c => new Clusters(
                         heads + (v1 -> c),
-                        lasts + (v2 -> c)
+                        lasts + (v2 -> c),
+                        joinheads, joinlasts
                     )
                 }
         }
     }
 }
+

@@ -9,10 +9,10 @@ object Clusters {
 
     private def fromPairs[F, V](pairs: Iterable[Pair[F, V]]) = pairs.foldLeft(new Clusters[F]()) {
         case (cs, ((v1, va1), (v2, va2))) if v1 != v2 =>
-            assert(v1 != v2, "pairing failed")
             cs + (v1, v2)
-        case (cs, _) =>
-            println("pairing failed")
+            
+        case (cs, ((v1, va1), (v2, va2))) =>
+            println("pairing failed", va1, va2)
             cs
 
     }
@@ -23,12 +23,17 @@ object Clusters {
 
     def apply[F](chain: Seq[Vector[F]]): Clusters[F] = apply(chain.zipWithIndex)
 
-    def pairs[F, V](tree: Iterable[(Vector[F], V)]) = tree.sliding(2).map({
-        case (v1, value1) :: (v2, value2) :: _ =>
-            Some(((v1 - v2).sqr, ((v1, value1), (v2, value2))))
-        case _ => None
-    }).flatten.toList.sortBy(_._1).map(_._2).toSeq
-
+    def pairs[F, V](tree: Iterable[(Vector[F], V)]) =  (tree.foldLeft((Set[Vector[F]](),List[(Vector[F], V)]())) {
+            case ((set,list),(k,v)) => if (set contains k) (set, list) else {
+                (set + k, (k,v) :: list)
+            }
+        })._2.reverse.sliding(2).map({
+            case (v1, value1) :: (v2, value2) :: _ =>
+                Some(((v1 - v2).sqr, ((v1, value1), (v2, value2))))
+            case _ => None
+        }).flatten.toList.sortBy(_._1).map(_._2).toSeq
+    
+    
     def pairs[F](vectors: Seq[Vector[F]]) = {
         vectors.sliding(2).filter(_.length == 2).map {
             case scala.collection.immutable.Vector(v1, v2) => (v1, v2)
@@ -104,41 +109,47 @@ class Clusters[F](
     def iterator = {
         println("starts = " + (heads.keySet -- joinlasts).toList.size)
         println("continues = " + joinlasts.size)
+
+        println(joinheads.values.toSet.size, joinheads.values.toList.size)
+        println((joinheads.values.toSet & heads.values.toSet.map((x: Cluster[F]) => x.last)).size)
+        println((joinheads.values.toSet & heads.keySet).size, joinheads.values.toSet.size)
+
+        // assert(joinheads.values.toSet.size
+        //     == joinheads.values.toList.size, "Duplicate joins")
+        //        
+        //        assert((joinheads.values.toSet & heads.values.toSet.map((x: Cluster[F]) => x.last))
+        //            == Set(), "joinheads should not join to inner chains")
+        //            
+        /*        assert((joinheads.values.toSet & heads.keySet)
+            == joinheads.values.toSet, "joinheads should point to existent chains")
+*/
         (heads.keySet -- joinlasts).toList match {
             case start :: starts => Iterator.iterate[(Option[Cluster[F]], List[Vector[F]])](
                 (Some(heads(start)), starts)) {
-                    case (Some(c), starts) => heads.get(c.last) match {
-                        case Some(c) =>
-                            println(4) //impossible
-                            (Some(c), starts)
-                        case None =>
-                            println(2)
-
-                            joinheads.get(c.last) match {
-                                case Some(v) => //(Some(heads(v)), starts)
-                                    heads.get(v) match {
-                                        case Some(v) =>
-                                            println(6)
-                                            (Some(v), starts)
-                                        case None =>
-                                            println("failure")
-                                            starts match {
+                    case (Some(c), starts) =>
+                        joinheads.get(c.last) match {
+                            case Some(v) => 
+                                heads.get(v) match {
+                                    case Some(v) =>
+                                        (Some(v), starts)
+                                    case None =>
+                                        println("impossible failure")
+                                        starts match {
                                             case start :: starts =>
                                                 println(5)
                                                 (heads.get(start), starts)
                                             case List() => (None, List())
                                         }
-                                    }
-                                case None => starts match {
-                                    case start :: starts =>
-                                        println(1)
-                                        (heads.get(start), starts)
-                                    case List() =>
-                                        println(7)
-                                        (None, List())
                                 }
+                            case None => starts match {
+                                case start :: starts =>
+                                    println(1)
+                                    (heads.get(start), starts)
+                                case List() =>
+                                    println(7)
+                                    (None, List())
                             }
-                    }
+                        }
                 } takeWhile (_._1 != None) map {
                     case (Some(c), _) => c
                 }

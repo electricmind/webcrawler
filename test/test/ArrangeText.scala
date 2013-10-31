@@ -105,6 +105,7 @@ object ArrangeText extends App {
                     vector.size,
                     tree.average.size)
                 ) {
+                    System.gc()
                     (tree + (vector, file)).rectify(2)
                 }
 
@@ -120,7 +121,10 @@ object ArrangeText extends App {
                 }
         })
 
-        def tree_aligned = tree_opt.align()._1
+        def tree_aligned = "/tmp/tree.dat" cache {
+            println("start align")
+            tree_opt.align()._1
+        }
 
         command match {
             case "tree" => arrange_tree(tree_aligned, target)

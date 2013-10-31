@@ -25,7 +25,7 @@ object ArrangeText extends App {
     }
     implicit def string2File(s: String) = new File(s)
     implicit def vectors2Vectors(v: Vector[Word]): Vector[String] = Vector(v.map {
-        case (x, y) => (string2word.inverted(x) -> y)
+        case (x, y) => (string2word.inverted.getOrElse(x,"UNKNOWN") -> y)
     } toList)
 
     def arrange_tree(tree: Tree[Word, File], path: File): Unit = tree match {
@@ -123,7 +123,8 @@ object ArrangeText extends App {
 
         def tree_aligned = "/tmp/tree.dat" cache {
             println("start align")
-            tree_opt.align()._1
+            val tree = tree_opt.align()._1
+            tree
         }
 
         command match {

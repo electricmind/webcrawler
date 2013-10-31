@@ -82,7 +82,7 @@ object TreeApproximator {
 
 }
 
-trait TreeApproximator[F, V] extends Iterable[(Vector[F], V)] {
+trait TreeApproximator[F, V] extends Iterable[(Vector[F], V)] with Serializable {
     implicit val ord: Ordering[F]
     val average: Vector[F]
     

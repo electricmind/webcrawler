@@ -12,7 +12,7 @@ object Vector {
     def apply[F](pairs: (F, Double)*)(implicit ord: Ordering[F]): Vector[F] = apply(pairs.toList)
 }
 
-class Vector[F](val self: List[(F, Double)])(implicit accuracy: Double = 0.0001, ord: Ordering[F]) extends TraversableProxy[(F, Double)] {
+class Vector[F](val self: List[(F, Double)])(implicit accuracy: Double = 0.0001, ord: Ordering[F]) extends TraversableProxy[(F, Double)] with Serializable {
     type Pair = (F, Double)
     type Pairs = List[Pair]
 

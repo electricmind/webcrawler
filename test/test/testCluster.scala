@@ -169,12 +169,14 @@ class testCluster extends FlatSpec with Matchers {
     "A simple chain" should "be clustered" in {
         Clusters(List[Vector[Int]]()).size should be(0)
         //        Clusters(List(v1)).size should be(1)
+        println(5)
         Clusters(List(v1, v2)).size should be(1)
+        println(6)
         Clusters(List(v1, v2, v4)).size should be(1)
         Clusters(List(v1, v2, v4, v10)).size should be(1)
         Clusters(List(v1, v2, v4, v10, v3)).size should be(1)
-
         Clusters(List(v1, v2, v3)).size should be(1)
+
         /*   println("1 2 3 =        " + Clusters(List(v1,v2,v3)).head)
         
         println("1 2 3 4 =      " + Clusters(List(v1,v2,v3, v4)).head)

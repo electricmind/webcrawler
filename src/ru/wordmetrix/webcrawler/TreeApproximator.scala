@@ -82,10 +82,10 @@ object TreeApproximator {
 
 }
 
-trait TreeApproximator[F, V] extends Iterable[(Vector[F], V)] {
+trait TreeApproximator[F, V] extends Iterable[(Vector[F], V)] with Serializable {
     implicit val ord: Ordering[F]
-    val average: Vector[F] // = Vector[F]()
-
+    val average: Vector[F]
+    
     def bind(
         clusters: Map[Vector[F], Iterable[Vector[F]]]): Tree[F, Iterable[Vector[F]]] =
         bindleaf({ case (v, va) => clusters(v) })

@@ -25,7 +25,7 @@ object ArrangeText extends App {
         }
     }
 
-    lazy val inverted = "/tmp/word2string.dat" cache {
+    lazy val inverted = "/tmp/word2string1.dat" cache {
         string2word.inverted
     }
     implicit def string2File(s: String) = new File(s)
@@ -139,7 +139,7 @@ object ArrangeText extends App {
                 }
         })
 
-        def tree_aligned = "/tmp/tree.dat" cache {
+        def tree_aligned = "/tmp/tree1.dat" cache {
             val tree = tree_opt.align()._1
             tree
         }
@@ -150,7 +150,6 @@ object ArrangeText extends App {
                 tree => arrange_cluster(debug.time("clustering") { Clusters(tree) }, tree, target)
             }
             case "both" =>
-
                 tree_aligned use {
                     tree =>
                         {

@@ -85,7 +85,7 @@ object TreeApproximator {
 trait TreeApproximator[F, V] extends Iterable[(Vector[F], V)] with Serializable {
     implicit val ord: Ordering[F]
     val average: Vector[F]
-    
+
     def bind(
         clusters: Map[Vector[F], Iterable[Vector[F]]]): Tree[F, Iterable[Vector[F]]] =
         bindleaf({ case (v, va) => clusters(v) })
@@ -98,7 +98,7 @@ trait TreeApproximator[F, V] extends Iterable[(Vector[F], V)] with Serializable 
             case empty: Empty[F, V] => new Empty[F, R]()
             case leaf: Leaf[F, V] =>
                 new Leaf[F, R](leaf.average, map(leaf.average, leaf.value))
-                
+
             case node: Node[F, V] => new Node[F, R](
                 node.child1.bindleaf(map),
                 node.child2.bindleaf(map)
@@ -122,7 +122,7 @@ trait TreeApproximator[F, V] extends Iterable[(Vector[F], V)] with Serializable 
         case node: Node[F, V] => node.nearest(vector).head.get[R](f)(vector)
     }
 
-    def energy = Math.sqrt(energy_) / n / n
+    def energy = Math.sqrt(energy_) / n // / n
     def energy_ : Double
 
     def energy2: Double
@@ -169,6 +169,8 @@ class TreeApproximatorEmpty[F, V](implicit val ord: Ordering[F]) extends TreeApp
     def align(v: Vector[F]): (Tree[F, V], Vector[F]) = (this, Vector[F]())
     //    def apply(average: Vector[F]): V = value
     val average: Vector[F] = Vector[F]()
+    
+    override def energy = 0d
     def energy_ : Double = 0.0d
     def dispersion = 0.0d
     def energy2: Double = 0d

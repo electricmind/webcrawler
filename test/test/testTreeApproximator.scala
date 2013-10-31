@@ -34,7 +34,7 @@ class testTreeApproximator extends FlatSpec with Matchers {
         TreeApproximator(v1 -> 1, v2 -> 1, v3 -> 1, v4 -> 1).energy_ should
             be(1 + 1 + 2 + 3 + 2 + 2)
 
-        TreeApproximator(v1 -> 1, v2 -> 1).energy should be(1)
+        TreeApproximator(v1 -> 1, v2 -> 1).energy should be(0.70 plusOrMinus 0.01)
         TreeApproximator(v1 -> 1, v2 -> 1, v3 -> 1).energy should
             be((1 + 1 + 2) / 3.)
         TreeApproximator(v1 -> 1, v2 -> 1, v3 -> 1, v4 -> 1).energy should
@@ -142,9 +142,10 @@ class testTreeApproximator extends FlatSpec with Matchers {
         ((tree / 1).average / (tree / 1).n).norm should be(0.64 plusOrMinus 0.05)
         ((tree / 1).average - (tree / 2).average).norm should be((0.64d * n) plusOrMinus n / 10d)
 
-        tree.energy should be(0.7869 plusOrMinus 0.01)
-        (tree / 1).energy should be(1.1 plusOrMinus 0.1)
-        (tree / 2).energy should be(1.1 plusOrMinus 0.1)
+         
+        tree.energy should be(0.999 plusOrMinus 0.01)
+        (tree / 1).energy should be(0.7920 plusOrMinus 0.1)
+        (tree / 2).energy should be(0.7920 plusOrMinus 0.1)
     }
 
     "A random mixing tree" should "has two heads" in {

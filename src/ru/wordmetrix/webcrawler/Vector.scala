@@ -16,6 +16,8 @@ class Vector[F](val self: List[(F, Double)])(implicit accuracy: Double = 0.0001,
     type Pair = (F, Double)
     type Pairs = List[Pair]
 
+    //Vector[Int]()
+    
     def this()(implicit accuracy: Double = 0.0001, ord: Ordering[F]) = this(List())
 
     def +(v: Vector[F]) = new Vector(pairs(self, v.self).map({

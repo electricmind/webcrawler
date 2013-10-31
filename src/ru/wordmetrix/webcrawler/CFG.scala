@@ -22,7 +22,7 @@ object CFG {
         "sigma" -> 1.0)
 
     def apply(): CFG = this(List())
-    
+
     def apply(args: Array[String]): CFG = CFG(args.toList)
 
     def apply(list: List[String], map: Map[String, Any] = default,
@@ -83,9 +83,9 @@ object CFG {
 /*
  *[04:02] Lynne: a tin of striped paint
 */
-class CFG(val path: File, val sampling: File, val isdebug: Boolean, 
+class CFG(val path: File, val sampling: File, val isdebug: Boolean,
           val ish2p: Boolean, val servers: Int,
-          val targeting: Double, val targets: Int, 
+          val targeting: Double, val targets: Int,
           val sigma: Double, val seeds: List[URI]) {}
 
 object debug {
@@ -96,15 +96,15 @@ object debug {
     def apply(actor: CFGAware, format: String, p: Any*)(implicit cfg: CFG) = {
         if (cfg.isdebug) println("  - %20s: ".format(actor.name.slice(0, 20)) + format.format(p: _*))
     }
-    def trace[B](s : String = "%s")(f : => B)(implicit cfg : CFG) : B = {
+    def trace[B](s: String = "%s")(f: => B)(implicit cfg: CFG): B = {
         val outcome = f
-        apply(s,outcome)
+        apply(s, outcome)
         outcome
     }
-    def time[B](s : String)(f : => B)(implicit cfg : CFG) : B = {
-        val t = System.currentTimeMillis() 
+    def time[B](s: String)(f: => B)(implicit cfg: CFG): B = {
+        val t = System.currentTimeMillis()
         val outcome = f
-        apply("%s : %d".format(s,(System.currentTimeMillis() - t) / 1))
+        apply("%s : %d".format(s, (System.currentTimeMillis() - t) / 1))
         outcome
     }
 }
@@ -132,4 +132,12 @@ class ActorDebug(actor: CFGAware) {
         ru.wordmetrix.webcrawler.debug(actor, format, p: _*)
     def log(format: String, p: Any*)(implicit cfg: CFG) =
         ru.wordmetrix.webcrawler.log(actor, format, p: _*)
+}
+
+object Use {
+    implicit def anyToUse[A](a: A) = new Use(a)
+}
+// 1 use (x => x + 1)
+class Use[A](a: A) {
+    def use[B](f: A => B) = f(a)
 }

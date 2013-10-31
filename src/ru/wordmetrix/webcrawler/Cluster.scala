@@ -102,26 +102,40 @@ class Clusters[F](
         extends Iterable[Cluster[F]] {
 
     def iterator = {
-        println("qq = " + (lasts.keySet -- joinlasts).toList.size)
-        println("qq = " + (heads.keySet -- joinlasts).toList.size)
-        println("qq = " + joinlasts.size)
+        println("starts = " + (heads.keySet -- joinlasts).toList.size)
+        println("continues = " + joinlasts.size)
         (heads.keySet -- joinlasts).toList match {
             case start :: starts => Iterator.iterate[(Option[Cluster[F]], List[Vector[F]])](
                 (Some(heads(start)), starts)) {
                     case (Some(c), starts) => heads.get(c.last) match {
                         case Some(c) =>
-                            println(4)
+                            println(4) //impossible
                             (Some(c), starts)
                         case None =>
                             println(2)
 
                             joinheads.get(c.last) match {
-                                case Some(v) => (Some(heads(v)), starts)
+                                case Some(v) => //(Some(heads(v)), starts)
+                                    heads.get(v) match {
+                                        case Some(v) =>
+                                            println(6)
+                                            (Some(v), starts)
+                                        case None =>
+                                            println("failure")
+                                            starts match {
+                                            case start :: starts =>
+                                                println(5)
+                                                (heads.get(start), starts)
+                                            case List() => (None, List())
+                                        }
+                                    }
                                 case None => starts match {
                                     case start :: starts =>
                                         println(1)
                                         (heads.get(start), starts)
-                                    case List() => (None, List())
+                                    case List() =>
+                                        println(7)
+                                        (None, List())
                                 }
                             }
                     }
@@ -146,14 +160,13 @@ class Clusters[F](
                 println(1, v1, v2)
                 c2.unionIfCheck(c1) match {
                     case Some(c) =>
-                        println("joi")
                         new Clusters(
                             (heads - v2) + (c.head -> c),
                             (lasts - v1) + (c.last -> c),
                             joinheads, joinlasts
                         )
                     case None =>
-                        println("!!"); new Clusters(
+                        new Clusters(
                             heads, lasts, joinheads + (v1 -> v2), joinlasts + v2)
 
                 }

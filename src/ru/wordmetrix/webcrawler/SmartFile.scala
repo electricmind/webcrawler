@@ -46,6 +46,7 @@ class SmartFile(val file: File) {
     }
 
     def cache[O](ob : => O) = try {
+        file.getParentFile().mkdirs()
         val fi = new ObjectInputStream(new FileInputStream(file))
         val o = fi.readObject().asInstanceOf[O]
         fi.close()
@@ -53,9 +54,10 @@ class SmartFile(val file: File) {
     } catch {
         case x : Throwable =>
             val fo = new ObjectOutputStream(new FileOutputStream(file))
-            fo.writeObject(ob)
+            val o = ob
+            fo.writeObject(o)
             fo.close()
-            ob
+            o
     }
     
     def readLines() = io.Source.fromFile(file).getLines

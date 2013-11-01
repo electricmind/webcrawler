@@ -1,6 +1,7 @@
 package ru.wordmetrix.webcrawler
 
 import scala.actors.Actor
+import Use._
 import ActorDebug._
 import SmartFile._
 
@@ -17,7 +18,9 @@ class Storage()(implicit val cfg: CFG) extends Actor with CFGAware {
         react {
             case seed: WebCrawler.Seed => {
                 this.log("Datum %s seemed significant", seed)
-                cfg.path / "tmp" / seedToFilename(seed) copyTo cfg.path / name
+                seedToFilename(seed) use {
+                  name => cfg.path / "tmp" / name copyTo cfg.path / name
+                }
             }
 
             case (seed: WebCrawler.Seed, intel: WebCrawler.Intel) => {

@@ -31,7 +31,7 @@ object CFG {
     def apply(list: List[String], map: Map[String, Any] = default,
               seeds: List[URI] = List()): CFG = list match {
         case rkey("h") :: list =>
-            for ((key, value) <- default) {
+            for ((key, value) <- map) {
                 println(" -%s = %s".format(key, value))
             }
             scala.sys.exit

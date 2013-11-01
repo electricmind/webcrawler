@@ -19,6 +19,11 @@ object SmartFile {
 }
 
 class SmartFile(val file: File) {
+    import java.nio.charset.CodingErrorAction
+    import scala.io.Codec
+
+    implicit val codec = Codec("UTF-8").onMalformedInput(CodingErrorAction.IGNORE).onUnmappableCharacter(CodingErrorAction.IGNORE)
+
     def /(f: SmartFile) = new SmartFile(new File(file, f.file.toString))
     def /(f: String) = new SmartFile(new File(file, f))
     def /(f: Int) = new SmartFile(new File(file, f.toString))

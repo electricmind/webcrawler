@@ -2,11 +2,11 @@ package test
 
 import ru.wordmetrix.webcrawler.{ Vector, TreeApproximator, debug, CFG, Use, SmartFile }
 import Use._
-
 import TreeApproximator._
 import java.io._
 import ru.wordmetrix.webcrawler.Clusters
 import SmartFile._
+import scala.util.Random
 
 object ArrangeText extends App {
     implicit lazy val cfg = CFG(List("-d"))
@@ -25,7 +25,8 @@ object ArrangeText extends App {
         }
     }
 
-    lazy val inverted = "/tmp/word2string1.dat" cache {
+    var root = "/tmp"
+    lazy val inverted = root / "word2string.dat" cache {
         string2word.inverted
     }
     implicit def string2File(s: String) = new File(s)
@@ -97,8 +98,10 @@ object ArrangeText extends App {
                 println("\nEnter: tree | cluster <PATH> [<FILE> [..]]\n")
                 ("nothing", ".", Seq[String]())
         }
+        root = target
 
-        def vectors = files.toIterator.map(x => new File(x)).map(x => {
+        val list = Random.shuffle(files).toList
+        def vectors = list.map(x => new File(x)).map(x => {
             ((Vector(
                 x.readLines().map(delimiter.split).flatten
                     .toList.groupBy(x => x.toLowerCase())
@@ -111,11 +114,10 @@ object ArrangeText extends App {
         })
 
         val t = System.currentTimeMillis()
-
-        def tree = vectors.foldLeft(TreeApproximator[Word, File]())({
-            case (tree, (vector, file)) => {
+        def tree = vectors.zipWithIndex.foldLeft(TreeApproximator[Word, File]())({
+            case (tree, ((vector, file),n)) => {
                 debug.time("%s %d %s tree(%s).energy => %4.3f, length = %d / %d".format(
-                    (System.currentTimeMillis() - t) / 10,
+                    (System.currentTimeMillis() - t),
                     tree.n,
                     string2word.map.size,
                     file,
@@ -123,7 +125,7 @@ object ArrangeText extends App {
                     vector.size,
                     tree.average.size)
                 ) {
-                    System.gc()
+                    if (n % 100 == 0) System.gc()
                     (tree + (vector, file)).rectify(2)
                 }
 
@@ -139,7 +141,7 @@ object ArrangeText extends App {
                 }
         })
 
-        def tree_aligned = "/tmp/tree1.dat" cache {
+        def tree_aligned = (target / "tree.dat") cache {
             val tree = tree_opt.align()._1
             tree
         }
@@ -153,7 +155,10 @@ object ArrangeText extends App {
                 tree_aligned use {
                     tree =>
                         {
-                            arrange_cluster(debug.time("clustering") { Clusters(tree) }, tree, target / "cluster")
+                            println("tree.size = " + tree.size)
+                            val c = debug.time("clustering") { Clusters(tree) }
+                            println("cluster suze = " + c.size)
+                            arrange_cluster(c, tree, target / "cluster")
                             arrange_tree(tree, target / "tree")
                         }
                 }

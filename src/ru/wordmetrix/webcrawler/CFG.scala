@@ -8,6 +8,7 @@ import java.net.URI
  * CFG: Object that holds a set of the parameters of current session.
  */
 
+ 
 object CFG {
     val rkey = """-(.+)""".r
 
@@ -19,7 +20,9 @@ object CFG {
         "targets" -> 9,
         "targeting" -> 0.01,
         "sampling" -> new File("sampling.lst"),
-        "sigma" -> 1.0)
+        "sigma" -> 1.0,
+        "limit" -> 1000
+        )
 
     def apply(): CFG = this(List())
 
@@ -57,6 +60,9 @@ object CFG {
         case rkey("sigma") :: value :: list =>
             CFG(list, map + ("sigma" -> value.toDouble), seeds)
 
+        case rkey("limit") :: value :: list =>
+            CFG(list, map + ("limit" -> value.toInt), seeds)
+
         case rkey(x) :: list => {
             println("Unknown key %s".format(x))
             CFG(list, map, seeds)
@@ -77,6 +83,7 @@ object CFG {
             map("targeting").asInstanceOf[Double],
             map("targets").asInstanceOf[Int],
             map("sigma").asInstanceOf[Double],
+            map("limit").asInstanceOf[Int],
             seeds.reverse)
     }
 }
@@ -86,7 +93,7 @@ object CFG {
 class CFG(val path: File, val sampling: File, val isdebug: Boolean,
           val ish2p: Boolean, val servers: Int,
           val targeting: Double, val targets: Int,
-          val sigma: Double, val seeds: List[URI]) {}
+          val sigma: Double,val limit : Int, val seeds: List[URI]) {}
 
 object debug {
     def apply(format: String, p: Any*)(implicit cfg: CFG) = {

@@ -100,8 +100,7 @@ object ArrangeText extends App {
         }
         root = target
 
-        val list = Random.shuffle(files).toList
-        def vectors = list.map(x => new File(x)).map(x => {
+          def vectors = Random.shuffle(files).toIterator.map(x => new File(x)).map(x => {
             ((Vector(
                 x.readLines().map(delimiter.split).flatten
                     .toList.groupBy(x => x.toLowerCase())

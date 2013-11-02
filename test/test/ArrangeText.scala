@@ -125,7 +125,7 @@ object ArrangeText extends App {
                         </p>
                     </div>
                     <div style="height:150px"> </div>
-                    <table width="100%"><tr><td id="resizable" width="10%" style="font-size:0.7em">
+                    <table width="200px" id="resizable"><tr height="100%"><td   style="font-size:0.7em">
                                                 <div id="accordion"> {
                                                     map.toList.zipWithIndex map {
                                                         case (vs, i) =>
@@ -163,11 +163,11 @@ object ArrangeText extends App {
                                                             } </ul></div>
                                                     }
                                                 } </div>
-                                            </td><td style="overflow:scroll; position:fixed; width:100%">
+                                            </td><td style="overflow:scroll; position:fixed; width:100%; height:100%">
                                                      <iframe src="http://en.wikipedia.org/" height="100%" width="100%" name="wiki"></iframe>
                                                  </td></tr></table>
                     <hr/>
-                    <p>This page created with jquery-ui :) </p>
+                    <p>This page uses jquery-ui :) </p>
                 </body>
             </html>
 
@@ -187,8 +187,8 @@ object ArrangeText extends App {
         }
         root = target
 
-        def vectors = Random.shuffle(files).toIterator.map(x => new File(x)).map(x => {
-            ((Vector(
+        def vectors = Random.shuffle(files).toIterator.map(x => new File(x)).map(x => try {
+            Some((Vector(
                 x.readLines().map(delimiter.split).flatten
                     .toList.groupBy(x => x.toLowerCase())
                     .map({ case (x, y) => (x, y.length.toDouble) })
@@ -197,7 +197,10 @@ object ArrangeText extends App {
                     .map({ case (x, y) => string2word(x) -> y })
                     .toList), x)
             )
-        })
+        } catch {
+            case x : Throwable => println("File open failure: " + x); None
+        }).flatten
+        
 
         val t = System.currentTimeMillis()
         def tree = vectors.zipWithIndex.foldLeft(TreeApproximator[Word, File]())({

@@ -60,7 +60,9 @@ class Vector[F](val self: List[(F, Double)])(implicit accuracy: Double = 0.0001,
     lazy val sqr = map(_._2).map(Math.pow(_, 2)).sum
     val norm = Math.pow(sqr, 0.5)
     
-    def normal() = {
+    //def 
+    lazy val 
+    normal = {
         this / norm
     }
 

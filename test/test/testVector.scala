@@ -43,7 +43,7 @@ class testVector extends FlatSpec with Matchers {
     }
 
     "A vector" should "has a norm" in {
-        Vector(("A", 1d), ("B", 1d)).normal() should be(Vector(("A", 0.7071067811865475), ("B", 0.7071067811865475)))
+        Vector(("A", 1d), ("B", 1d)).normal should be(Vector(("A", 0.7071067811865475), ("B", 0.7071067811865475)))
         Vector(("A", 1d), ("B", 1d)).sqr should be(2)
         Vector(("A", 1d), ("B", 1d)).norm should be(Math.sqrt(2))
     }

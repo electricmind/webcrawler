@@ -7,7 +7,7 @@ import SmartFile._
 
 class Storage()(implicit val cfg: CFG) extends Actor with CFGAware {
     override val name = "Storage"
-    var n = 0
+    var n = 1
     def seedToFilename(seed: WebCrawler.Seed) = """[/:\\]""".r.replaceAllIn("""https?://""".r.replaceFirstIn(seed.toString, ""), "-") match {
         case x if x.length > 120 => x.slice(0, 120) +
             x.slice(0, 120).hashCode.toString
@@ -24,7 +24,7 @@ class Storage()(implicit val cfg: CFG) extends Actor with CFGAware {
             }
 
             case (seed: WebCrawler.Seed, intel: WebCrawler.Intel) => {
-                this.log("Datum %s has come", seed)
+                this.log("%04d - Datum %s has come", n, seed)
                 cfg.path / "tmp" / seedToFilename(seed) write(intel)
                 n += 1
                 if (n > cfg.limit) {

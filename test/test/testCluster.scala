@@ -1,5 +1,6 @@
 package test
 import org.scalatest.FlatSpec
+import ru.wordmetrix.treeapproximator.TreeApproximator
 import ru.wordmetrix.vector.Vector
 import org.scalatest.Matchers
 import ru.wordmetrix.webcrawler._

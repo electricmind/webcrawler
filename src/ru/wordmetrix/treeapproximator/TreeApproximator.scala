@@ -1,10 +1,8 @@
-package ru.wordmetrix.webcrawler
-
-import scala.collection
+package ru.wordmetrix.treeapproximator
 import ru.wordmetrix.vector._
-
 import TreeApproximator._
 import scala.annotation.tailrec
+import scala.collection.immutable.Stream.consWrapper
 
 //TODO: add diversity computation 
 //TODO: Compute energy during changing an item

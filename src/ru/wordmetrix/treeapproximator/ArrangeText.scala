@@ -1,17 +1,17 @@
-package test
-
-import ru.wordmetrix.webcrawler.{ TreeApproximator, debug, CFG, Use, SmartFile }
+package ru.wordmetrix.treeapproximator
+import ru.wordmetrix.webcrawler.{debug, CFG}
+import ru.wordmetrix.treeapproximator.TreeApproximator
 import ru.wordmetrix.vector.Vector
-import Use._
-import TreeApproximator._
+import ru.wordmetrix.webcrawler.Use._
+import ru.wordmetrix.treeapproximator.TreeApproximator._
 import java.io._
 import ru.wordmetrix.webcrawler.Clusters
-import SmartFile._
+import ru.wordmetrix.webcrawler.SmartFile._
 import scala.util.Random
 import scala.xml.Unparsed
-import scala.xml.Attribute
 import scala.xml.Text
-import scala.xml.Null
+import scala.Array.canBuildFrom
+import scala.collection.TraversableOnce.flattenTraversableOnce
 
 object ArrangeText extends App {
     implicit lazy val cfg = CFG(List("-d"))

@@ -1,20 +1,21 @@
-package test
+package ru.wordmetrix.treeapproximator
 import ru.wordmetrix.webcrawler._
-
-import ru.wordmetrix.webcrawler.TreeApproximator._
+import ru.wordmetrix.treeapproximator.TreeApproximator
+import ru.wordmetrix.treeapproximator.TreeApproximator._
 import scala.swing.Panel
 import java.awt.Color
 import java.awt.Graphics2D
 import swing._
 import event._
 import scala.util.Random.nextGaussian
-import java.awt.Paint
 import java.awt.BasicStroke
 import scala.swing.event.Key._
 import java.awt.Point
 import Math._
-import SmartFile._
+import ru.wordmetrix.webcrawler.SmartFile._
 import ru.wordmetrix.vector.Vector
+import scala.Option.option2Iterable
+import scala.collection.TraversableOnce.flattenTraversableOnce
 
 // TODO: try paint all clusters inot different tinges.
 

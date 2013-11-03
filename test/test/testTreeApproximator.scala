@@ -7,6 +7,8 @@ import java.net.URL
 import java.net.URI
 import scala.util.Random.{ nextBoolean, nextGaussian }
 import Math.abs
+import ru.wordmetrix.treeapproximator.TreeApproximatorNode
+import ru.wordmetrix.treeapproximator.TreeApproximator
 class testTreeApproximator extends FlatSpec with Matchers {
     val v1 = Vector(1 -> 1, 4 -> 0)
     val v21 = Vector(1 -> 1, 5 -> 1)

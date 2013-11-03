@@ -11,6 +11,8 @@ import java.io.CharArrayReader
 import ActorDebug._
 import scala.xml.Node
 import ru.wordmetrix.webcrawler.LinkContext.Feature
+import ru.wordmetrix.webcrawler.Html2Ascii
+import ru.wordmetrix.features.Features
 /*
  * Gather analyzes a page and elicits links and useful load.
  */
@@ -46,13 +48,10 @@ class Gather(storage: Storage, queue: Actor, sample: SampleHierarchy2PriorityBas
                 true
             }
         }).toSet
-//TODO: improve splitter or just make one in separate package
         
-    def xml2vector(xml: scala.xml.NodeSeq) = Vector(
-        "\\s+".r.split(xml.text).groupBy(x => x).map({
-            case (x, y) => (x -> y.length.toDouble)
-        }).toList)
-
+    def xml2vector(xml: scala.xml.NodeSeq) = 
+          Features.fromText(Html2Ascii(xml).dump())
+          
     def xml2intel(xml: scala.xml.NodeSeq) = new Html2Ascii(
         xml \\ "div" filter (
             x => x.attribute("id").getOrElse("").toString == "mw-content-text"
@@ -65,10 +64,6 @@ class Gather(storage: Storage, queue: Actor, sample: SampleHierarchy2PriorityBas
                 this.debug("Gather data from %s", seed)
                 try {
                     val xml = page2xml(page)
-
-                    //this.debug("%s",xml.map(x => new LinkContext().extract( x )).reduce(_ ++ _))//(x : Map[WebCrawler.Seed,Vector[Feature]],y :Map[WebCrawler.Seed,Vector[Feature]]) => x ++ x))
-                    //this.debug("%s",new LinkContext().extract(page2xml_whole(page)))
-                    //                    println("!!",(/*(xml2seeds(xml, seed),*/ seed))
                     sample ! new LinkContext(seed).extract(page2xml_whole(page))
                     storage ! ((seed, xml2intel(xml)))
                     queue ! ((xml2seeds(xml, seed), seed, xml2vector(xml)))

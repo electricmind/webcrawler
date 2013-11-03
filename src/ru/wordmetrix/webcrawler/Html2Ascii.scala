@@ -3,6 +3,13 @@ import org.ccil.cowan.tagsoup.jaxp.SAXFactoryImpl
 import org.xml.sax.InputSource
 import scala.xml.parsing.NoBindingFactoryAdapter
 import java.io.CharArrayReader
+
+object Html2Ascii {
+  def apply(page: scala.xml.NodeSeq) = {
+    new Html2Ascii(page)
+  }
+}
+
 class Html2Ascii(page: scala.xml.NodeSeq) {
 
     def this(page: String) = this(

@@ -16,7 +16,10 @@ import ru.wordmetrix.features.Features
 /*
  * Gather analyzes a page and elicits links and useful load.
  */
-class Gather(storage: Storage, queue: Actor, sample: SampleHierarchy2PriorityBase)(implicit val cfg: CFG)
+class Gather(
+    storage: Storage,
+    queue: Actor, sample: SampleHierarchy2PriorityBase)(
+        implicit val cfg: CFG)
         extends Actor with CFGAware {
     override val name = "Gather"
 
@@ -37,7 +40,6 @@ class Gather(storage: Storage, queue: Actor, sample: SampleHierarchy2PriorityBas
     def xml2seeds(xml: scala.xml.NodeSeq, base: URI) = (xml \\ "a").
         map(x => x.attribute("href")).flatten.
         map(x => WebCrawler.normalize(base, x.toString)).
-        //        map(x => {println(x); x}).
         filter(x => x.getHost() == "en.wikipedia.org").
         filter(x => {
             val id = x.toString
@@ -48,10 +50,10 @@ class Gather(storage: Storage, queue: Actor, sample: SampleHierarchy2PriorityBas
                 true
             }
         }).toSet
-        
-    def xml2vector(xml: scala.xml.NodeSeq) = 
-          Features.fromText(Html2Ascii(xml).dump())
-          
+
+    def xml2vector(xml: scala.xml.NodeSeq) =
+        Features.fromText(Html2Ascii(xml).dump())
+
     def xml2intel(xml: scala.xml.NodeSeq) = new Html2Ascii(
         xml \\ "div" filter (
             x => x.attribute("id").getOrElse("").toString == "mw-content-text"

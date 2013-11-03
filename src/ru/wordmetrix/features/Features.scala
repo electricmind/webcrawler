@@ -4,11 +4,10 @@ import ru.wordmetrix.smartfile.SmartFile
 
 
 object Features {
-    class CFG {
-        val frequency : Int = 5
-        val length = 3
-        
-    }
+    class CFG (
+        val frequency : Int = 5,
+        val length : Int = 3
+    )
     implicit val cfg = new CFG()
     
     val delimiter = "\\W+".r

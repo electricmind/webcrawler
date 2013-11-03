@@ -25,15 +25,14 @@ class Html2Ascii(page: scala.xml.NodeSeq) {
 
     def justify(x: String, size: Int = 72) = {
         val gap = size - x.length
-        x.split(" ") match {
+        x.split(" ").filterNot(_ == "") match {
             case words if words.length <= 1 => x
             case words =>
                 val q1 = gap / (words.length - 1)
                 val q2 = gap % (words.length - 1)
-                val spaces1 = (1 to words.length).map(x => " " * (q1 + 1))
+                val spaces1 = (1 to words.length-1).map(x => " " * (q1 + 1))
                 val spaces2 = Random.shuffle(spaces1.take(q2).map(_ + " ") ++ spaces1.drop(q2))
-                println(words.zip(spaces2).map({ case (x, y) => x + y }).mkString)
-                words.zip(spaces2).map({ case (x, y) => x + y }).mkString
+                words.zip(spaces2 ++ "").map({ case (x, y) => x + y }).mkString
         }
     }
 

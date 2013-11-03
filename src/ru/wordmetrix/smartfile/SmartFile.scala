@@ -1,4 +1,4 @@
-package ru.wordmetrix.webcrawler
+package ru.wordmetrix.smartfile
 
 import java.io.File
 import ru.wordmetrix.vector._
@@ -6,10 +6,12 @@ import java.io.FileOutputStream
 import java.io.FileInputStream
 import SmartFile._
 import java.io.FileWriter
-import java.io.FileReader
 import java.io.File
 import java.io.ObjectOutputStream
 import java.io.ObjectInputStream
+import java.nio.charset.CodingErrorAction
+import scala.Array.canBuildFrom
+import scala.io.Codec
 
 object SmartFile {
 

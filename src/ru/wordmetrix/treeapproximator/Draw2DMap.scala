@@ -1,5 +1,6 @@
 package ru.wordmetrix.treeapproximator
 import ru.wordmetrix.webcrawler._
+
 import ru.wordmetrix.treeapproximator.TreeApproximator
 import ru.wordmetrix.treeapproximator.TreeApproximator._
 import scala.swing.Panel
@@ -12,7 +13,7 @@ import java.awt.BasicStroke
 import scala.swing.event.Key._
 import java.awt.Point
 import Math._
-import ru.wordmetrix.webcrawler.SmartFile._
+import ru.wordmetrix.smartfile.SmartFile._
 import ru.wordmetrix.vector.Vector
 import scala.Option.option2Iterable
 import scala.collection.TraversableOnce.flattenTraversableOnce

@@ -5,14 +5,13 @@ package ru.wordmetrix.webcrawler
 
 import scala.actors.Actor
 import ru.wordmetrix.vector._
-
 import WebCrawler._
 import scala.collection.mutable
 import ru.wordmetrix.webcrawler.LinkContext.Feature
 import ru.wordmetrix.webcrawler.ActorDebug._
 import java.io.FileOutputStream
 import java.io.BufferedOutputStream
-import SmartFile._
+import ru.wordmetrix.smartfile.SmartFile._
 /**
  * @author cray
  *

@@ -6,7 +6,7 @@ import ru.wordmetrix.webcrawler.Use._
 import ru.wordmetrix.treeapproximator.TreeApproximator._
 import java.io._
 import ru.wordmetrix.webcrawler.Clusters
-import ru.wordmetrix.webcrawler.SmartFile._
+import ru.wordmetrix.smartfile.SmartFile._
 import scala.util.Random
 import scala.xml.Unparsed
 import scala.xml.Text

@@ -30,9 +30,10 @@ class Html2Ascii(page: scala.xml.NodeSeq) {
             case words =>
                 val q1 = gap / (words.length - 1)
                 val q2 = gap % (words.length - 1)
-                val spaces1 = (1 to words.length-1).map(x => " " * (q1 + 1))
-                val spaces2 = Random.shuffle(spaces1.take(q2).map(_ + " ") ++ spaces1.drop(q2))
-                words.zip(spaces2 ++ "").map({ case (x, y) => x + y }).mkString
+                val spaces1 = (1 until words.length).map(x => " " * (q1 + 1))
+                val spaces2 = Random.shuffle(spaces1.take(q2).map(_ + " ") ++
+                    spaces1.drop(q2)) ++ List("")
+                words.zip(spaces2).map({ case (x, y) => x + y }).mkString
         }
     }
 
@@ -42,8 +43,8 @@ class Html2Ascii(page: scala.xml.NodeSeq) {
             x.split(" ").foldLeft(List[String]()) {
                 case (s :: ss, w) => s + " " + w match {
                     case s if s.length < size => s :: ss
-                    case _ if w.length > size => w :: justify(s,size) :: ss
-                    case _                    => w :: justify(s,size) :: ss
+                    case _ if w.length > size => w :: justify(s, size) :: ss
+                    case _                    => w :: justify(s, size) :: ss
                 }
                 case (List(), w) => List(w)
             }.reverse

@@ -1,5 +1,6 @@
 package test
 import org.scalatest.FlatSpec
+import ru.wordmetrix.vector.Vector
 import org.scalatest.Matchers
 import ru.wordmetrix.webcrawler._
 import java.net.URL
@@ -7,7 +8,7 @@ import java.net.URI
 import scala.util.Random.{ nextBoolean, nextGaussian }
 import Math.abs
 class testCluster extends FlatSpec with Matchers {
-
+// TODO: Move test vectors and clouds into separate file
     val v1 = Vector(1 -> 1, 4 -> 0)
     val v10 = Vector(1 -> 0, 4 -> 1)
     val v11 = Vector(1 -> 1, 4 -> 1)

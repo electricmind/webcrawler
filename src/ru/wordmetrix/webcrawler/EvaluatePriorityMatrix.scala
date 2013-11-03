@@ -4,13 +4,13 @@ import scala.actors.Actor
 import WebCrawler.{ Seed, Word }
 import scala.collection.mutable.PriorityQueue
 import ActorDebug._
-
+import ru.wordmetrix.vector.Vector
 class EvaluatePriorityMatrix(storage: Storage,
                              sample: SampleHierarchy2PriorityBase)(implicit cfg: CFG) extends Actor
         with CFGAware {
     override val name = "Evaluate . Matrix"
     type Priority = Double
-    type V = Vector[Word]
+    type V = ru.wordmetrix.vector.Vector[Word]
     type Item = (Priority, Seed)
     type VItem = (Priority, V)
 
@@ -23,7 +23,7 @@ class EvaluatePriorityMatrix(storage: Storage,
 
     val dispatcher = new Dispatcher(this) {
         start
-    }
+    } 
 
     var mode = 0
 

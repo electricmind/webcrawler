@@ -1,6 +1,7 @@
 package ru.wordmetrix.webcrawler
 
 import scala.actors.Actor
+import ru.wordmetrix.vector._
 import com.sun.org.apache.xerces.internal.util.URI
 import scala.collection.mutable.PriorityQueue
 import scala.collection.immutable

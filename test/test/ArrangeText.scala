@@ -1,6 +1,7 @@
 package test
 
-import ru.wordmetrix.webcrawler.{ Vector, TreeApproximator, debug, CFG, Use, SmartFile }
+import ru.wordmetrix.webcrawler.{ TreeApproximator, debug, CFG, Use, SmartFile }
+import ru.wordmetrix.vector.Vector
 import Use._
 import TreeApproximator._
 import java.io._

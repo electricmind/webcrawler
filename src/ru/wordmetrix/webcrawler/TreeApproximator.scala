@@ -1,6 +1,7 @@
 package ru.wordmetrix.webcrawler
 
 import scala.collection
+import ru.wordmetrix.vector._
 
 import TreeApproximator._
 import scala.annotation.tailrec
@@ -175,7 +176,7 @@ class TreeApproximatorEmpty[F, V](implicit val ord: Ordering[F]) extends TreeApp
     def dispersion = 0.0d
     def energy2: Double = 0d
     val n: Int = 0
-    def path(vector: ru.wordmetrix.webcrawler.Vector[F]): Stream[Int] = Stream()
+    def path(vector: Vector[F]): Stream[Int] = Stream()
     def value: V = ???
     def rectify(n: Int) = this
 }

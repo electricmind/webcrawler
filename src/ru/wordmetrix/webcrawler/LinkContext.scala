@@ -3,6 +3,7 @@ package ru.wordmetrix.webcrawler
  * LinkContext extracts a context of links from xml page as feature-vector
  */
 import WebCrawler.Seed
+import ru.wordmetrix.vector._
 import java.net.URI
 object LinkContext {
     object Feature {

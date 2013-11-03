@@ -1,5 +1,4 @@
-package ru.wordmetrix.webcrawler
-
+package ru.wordmetrix.vector
 import scala.collection.TraversableProxy
 import scala.math.Ordering.StringOrdering
 

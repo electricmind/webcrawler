@@ -3,7 +3,7 @@ package test
 import org.scalatest.FlatSpec
 import org.scalatest.Matchers
 import ru.wordmetrix.webcrawler._
-
+import ru.wordmetrix.vector.Vector
 class testVector extends FlatSpec with Matchers {
     "A vector" should "be created" in {
         Vector(("A", 1d))

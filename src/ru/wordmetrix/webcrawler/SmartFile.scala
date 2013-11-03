@@ -1,6 +1,7 @@
 package ru.wordmetrix.webcrawler
 
 import java.io.File
+import ru.wordmetrix.vector._
 import java.io.FileOutputStream
 import java.io.FileInputStream
 import SmartFile._

@@ -1,4 +1,5 @@
 package ru.wordmetrix.webcrawler
+import ru.wordmetrix.vector._
 
 class TargetVector[F](val average: AverageVector[F],
                       val vs: List[(Double, Vector[F])],

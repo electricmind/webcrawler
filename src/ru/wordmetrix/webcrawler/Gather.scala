@@ -1,6 +1,7 @@
 package ru.wordmetrix.webcrawler
 
 import java.net.URI
+import ru.wordmetrix.vector.Vector
 import scala.Option.option2Iterable
 import scala.actors.Actor
 import org.ccil.cowan.tagsoup.jaxp.SAXFactoryImpl
@@ -45,7 +46,8 @@ class Gather(storage: Storage, queue: Actor, sample: SampleHierarchy2PriorityBas
                 true
             }
         }).toSet
-
+//TODO: improve splitter or just make one in separate package
+        
     def xml2vector(xml: scala.xml.NodeSeq) = Vector(
         "\\s+".r.split(xml.text).groupBy(x => x).map({
             case (x, y) => (x -> y.length.toDouble)

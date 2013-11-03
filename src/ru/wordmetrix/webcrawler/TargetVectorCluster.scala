@@ -4,6 +4,7 @@
 package ru.wordmetrix.webcrawler
 
 import scala.collection.immutable.List
+import ru.wordmetrix.vector._
 import scala.math.Ordering
 
 /**

@@ -1,4 +1,5 @@
 package ru.wordmetrix.webcrawler
+import ru.wordmetrix.vector._
 import Use._
 object Clusters {
     type V[V] = scala.collection.immutable.Vector[V]

@@ -4,6 +4,7 @@
 package ru.wordmetrix.webcrawler
 
 import scala.actors.Actor
+import ru.wordmetrix.vector._
 
 import WebCrawler._
 import scala.collection.mutable

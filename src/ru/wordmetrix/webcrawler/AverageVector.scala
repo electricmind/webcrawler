@@ -1,5 +1,5 @@
 package ru.wordmetrix.webcrawler
-
+import ru.wordmetrix.vector._
 import scala.math.Ordered
 class AverageVector[F](v: Vector[F])(implicit ord: Ordering[F]) {
     def this()(implicit ord: Ordering[F]) = this(Vector[F]())

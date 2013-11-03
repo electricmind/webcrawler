@@ -1,5 +1,5 @@
 package test
-
+import ru.wordmetrix.vector.Vector
 import org.scalatest.FlatSpec
 import org.scalatest.Matchers
 import ru.wordmetrix.webcrawler._

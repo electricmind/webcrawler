@@ -1,5 +1,6 @@
 package test
 import ru.wordmetrix.webcrawler._
+
 import ru.wordmetrix.webcrawler.TreeApproximator._
 import scala.swing.Panel
 import java.awt.Color
@@ -13,6 +14,7 @@ import scala.swing.event.Key._
 import java.awt.Point
 import Math._
 import SmartFile._
+import ru.wordmetrix.vector.Vector
 
 // TODO: try paint all clusters inot different tinges.
 

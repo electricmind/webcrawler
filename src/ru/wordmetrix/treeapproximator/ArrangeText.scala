@@ -1,5 +1,5 @@
 package ru.wordmetrix.treeapproximator
-import ru.wordmetrix.webcrawler.{debug, CFG}
+import ru.wordmetrix.webcrawler.{ debug, CFG }
 import ru.wordmetrix.treeapproximator.TreeApproximator
 import ru.wordmetrix.vector.Vector
 import ru.wordmetrix.webcrawler.Use._
@@ -93,6 +93,7 @@ object ArrangeText extends App {
         {
             val v2f = tree.toMap
             val average = tree.average.normal
+            val clusters = map.zipWithIndex.toList
 
             <html lang="en">
                 <head>
@@ -105,70 +106,128 @@ object ArrangeText extends App {
                     <script>{
                         Unparsed("""
                             $(function(){
-                                $("#accordion").accordion({
-                                    heightStyle: "content"
+                                $("a[target=_blank]").click(function (event, ui) {
+                                    var href = $(event.target).attr("href");
+                                    $( "#dialog-confirm" ).dialog({
+                                        modal: true,
+                                        buttons: {
+                                            "Open": function() {
+                                                window.open(href,              
+                                                    "popupWindow",
+                                                    "scrollbars=yes"
+                                                );
+                                                $( this ).dialog( "close" );
+                                            },
+                                
+                                            "Cancel": function() {
+                                                $( this ).dialog( "close" );
+                                            }
+                                        },
+                                        open: function(event, ui) {
+                                            $(this).parent().css('position', 
+                                            'fixed').css('top','10%');
+                                            }
+
+                                    });
+                                    return false;
                                 });
+                                
+                                $("#keywords").resizable();
+                                $("#accordion").accordion({ 
+                                    heightStyle: "content",
+                                    activate : function(event, ui) {
+                                      $("#keywords div.keyword").hide();
+                                      $($(ui.newHeader).data("id")).show();
+                                      $(window).scrollTop($(ui.newHeader).position().top-$("#header").height());
+                                    }
+                                });
+                                
+                                function resize() { 
+                                    $("#wiki").width($(window).width()-210);
+                                    $("#wiki").css("top", $("#header").height());
+                                    $("#top").height($("#header").height()); 
+                                }
+                                $(window).resize(resize);  
+                                resize();
                             
-                                $("#resizable").resizable();
-                             });
+                            });
                             """)
                     }</script>
                 </head>
                 <body>
-                    <div style="position:fixed; z-index:100; background:white; top:0px">
+                    <div id="header" style="position:fixed; z-index:100; background:white; top:0px">
                         <h1> Clusters of Neighbours of <a href={ "http://en.wikipedia.org/wiki/" + root.getParent().getName() }>{
                             root.getParent().getName()
                         } </a> </h1>
                         <p>
-                            This is an outcome of an alogorithm that is clustering the pages, closest to{ root.getName() }
+                            This is an outcome of an alogorithm that is clustering the pages, closest to{
+                                root.getParent().getName()
+                            }
                             .
                         Each of the divisions bellow contains a few links to the wikipedia pages that have similar content. The words in the title are simple attempt to describe traits of the content.
                         </p>
                     </div>
-                    <div style="height:150px"> </div>
-                    <table width="100%"><tr><td id="resizable" width="10%" style="font-size:0.7em">
-                                                <div id="accordion"> {
-                                                    map.toList.zipWithIndex map {
-                                                        case (vs, i) =>
-                                                            val centroid_delta = vs.reduce(_ + _).normal - average.normal
-                                                            <h3>  { vector2Title(centroid_delta) }  </h3>
-                                                            <div><ul> {
-                                                                vs.zipWithIndex map {
-                                                                    case (v, j) => v2f.get(v) use {
-                                                                        case Some(x) => <li> {
-                                                                            val href = x.getName().split("-") match {
-                                                                                case Array(x, y, z)=> Text("http://" + x + "/" + y + "/" + z)
-                                                                                case Array(x, y, z1, z2)=> Text("http://" + x + "/" + y + "/" + z1 + ":" + z2)
-                                                                                case Array(x, y, ls @ _*)=> Text("http://" + x + "/" + y + "/" + ls.dropRight(1).mkString(":") + "/" + ls.last)
-                                                                            }
-                                                                            val isframe = x.getName().split("-") match {
-                                                                                case Array(x, y, "Special", _@ _*)=> false
-                                                                                case _=> true
-                                                                            }
-                                                                            if (isframe)
-                                                                                <a target={ if (isframe) "wiki" else "_blank" } href={ href }> {
-                                                                                    x.getName().split("-").drop(2).map {
-                                                                                        _.replace("_", " ")
-                                                                                    }
-                                                                                } </a>
-                                                                            else
-                                                                                <i color="gray"> {
-                                                                                    x.getName().split("-").drop(2).map {
-                                                                                        _.replace("_", " ")
-                                                                                    }
-                                                                                } </i>
+                    <div id="top" style="height:150px"> </div>
+                    <div id="accordion" style="width:185px; font-size:0.7em"> {
+                        clusters map {
+                            case (vs, i) =>
+                                val centroid_delta = vs.reduce(_ + _).normal - average.normal
+                                <h3 data-id={ "#keyword" + i }> { vector2Title(centroid_delta) }  </h3>
+                                <div><ul> {
+                                    vs.zipWithIndex map {
+                                        case (v, j) => v2f.get(v) use {
+                                            case Some(x) => <li> {
+                                                val href = x.getName().split("-") match {
+                                                    case Array(x, y, z)=> Text("http://" + x + "/" + y + "/" + z)
+                                                    case Array(x, y, z1, z2)=> Text("http://" + x + "/" + y + "/" + z1 + ":" + z2)
+                                                    case Array(x, y, ls @ _*)=> Text("http://" + x + "/" + y + "/" + ls.dropRight(1).mkString(":") + "/" + ls.last)
+                                                }
+                                                val isframe = x.getName().split("-") match {
+                                                    case Array(x, y, "Special", _@ _*)=> false
+                                                    case _=> true
+                                                }
+                                                if (isframe)
+                                                    <a target="wiki" href={ href }> {
+                                                        x.getName().split("-").drop(2).map {
+                                                            _.replace("_", " ")
+                                                        }
+                                                    } </a>
+                                                else
+                                                    <a target="_blank" href={ href } color="gray"> {
+                                                        x.getName().split("-").drop(2).map {
+                                                            _.replace("_", " ")
+                                                        }
+                                                    } </a>
 
-                                                                        } </li>
-                                                                    }
-                                                                }
-                                                            } </ul></div>
-                                                    }
-                                                } </div>
-                                            </td><td style="overflow:scroll; position:fixed; width:100%">
-                                                     <iframe src="http://en.wikipedia.org/" height="100%" width="100%" name="wiki"></iframe>
-                                                 </td></tr></table>
+                                            } </li>
+                                        }
+                                    }
+                                } </ul></div>
+                        }
+                    } </div>
+                    <div id="wiki" style="position:fixed;top:200px;left:200px; width:80%; height:100%; ">
+                        <div id="keywords" class="ui-widget-content" style="font-size: 0.7em">
+                            <h3 class="ui-widget-header">Keywords</h3>{
+                                clusters map {
+                                    case (vs, i) =>
+                                        <div id={ "keyword" + i } class="ui-helper-hidden keyword">
+                                            { vs.reduce(_ + _).self.sortBy(-_._2).takeWhile(_._2 > 0).take(100).map(x => inverted(x._1)).sorted.mkString(" ") }
+                                        </div>
+                                }
+                            }
+                        </div>
+                        <br/>
+                        <iframe src="http://en.wikipedia.org/" height="100%" width="100%" name="wiki"></iframe>
+                    </div>
                     <hr/>
                     <p>This page created with jquery-ui :) </p>
+                    <div id="dialog-confirm" title="Open new window?">
+                        <p>
+                            <span class="ui-icon ui-icon-alert" style="float: left; margin: 0 7px 20px 0;"></span>
+                            For the sake of Wikipedia restrictions the page can be opened only in new window.
+                            It's quite inconvenient. Are you sure?
+                        </p>
+                    </div>
                 </body>
             </html>
 
@@ -178,7 +237,7 @@ object ArrangeText extends App {
         val delimiter = """\W+""".r
 
         val (command, target, files) = args match {
-            case Array(command, target, files @ _*) if Set("tree","cluster","links")(command) => (command, target, files)
+            case Array(command, target, files @ _*) if Set("tree", "cluster", "links")(command) => (command, target, files)
 
             case Array(target, files @ _*) => ("both", target, files)
 

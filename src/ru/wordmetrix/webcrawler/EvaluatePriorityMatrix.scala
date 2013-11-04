@@ -57,7 +57,7 @@ class EvaluatePriorityMatrix(storage: Storage,
 
     var central = new V(List())
 
-    def enqueue(seeds: Set[Seed], seed: Seed, v: V) = {
+    def enqueue(seeds: Set[Seed], seed: Seed, v: V) = debug.time("enque") {
         vectors = vectors + (seed -> (v, seeds))
         for (item <- seeds) {
             val qq = (
@@ -88,7 +88,7 @@ class EvaluatePriorityMatrix(storage: Storage,
         }
     }
 
-    def estimate(seed: Seed, v: V) = {
+    def estimate(seed: Seed, v: V) = debug.time("estimate, average size: %s, target size: %s".format(average.vector.size,  target.average.vector.size)) {
         average = average + v
         target = target + (v, {
             this.debug("accepted %s with %s in %s", seed, v * target.average.normal, target.priority())
@@ -188,6 +188,8 @@ class EvaluatePriorityMatrix(storage: Storage,
                     this.log("Request, priority = %s for %s : %s", p,
                         seed, seeds.headOption.getOrElse("empty"))
                     dispatcher ! seed
+                } else {
+                    this.debug("Queue was empty")
                 }
             }
 

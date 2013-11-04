@@ -16,6 +16,7 @@ class WebGet(queue: Actor, gather: Gather)(implicit cfg: CFG) extends Actor
                     this.debug("Download %s", seed)
                     try {
                         gather ! (seed, (cfg.cache / uriToFilename(seed)).readLines.mkString(""))
+                        this.debug("Sent to gather %s from cache", seed)
                     } catch {
                         case x: Throwable =>
                             try {
@@ -28,6 +29,7 @@ class WebGet(queue: Actor, gather: Gather)(implicit cfg: CFG) extends Actor
                                         (cfg.cache / uriToFilename(seed)).write(text)
 
                                         gather ! (seed, text)
+                                        this.debug("Sent to gather %s from web", seed)
                                     }
                                     case _ => None
                                 }

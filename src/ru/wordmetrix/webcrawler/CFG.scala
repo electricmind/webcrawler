@@ -116,7 +116,7 @@ object debug {
     def time[B](s: String)(f: => B)(implicit cfg: CFG): B = {
         val t = System.currentTimeMillis()
         val outcome = f
-        apply("%s","%s : %d".format(s, (System.currentTimeMillis() - t) / 1))
+        apply("%s","%s : time %d".format(s, (System.currentTimeMillis() - t) / 1))
         outcome
     }
 }

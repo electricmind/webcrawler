@@ -149,6 +149,15 @@ object ArrangeText extends App {
                                 }
                                 $(window).resize(resize);  
                                 resize();
+                                setTimeout(function() {
+                                    $("#accordion").accordion(
+                                       'option',
+                                       'active',
+                                       $("#accordion ul").index(
+                                            $($('a[target="wiki"][href="' + $("h1 a").attr("href") + '"]').parent()[0]).parent()
+                                       )
+                                    )   
+                                }, 500);
                             
                             });
                             """)

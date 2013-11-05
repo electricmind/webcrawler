@@ -71,7 +71,7 @@ generates a few clouds of gaussian-distributed points and builds a tree.
 An outcome
 -----------
 I used this approach to arrange 
-(3500 pages that are adjacent to the page "Algorithm" of Wikipedia)[http://electricmind.github.io/demo/treeapproximator/2013-11-04-an-outcome-of-hierarchical-clustering-of-wikipedia-pages.html]
+[3500 pages that are adjacent to the page "Algorithm" of Wikipedia](http://electricmind.github.io/demo/treeapproximator/2013-11-04-an-outcome-of-hierarchical-clustering-of-wikipedia-pages.html)
 
 
 

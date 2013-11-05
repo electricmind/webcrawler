@@ -54,13 +54,13 @@ power, but can be used as follows:
 
  * Arrange pages with `arrangetext [links|clusters|tree] <Directory> [List of files]`, where:
 
- ** "links" dumps a page of references to the Wikipedia (for lack of a 
+     * "links" dumps a page of references to the Wikipedia (for lack of a 
  preliminary wishes it's just a desperate attempt to present an outcome, but looks fine),
 
- ** "clusters" stores clusters of pages in separate directories, 
+     * "clusters" stores clusters of pages in separate directories, 
  titled from discernible keywords and equipped with a positional vectors;
 
- ** "tree" arranges pages into a tree of  folders that each contains two 
+     * "tree" arranges pages into a tree of  folders that each contains two 
  subfolders along with a positional vector of its subcluster.
    
 An additional tool `Draw2DMap [<File of Points>]` is a simple demo that 

@@ -51,11 +51,15 @@ power, but can be used as follows:
  * Issue a command `webcrawler <Directory> <Initial URI>` to download 
  web-pages similar with initial one into the Directory. This command dumps pages
  in plain text.
+
  * Arrange pages with `arrangetext [links|clusters|tree] <Directory> [List of files]`, where:
+
  ** "links" dumps a page of references to the Wikipedia (for lack of a 
  preliminary wishes it's just a desperate attempt to present an outcome, but looks fine),
+
  ** "clusters" stores clusters of pages in separate directories, 
  titled from discernible keywords and equipped with a positional vectors;
+
  ** "tree" arranges pages into a tree of  folders that each contains two 
  subfolders along with a positional vector of its subcluster.
    

@@ -169,11 +169,15 @@ object ArrangeText extends App {
                             root.getParent().getName()
                         } </a> </h1>
                         <p>
-                            This is an outcome of an alogorithm that is clustering the pages, closest to{
+                            This is an outcome of an alogorithm that clusters 
+                            the pages, closest to the word {
                                 root.getParent().getName()
                             }
                             .
-                        Each of the divisions bellow contains a few links to the wikipedia pages that have similar content. The words in the title are simple attempt to describe traits of the content.
+                        Each of the divisions below contains a few links to 
+                        the wikipedia pages that have similar content. The 
+                        words in the title are simple attempt to describe 
+                        traits of the content.
                         </p>
                     </div>
                     <div id="top" style="height:150px"> </div>
@@ -214,8 +218,8 @@ object ArrangeText extends App {
                                 } </ul></div>
                         }
                     } </div>
-                    <div id="wiki" style="position:fixed;top:200px;left:200px; width:80%; height:100%; ">
-                        <div id="keywords" class="ui-widget-content" style="font-size: 0.7em">
+                    <div id="wiki" style="position:fixed;top:200px;left:200px; width:80%; height:100%">
+                        <div id="keywords" class="ui-widget-content" style="font-size: 0.7em; overflow:hidden">
                             <h3 class="ui-widget-header">Keywords</h3>{
                                 clusters map {
                                     case (vs, i) =>
@@ -226,7 +230,7 @@ object ArrangeText extends App {
                             }
                         </div>
                         <br/>
-                        <iframe src="http://en.wikipedia.org/" height="100%" width="100%" name="wiki"></iframe>
+                        <iframe src={ "http://en.wikipedia.org/wiki/" + root.getParent().getName() } height="100%" width="100%" name="wiki"></iframe>
                     </div>
                     <hr/>
                     <p>This page created with jquery-ui :) </p>

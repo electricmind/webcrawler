@@ -6,15 +6,7 @@ Simple web crawler is intended to gather a text corpus to scrutinize doing an NL
 
 Targeted getting information from a site
 -----------------------------------------
-The idea is quite simple: get the pages that are referred from initial one
-or its descendants. Unfortunately on a real site exists a lot of auxiliary 
-pages that are linked to everywhere that leads a download process  off the 
-topic after a second level of links. Usual solution is based on network 
-analyze and works fine, but I use different approach: webcrawler is checking
-the distance between vectors of frequencies to estimate  priorities of  
-links by the fact that they come out from pages similar with initial one.  
-It works fine as well, but requires a few tricks, including hierarchical
-clustering.
+The idea is quite simple: get the pages that are linked to an initial one or its descendants. Unfortunately a lot of auxiliary pages exists on real site that refers to everywhere that leads a download process off a subject after a second level of links. Usual solution uses a network analysis, but I implemented a different approach: Algorithm maintains a cluster of pages that are similar with initial one and follows links in order of a priority queue, where priority comes from comparison of page that contains a link against the cluster. It works fine: web crawler chooses similar pages even though it already got a few wrong ones, but requires a few tricks including online hierarchical clustering..
  
 Hierarchical clustering
 -------------------------

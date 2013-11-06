@@ -18,15 +18,12 @@ At the final stage algorithm alignes vectors and  joins clusters together on the
 
 From the begining algorithm maintains an actual set of clusters, that makes on-line learning possible.
 
-The use
+A use
 -------
-An outcome of clustering techniques is a bunch of articles that are arranged 
-into a few clusters, and, by product, aligned in a sequence of mutually similar
-items. Current implementation also uses a simple technique to elicit keywords
-that distinguish the clusters.
+An outcome of clustering technique is a bunch of articles that are arranged 
+into a few clusters, and, by product, aligned in a sequence of mutually similar items. Current implementation also uses a simple technique to elicit keywords that distinguish clusters.
 
-Current version is still incomplete and requires some redundant computation
-power, but can be used as follows:
+Current version is still incomplete and requires some redundant computation, but can be used as follows:
 
  * Issue a command `webcrawler <Directory> <Initial URI>` to download 
  web-pages similar with initial one into the Directory. This command dumps pages
@@ -43,7 +40,7 @@ power, but can be used as follows:
 An additional tool `Draw2DMap [<File of Points>]` is a simple demo that 
 generates a few clouds of gaussian-distributed points and builds a tree.
 
-An outcome
+The outcome
 -----------
 I used this approach to arrange 
 [3500 pages that are adjacent to the page "Algorithm" of Wikipedia](http://electricmind.github.io/demo/treeapproximator/2013-11-04-an-outcome-of-hierarchical-clustering-of-wikipedia-pages.html)

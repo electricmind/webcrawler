@@ -10,22 +10,13 @@ The idea is quite simple: get the pages that are linked to an initial one or its
  
 Hierarchical clustering
 -------------------------
-Hierarchical clustering arranges pages into hierarchy of groups of
-similar pages. It approximates a a distribution of vectors by so-called 
-central vectors. My approach is similar with and really is 
-an improved K-means that builds a tree of clusters 
-where each cluster has a few subclusters. 
- 
-Theoretically,  the algorithm has n*log n complexity but on real data it 
-shows n**1.5 complexity since dimension of vectors drastically grows 
-and tree becomes unbalanced.
- 
-The wonderful ability of this approach is lack of predefined amount of clusters 
-and possibility of on-line learning. It makes a tree of clusters from a few of 
-initial vectors and maintains while new vectors are coming.  On final stage 
-algorithm requires some insight for a "likelihood coefficient" but it makes
- a sense of "accuracy" that is quite simply. Lately, coefficient can be changed 
- without repeat computation on all corpus of data as well.
+Hierarchical clustering arranges similar pages into a tree of groups, where each group defines a central vector. An algorithm starts with a group of two vectors, where central vector is their average. For each new vector it looks for the closest vector recursively choosing the closest central vector until a leaf, that is converted into a new pair of vectors. Algorithm updates central vector for all of the inner nodes on a path to the new vector.  For each new vector a learning step randomly chooses a couple of vectors and re-add them again.
+
+This approach is similar with and really is an improved K-means. Theoretically,  it has n*log n complexity but on real data a tree becomes unbalanced and dimension grows a lot that turns complexity up to  n**1.5.
+
+At the final stage algorithm alignes vectors and  joins clusters together on the base of an  accuracy coefficient that is more easy to choose than an amount of clusters. Later coefficient can be changed without repeat computation for all data corpus.
+
+From the begining algorithm maintains an actual set of clusters, that makes on-line learning possible.
 
 The use
 -------

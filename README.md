@@ -56,22 +56,19 @@ power, but can be used as follows:
  where:
  
   
- ** "links" dumps a page of references to the Wikipedia (for lack of a 
- preliminary wishes it's just a desperate attempt to present an outcome, but looks fine),
-   
- ** "clusters" stores clusters of pages in separate directories, 
- titled from discernible keywords and equipped with a positional vectors;
-   
- ** "tree" arranges pages into a tree of  folders that each contains two 
- subfolders along with a positional vector of its subcluster.
+  * "links" dumps a page of references to the Wikipedia (for lack of a preliminary wishes it's just a desperate attempt to present an outcome, but looks fine),
+
+  * "clusters" stores clusters of pages in separate directories,  titled from discernible keywords and equipped with a positional vectors;
+
+  * "tree" arranges pages into a tree of  folders that each contains two subfolders along with a positional vector of its subcluster.
    
 An additional tool `Draw2DMap [<File of Points>]` is a simple demo that 
 generates a few clouds of gaussian-distributed points and builds a tree.
 
 An outcome
 -----------
-I used this approach to arrange (3500 pages that are adjacent to the page 
-"Algorithm" of Wikipedia)[http://electricmind.github.io/demo/treeapproximator/2013-11-04-an-outcome-of-hierarchical-clustering-of-wikipedia-pages.html]
+I used this approach to arrange 
+[3500 pages that are adjacent to the page "Algorithm" of Wikipedia](http://electricmind.github.io/demo/treeapproximator/2013-11-04-an-outcome-of-hierarchical-clustering-of-wikipedia-pages.html)
 
 
 

@@ -169,54 +169,62 @@ object ArrangeText extends App {
                             root.getParent().getName()
                         } </a> </h1>
                         <p>
-                            This is an outcome of an alogorithm that clusters 
-                            the pages, closest to the word {
-                                root.getParent().getName()
-                            }
-                            .
-                        Each of the divisions below contains a few links to 
-                        the wikipedia pages that have similar content. The 
-                        words in the title are simple attempt to describe 
-                        traits of the content.
+                            This is an outcome of an alogorithm that clusters
+                            { v2f.size }
+                            of pages, closest to the word
+                            "{ root.getParent().getName() }
+                            ".
+                            Each of the
+                            { clusters.length }
+                            groups below contains a few links that 
+                            point out to the wikipedia pages with similar 
+                            content. The words in the title describes  traits 
+                            of the content, up to 100 words are printed out 
+                            above wikipedia article when group is opened.
                         </p>
                     </div>
-
                     <div id="top" style="height:150px"> </div>
                     <div id="accordion" style="width:185px; font-size:0.7em"> {
                         clusters map {
-                            case (vs, i) =>
+                            case (vs, i) => {
                                 val centroid_delta = vs.reduce(_ + _).normal - average.normal
-                                <h3 data-id={ "#keyword" + i }> { vector2Title(centroid_delta) }  </h3>
+                                <h3 data-id={ "#keyword" + i }> {
+                                    vector2Title(centroid_delta)
+                                } </h3>
                                 <div><ul> {
                                     vs.zipWithIndex map {
                                         case (v, j) => v2f.get(v) use {
-                                            case Some(x) => <li> {
-                                                val href = x.getName().split("-") match {
-                                                    case Array(x, y, z)=> Text("http://" + x + "/" + y + "/" + z)
-                                                    case Array(x, y, z1, z2)=> Text("http://" + x + "/" + y + "/" + z1 + ":" + z2)
-                                                    case Array(x, y, ls @ _*)=> Text("http://" + x + "/" + y + "/" + ls.dropRight(1).mkString(":") + "/" + ls.last)
-                                                }
-                                                val isframe = x.getName().split("-") match {
-                                                    case Array(x, y, "Special", _@ _*)=> false
-                                                    case _=> true
-                                                }
-                                                if (isframe)
-                                                    <a target="wiki" href={ href }> {
-                                                        x.getName().split("-").drop(2).map {
-                                                            _.replace("_", " ")
+                                            case Some(x) =>
+                                                <li>
+                                                    {
+                                                        val href = x.getName().split("-") match {
+                                                            case Array(x, y, z)=> Text("http://" + x + "/" + y + "/" + z)
+                                                            case Array(x, y, z1, z2)=> Text("http://" + x + "/" + y + "/" + z1 + ":" + z2)
+                                                            case Array(x, y, ls @ _*)=> Text("http://" + x + "/" + y + "/" + ls.dropRight(1).mkString(":") + "/" + ls.last)
                                                         }
-                                                    } </a>
-                                                else
-                                                    <a target="_blank" href={ href } color="gray"> {
-                                                        x.getName().split("-").drop(2).map {
-                                                            _.replace("_", " ")
+                                                        val isframe = x.getName().split("-") match {
+                                                            case Array(x, y, "Special", _@ _*)=> false
+                                                            case _=> true
                                                         }
-                                                    } </a>
+                                                        if (isframe)
+                                                            <a target="wiki" href={ href }> {
+                                                                x.getName().split("-").drop(2).map {
+                                                                    _.replace("_", " ")
+                                                                }
+                                                            } </a>
+                                                        else
+                                                            <a target="_blank" href={ href } color="gray"> {
+                                                                x.getName().split("-").drop(2).map {
+                                                                    _.replace("_", " ")
+                                                                }
+                                                            } </a>
 
-                                            } </li>
+                                                    }
+                                                </li>
                                         }
                                     }
-                                } </ul></div>
+                                } </ul> </div>
+                            }
                         }
                     } </div>
                     <div id="wiki" style="position:fixed;top:200px;left:200px; width:80%; height:100%">
@@ -272,9 +280,8 @@ object ArrangeText extends App {
                     .toList), x)
             )
         } catch {
-            case x : Throwable => println("File open failure: " + x); None
+            case x: Throwable => println("File open failure: " + x); None
         }).flatten
-        
 
         val t = System.currentTimeMillis()
         def tree = vectors.zipWithIndex.foldLeft(TreeApproximator[Word, File]())({

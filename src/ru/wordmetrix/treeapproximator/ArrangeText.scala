@@ -180,6 +180,7 @@ object ArrangeText extends App {
                         traits of the content.
                         </p>
                     </div>
+
                     <div id="top" style="height:150px"> </div>
                     <div id="accordion" style="width:185px; font-size:0.7em"> {
                         clusters map {
@@ -260,8 +261,8 @@ object ArrangeText extends App {
         }
         root = target
 
-        def vectors = Random.shuffle(files).toIterator.map(x => new File(x)).map(x => {
-            ((Vector(
+        def vectors = Random.shuffle(files).toIterator.map(x => new File(x)).map(x => try {
+            Some((Vector(
                 x.readLines().map(delimiter.split).flatten
                     .toList.groupBy(x => x.toLowerCase())
                     .map({ case (x, y) => (x, y.length.toDouble) })
@@ -270,7 +271,10 @@ object ArrangeText extends App {
                     .map({ case (x, y) => string2word(x) -> y })
                     .toList), x)
             )
-        })
+        } catch {
+            case x : Throwable => println("File open failure: " + x); None
+        }).flatten
+        
 
         val t = System.currentTimeMillis()
         def tree = vectors.zipWithIndex.foldLeft(TreeApproximator[Word, File]())({

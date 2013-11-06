@@ -12,20 +12,21 @@ import java.io.ObjectInputStream
 import java.nio.charset.CodingErrorAction
 import scala.Array.canBuildFrom
 import scala.io.Codec
+import java.io.OutputStreamWriter
 
 object SmartFile {
 
     implicit def fromFile(f: File) = new SmartFile(f)
     implicit def fromString(s : String) = new SmartFile(new File(s))
-    implicit def string2Array(s: String): Array[Byte] = s.toArray.map(c => c.toByte)
+    //implicit def string2Array(s: String): Array[Byte] = s.toArray.map(c => c.toByte)
     implicit def toFile(sf : SmartFile) = sf.file
 }
 
 class SmartFile(val file: File) {
-    import java.nio.charset.CodingErrorAction
-    import scala.io.Codec
+//    import java.nio.charset.CodingErrorAction
+//    import scala.io.Codec
 
-    implicit val codec = Codec("UTF-8").onMalformedInput(CodingErrorAction.IGNORE).onUnmappableCharacter(CodingErrorAction.IGNORE)
+//    implicit val codec = Codec("UTF-8").onMalformedInput(CodingErrorAction.IGNORE).onUnmappableCharacter(CodingErrorAction.IGNORE)
 
     def /(f: SmartFile) = new SmartFile(new File(file, f.file.toString))
     def /(f: String) = new SmartFile(new File(file, f))
@@ -35,6 +36,13 @@ class SmartFile(val file: File) {
     def write(ss: Traversable[String]): Unit =
         write(ss.mkString("\n"))
 
+    def write(s : String) : Unit = {
+        file.getParentFile().mkdirs() //    path.mkdirs()
+        val fn = new OutputStreamWriter(new FileOutputStream(file))
+        fn.write(s)
+        fn.close()
+    }    
+        
     def write(a: Array[Byte]) = {
         file.getParentFile().mkdirs() //    path.mkdirs()
         val fn = new FileOutputStream(file)

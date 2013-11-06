@@ -1,10 +1,7 @@
 webcrawler
 ==========
 
-Simple web crawler intended to gather some information to scrutinize. This tool 
-was intended to get a corpus of text for some NLP-like research. It
-scans a web site downloading pages that are similar with initial one and provides a 
-simple tool for hierarchical clustering that allow fine tune this sample.
+Simple web crawler is intended to gather a text corpus to scrutinize doing an NLP-like research. It scans a web site getting pages, that are similar with initial. Heirarchical clustering allows fine-tune this sample later.
 
 
 Targeted getting information from a site

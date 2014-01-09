@@ -169,7 +169,7 @@ object ArrangeText extends App {
                             root.getParent().getName()
                         } </a> </h1>
                         <p>
-                            This is an outcome of an alogorithm that clusters
+                            This is an outcome of an algorithm that clusters
                             { v2f.size }
                             of pages, closest to the word
                             "{ root.getParent().getName() }

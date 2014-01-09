@@ -2,7 +2,9 @@ package ru.wordmetrix.webcrawler
 import ru.wordmetrix.smartfile.SmartFile._
 import scala.actors.Actor
 import ru.wordmetrix.utils.Utils._
-import ActorDebug._
+import ru.wordmetrix.utils.{CFG, CFGAware, log, debug}
+import ru.wordmetrix.utils.ActorDebug.actor2ActorDebug
+
 /*
  * WebGet gets an information from web pages 
  */

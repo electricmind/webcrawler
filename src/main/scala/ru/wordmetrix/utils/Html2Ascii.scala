@@ -1,9 +1,11 @@
-package ru.wordmetrix.webcrawler
+package ru.wordmetrix.utils
 import org.ccil.cowan.tagsoup.jaxp.SAXFactoryImpl
 import org.xml.sax.InputSource
 import scala.xml.parsing.NoBindingFactoryAdapter
 import java.io.CharArrayReader
 import scala.util.Random
+import scala.Array.canBuildFrom
+import scala.xml.NodeSeq.seqToNodeSeq
 
 object Html2Ascii {
     def apply(page: scala.xml.NodeSeq) = {
@@ -16,7 +18,7 @@ class Html2Ascii(page: scala.xml.NodeSeq) {
     def this(page: String) = this(
         (new NoBindingFactoryAdapter).loadXML(
             new InputSource(new CharArrayReader(page.toArray)),
-            new SAXFactoryImpl().newSAXParser()) to //\\ "BODY"
+            new SAXFactoryImpl().newSAXParser()) //to //\\ "BODY"
     )
 
     val div = Set("p", "h1", "h2", "h3", "h4", "h5", "h6", "div")

@@ -8,11 +8,13 @@ import org.ccil.cowan.tagsoup.jaxp.SAXFactoryImpl
 import org.xml.sax.InputSource
 import scala.xml.parsing.NoBindingFactoryAdapter
 import java.io.CharArrayReader
-import ActorDebug._
 import scala.xml.Node
 import ru.wordmetrix.webcrawler.LinkContext.Feature
-import ru.wordmetrix.webcrawler.Html2Ascii
+import ru.wordmetrix.utils.Html2Ascii
 import ru.wordmetrix.features.Features
+import ru.wordmetrix.utils.{CFG, CFGAware, log, debug}
+import ru.wordmetrix.utils.ActorDebug.actor2ActorDebug
+
 /*
  * Gather analyzes a page and elicits links and useful load.
  */

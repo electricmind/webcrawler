@@ -1,4 +1,4 @@
-package ru.wordmetrix.webcrawler
+package ru.wordmetrix.utils
 
 import java.io.File
 import scala.actors.Actor
@@ -141,9 +141,9 @@ object ActorDebug {
 
 class ActorDebug(actor: CFGAware) {
     def debug(format: String, p: Any*)(implicit cfg: CFG) =
-        ru.wordmetrix.webcrawler.debug(actor, format, p: _*)
+        ru.wordmetrix.utils.debug(actor, format, p: _*)
     def log(format: String, p: Any*)(implicit cfg: CFG) =
-        ru.wordmetrix.webcrawler.log(actor, format, p: _*)
+        ru.wordmetrix.utils.log(actor, format, p: _*)
 }
 
 object Use {

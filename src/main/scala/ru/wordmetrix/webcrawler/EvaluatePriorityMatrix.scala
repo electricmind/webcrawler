@@ -1,10 +1,12 @@
 package ru.wordmetrix.webcrawler
 
 import scala.actors.Actor
+import ru.wordmetrix.utils.{CFG, CFGAware, log}
+import ru.wordmetrix.utils.ActorDebug.actor2ActorDebug
 import WebCrawler.{ Seed, Word }
 import scala.collection.mutable.PriorityQueue
-import ActorDebug._
 import ru.wordmetrix.vector.Vector
+import ru.wordmetrix.utils.debug
 class EvaluatePriorityMatrix(storage: Storage,
                              sample: SampleHierarchy2PriorityBase)(implicit cfg: CFG) extends Actor
         with CFGAware {

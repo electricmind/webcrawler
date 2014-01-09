@@ -1,6 +1,9 @@
 package ru.wordmetrix.webcrawler
 
 import java.net.URI
+import ru.wordmetrix.utils.{CFG, CFGAware, log, debug}
+import ru.wordmetrix.utils.ActorDebug.actor2ActorDebug
+
 /*
  * WebCrawler is a base web crawler application.
  */

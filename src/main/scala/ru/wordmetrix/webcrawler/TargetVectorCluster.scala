@@ -6,6 +6,8 @@ package ru.wordmetrix.webcrawler
 import scala.collection.immutable.List
 import ru.wordmetrix.vector._
 import scala.math.Ordering
+import ru.wordmetrix.utils.{CFG, CFGAware, log, debug}
+import ru.wordmetrix.utils.ActorDebug.actor2ActorDebug
 
 /**
  * @author cray

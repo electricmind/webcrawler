@@ -6,7 +6,9 @@ import com.sun.org.apache.xerces.internal.util.URI
 import scala.collection.mutable.PriorityQueue
 import scala.collection.immutable
 import scala.annotation.tailrec
-import ActorDebug._
+import ru.wordmetrix.utils.{CFG, CFGAware, log, debug}
+import ru.wordmetrix.utils.ActorDebug.actor2ActorDebug
+
 /* 
  * Queue is a system of estimation of priorities and queueing task for webget
  */

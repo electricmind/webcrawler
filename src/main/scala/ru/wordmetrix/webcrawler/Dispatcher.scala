@@ -2,7 +2,9 @@ package ru.wordmetrix.webcrawler
 
 import scala.actors.Actor
 import scala.collection.immutable
-import ActorDebug._
+
+import ru.wordmetrix.utils.{CFG, CFGAware, log}
+import ru.wordmetrix.utils.ActorDebug.actor2ActorDebug
 
 class Dispatcher(queue: Actor)(implicit val cfg: CFG) extends Actor
         with CFGAware {

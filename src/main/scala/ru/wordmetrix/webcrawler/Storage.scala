@@ -1,9 +1,10 @@
 package ru.wordmetrix.webcrawler
 
 import scala.actors.Actor
-import Use._
-import ActorDebug._
 import ru.wordmetrix.smartfile.SmartFile._
+import ru.wordmetrix.utils.{CFG, CFGAware, log, debug, Use}
+import ru.wordmetrix.utils.ActorDebug.actor2ActorDebug
+import Use._
 
 class Storage()(implicit val cfg: CFG) extends Actor with CFGAware {
     override val name = "Storage"

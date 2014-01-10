@@ -170,7 +170,7 @@ class EvaluatePriorityMatrix(storage: Storage,
                     }
 
                     enqueue(seeds, seed, v)
-                    sample ! (seed, factor * v.normal)
+                    //sample ! (seed, factor * v.normal)
                     2
                 }
             }

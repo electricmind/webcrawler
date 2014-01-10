@@ -57,6 +57,8 @@ class Gather(
     override val name = "Gather"
 
     import Gather._
+    
+    //TODO: make map immutable
     val map = scala.collection.mutable.Set[String]()
 
     def page2xml_whole(page: WebCrawler.Page) = debug.time("page2xml") {

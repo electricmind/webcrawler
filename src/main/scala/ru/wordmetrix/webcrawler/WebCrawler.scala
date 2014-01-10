@@ -46,7 +46,7 @@ object WebCrawler extends App {
         storage.start
         queue.start
   //      gather.start
-        sample.start
+        //sample.start
         //        webget.start
 
         for (i <- 1 to cfg.servers) {

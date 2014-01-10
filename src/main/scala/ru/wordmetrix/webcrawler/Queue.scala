@@ -86,7 +86,7 @@ class Queue(storage: Storage)(implicit cfg: CFG) extends Actor with CFGAware {
                         println("New vector:  %f".format((c.normal - central.get.normal).norm))
                         println("New seeds:  %d".format(seeds.size))
                         central = Some(c)
-                        storage ! seed
+           //             storage ! seed
 
                         if (seeds.size > 0) {
                             for (seed <- seeds) {

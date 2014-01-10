@@ -94,7 +94,7 @@ class EvaluatePriorityMatrix(storage: Storage,
         average = average + v
         target = target + (v, {
             this.debug("accepted %s with %s in %s", seed, v * target.average.normal, target.priority())
-            storage ! seed
+//            storage ! seed
         })
 
         newfactor = target.normal - average.normal
@@ -128,7 +128,7 @@ class EvaluatePriorityMatrix(storage: Storage,
                         dispatcher ! seed
                     }
 
-                    storage ! seed
+                 //   storage ! seed
                     1
                 }
 

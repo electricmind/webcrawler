@@ -43,7 +43,7 @@ object WebCrawler extends App {
 //        val gather = new Gather(storage, queue, sample)
         //        val webget = new WebGet( queue, gather)
 
-        storage.start
+ //       storage.start
         queue.start
   //      gather.start
         //sample.start

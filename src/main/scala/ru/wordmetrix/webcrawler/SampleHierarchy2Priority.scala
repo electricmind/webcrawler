@@ -3,16 +3,16 @@
  */
 package ru.wordmetrix.webcrawler
 
-import akka.actor.{ Actor, ActorRef, Props, actorRef2Scala }
-import ru.wordmetrix.vector._
-import WebCrawler._
 import scala.collection.mutable
-import ru.wordmetrix.webcrawler.LinkContext.Feature
-import java.io.FileOutputStream
-import java.io.BufferedOutputStream
-import ru.wordmetrix.smartfile.SmartFile._
-import ru.wordmetrix.utils.{ CFG, CFGAware, log, debug }
+
+import Gather.GatherLinkContext
+import WebCrawler.{Priority, Seed}
+import akka.actor.{Actor, Props}
+import ru.wordmetrix.smartfile.SmartFile.fromFile
+import ru.wordmetrix.utils.{CFG, CFGAware}
 import ru.wordmetrix.utils.ActorDebug.actor2ActorDebug
+import ru.wordmetrix.vector.Vector
+import ru.wordmetrix.webcrawler.LinkContext.Feature
 
 /**
  * @author cray

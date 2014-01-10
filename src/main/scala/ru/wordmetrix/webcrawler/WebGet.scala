@@ -17,7 +17,7 @@ class WebGet(queue: Actor, gather: Gather)(implicit cfg: CFG) extends Actor
                 case seed: WebCrawler.Seed => {
                     this.debug("Download %s", seed)
                     try {
-                        gather ! (seed, (cfg.cache / uriToFilename(seed)).readLines.mkString(""))
+                 //       gather ! (seed, (cfg.cache / uriToFilename(seed)).readLines.mkString(""))
                         this.debug("Sent to gather %s from cache", seed)
                     } catch {
                         case x: Throwable =>
@@ -30,7 +30,7 @@ class WebGet(queue: Actor, gather: Gather)(implicit cfg: CFG) extends Actor
                                             getLines().mkString("\n")
                                         (cfg.cache / uriToFilename(seed)).write(text)
 
-                                        gather ! (seed, text)
+                   //                     gather ! (seed, text)
                                         this.debug("Sent to gather %s from web", seed)
                                     }
                                     case _ => None

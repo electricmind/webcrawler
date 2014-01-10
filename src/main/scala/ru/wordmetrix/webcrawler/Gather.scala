@@ -1,21 +1,19 @@
 package ru.wordmetrix.webcrawler
 
+import java.io.CharArrayReader
 import java.net.URI
-import ru.wordmetrix.vector.Vector
+
 import scala.Option.option2Iterable
+import scala.xml.parsing.NoBindingFactoryAdapter
+
 import org.ccil.cowan.tagsoup.jaxp.SAXFactoryImpl
 import org.xml.sax.InputSource
-import scala.xml.parsing.NoBindingFactoryAdapter
-import java.io.CharArrayReader
-import scala.xml.Node
-import ru.wordmetrix.webcrawler.LinkContext.Feature
-import ru.wordmetrix.utils.Html2Ascii
+
+import akka.actor.{Actor, ActorRef, Props, actorRef2Scala}
 import ru.wordmetrix.features.Features
-import ru.wordmetrix.utils.{ CFG, CFGAware, log, debug }
-import akka.actor.Actor
-import akka.actor.Props
-import akka.event.Logging
-import akka.actor.ActorRef
+import ru.wordmetrix.utils.{CFG, CFGAware, Html2Ascii, debug, log}
+import ru.wordmetrix.vector.Vector
+import ru.wordmetrix.webcrawler.LinkContext.Feature
 
 /*
  * Gather analyzes a page and elicits links and useful load.

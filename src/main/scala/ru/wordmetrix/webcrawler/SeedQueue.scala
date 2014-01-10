@@ -20,10 +20,9 @@ object SeedQueue {
 
     def props(webgetqueue: Props, cfg: CFG): Props =
         Props(new SeedQueue(webgetqueue)(cfg))
-
 }
 
-class SeedQueue(webgetqueueprops: Props, n: Int = 10)(
+class SeedQueue(webgetqueueprops: Props)(
     implicit val cfg: CFG)
         extends Actor with CFGAware {
     override val name = "Gather"
@@ -37,7 +36,7 @@ class SeedQueue(webgetqueueprops: Props, n: Int = 10)(
         case msg @ SeedQueueRequest(seed) =>
             webget() ! msg
             context.become(
-                active(Queue[URI](), sender, n),
+                active(Queue[URI](), sender, cfg.servers),
                 false
             )
     }

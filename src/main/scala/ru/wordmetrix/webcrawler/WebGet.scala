@@ -1,23 +1,21 @@
 package ru.wordmetrix.webcrawler
 import ru.wordmetrix.smartfile.SmartFile._
-
 import ru.wordmetrix.utils.Utils._
 import ru.wordmetrix.utils.{ CFG, CFGAware, log, debug }
 import ru.wordmetrix.utils.ActorDebug.actor2ActorDebug
 import java.io.CharArrayReader
 import java.net.URI
-
 import scala.Option.option2Iterable
 import scala.xml.parsing.NoBindingFactoryAdapter
-
 import org.ccil.cowan.tagsoup.jaxp.SAXFactoryImpl
 import org.xml.sax.InputSource
-
 import akka.actor.{ Actor, ActorRef, Props, actorRef2Scala }
 import ru.wordmetrix.features.Features
 import ru.wordmetrix.utils.{ CFG, CFGAware, Html2Ascii, debug, log }
 import ru.wordmetrix.vector.Vector
 import ru.wordmetrix.webcrawler.LinkContext.Feature
+import akka.actor.Kill
+import akka.actor.PoisonPill
 
 object WebGet {
     abstract sealed trait WebGetMessage
@@ -68,6 +66,8 @@ class WebGet(gather: ActorRef)(implicit cfg: CFG) extends Actor
 
         case SeedQueueEmpty =>
             println("suicide")
+            //self ! Kill
+            //self ! PoisonPill
             context.stop(self)
     }
 }

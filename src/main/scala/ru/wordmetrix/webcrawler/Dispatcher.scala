@@ -22,7 +22,7 @@ class Dispatcher(queue: Actor)(implicit val cfg: CFG) extends Actor
 
                     case webgets => webgets.dequeue match {
                         case (webget, webgets) => {
-                            webget ! seed
+                           // webget ! seed
                             if (seeds.isEmpty) {
                                 queue ! None
                             }
@@ -54,7 +54,7 @@ class Dispatcher(queue: Actor)(implicit val cfg: CFG) extends Actor
                                 log("seeds empty")
                                 queue ! None
                             }
-                            webget ! seed
+                            //webget ! seed
                             dispatch(webgets, seeds)
                         }
                     }

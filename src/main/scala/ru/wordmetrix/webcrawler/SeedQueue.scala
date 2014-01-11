@@ -52,15 +52,15 @@ class SeedQueue(webgetqueueprops: Props)(
             context.become(active(queue.enqueue(seed), source, n), false)
         }
 
-        case SeedQueueGet =>
+        case msg @ SeedQueueGet =>
             if (queue.isEmpty) {
                 sender ! SeedQueueEmpty
-                source ! SeedQueueEmpty
+                source ! msg
                 context.become(active(queue, source, n + 1), false)
             } else queue.dequeue match {
                 case (seed, qu) => {
                     sender ! SeedQueueRequest(seed)
-                    context.become(active(qu.enqueue(seed), source, n), false)
+                    context.become(active(qu, source, n), false)
                 }
             }
     }

@@ -39,12 +39,12 @@ object WebCrawler extends App {
             new SampleHierarchy2Priority()
         else
             new SampleHierarchy2PriorityStub()
-        val queue = new EvaluatePriorityMatrix(storage, sample)
+       // val queue = new EvaluatePriorityMatrix(storage, sample)
 //        val gather = new Gather(storage, queue, sample)
         //        val webget = new WebGet( queue, gather)
 
  //       storage.start
-        queue.start
+       // queue.start
   //      gather.start
         //sample.start
         //        webget.start
@@ -56,7 +56,7 @@ object WebCrawler extends App {
         }
 
         for (seed <- cfg.seeds) {
-            queue ! seed
+         //   queue ! seed
         }
     }
 }

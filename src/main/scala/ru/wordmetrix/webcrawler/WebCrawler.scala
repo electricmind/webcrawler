@@ -50,9 +50,9 @@ object WebCrawler extends App {
         //        webget.start
 
         for (i <- 1 to cfg.servers) {
-    //        val webget = new WebGet(queue, gather)
-      //      webget.start
-        //    queue ! webget
+         //        val webget = new WebGet(queue, gather)
+         //      webget.start
+         //    queue ! webget
         }
 
         for (seed <- cfg.seeds) {

@@ -121,16 +121,17 @@ class EvaluatePriorityMatrix(storageprop: Props,
         }*/
 
         queue.clear()
+
         for ((seed, (p, seeds)) <- priorities) {
             queue.enqueue((p, seed))
         }
     }
 
-    def estimate(seed: Seed, v: V) = debug.time("estimate, average size: %s, target size: %s".format(average.vector.size, target.average.vector.size)) {
+    def estimate(seed: Seed, v: V) = debug.time("estimate, average size: %s, target size: %s / %s".format(average.vector.size, target.average.vector.size, target.vs.length)) {
         average = average + v
         target = target + (v, {
             this.debug("accepted %s with %s in %s", seed, v * target.average.normal, target.priority())
-            //            storage ! seed
+            storage ! StorageSign(seed)
         })
 
         newfactor = target.normal - average.normal
@@ -161,11 +162,12 @@ class EvaluatePriorityMatrix(storageprop: Props,
             target = target + v1
             average = average + v1
 
-            for (seed <- seeds) {
+            for (seed <- seeds.toList.sorted) {
                 seedqueue ! SeedQueueRequest(seed)
             }
 
             storage ! StorageSign(seed)
+            this.log("Start targeting " + target.vs.length)
             context.become(phase_targeting, false)
 
         }
@@ -173,8 +175,13 @@ class EvaluatePriorityMatrix(storageprop: Props,
 
     def phase_targeting(): Receive = {
         //Accumulate initial vectors for target
+        case SeedQueueGet => {
+              this.log("Targeting impossible, too little casualties")
+              //TODO: Initial SEED can contain too little links for estimation phase
+        }
+        
         case Gather.GatherSeeds(seed, seeds, v) => {
-
+            this.debug(s"Targeting phase $seed")
             estimate(seed, v.normal)
             this.log("Targeting phase, attitude = %s, n = %s, " +
                 "seed = %s",
@@ -186,13 +193,18 @@ class EvaluatePriorityMatrix(storageprop: Props,
             this.debug("target*central = %s",
                 target.normal * central)
 
-            factor = newfactor
+                        factor = newfactor
+            this.debug("factor*central = %s (required %s)",
+                factor * central, cfg.targeting)
+
+
             enqueue(seeds, seed, v)
             queue.clear()
-
+            
             if (factor * central > cfg.targeting) {
                 priorities = calculate(newfactor, vectors)
                 //target = new TargetVectorCluster[String](target, n = cfg.targets)
+                this.log("Turn into estimation phase")
                 context.become(phase_estimating, false)
             }
         }

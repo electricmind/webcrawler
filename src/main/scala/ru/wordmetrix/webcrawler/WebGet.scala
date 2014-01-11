@@ -24,13 +24,13 @@ object WebGet {
     // case class SeedQueuePostpone(seed: URI) extends SeedQueueSeed(seed)
     //case class SeedQueueAck extends SendQueueMessage
 
-    def props(gather: ActorRef, cfg: CFG): Props =
-        Props(new WebGet(gather)(cfg))
+    def props(cfg: CFG): Props =
+        Props(new WebGet()(cfg))
 }
 /*
  * WebGet gets an information from web pages 
  */
-class WebGet(gather: ActorRef)(implicit cfg: CFG) extends Actor
+class WebGet()(implicit cfg: CFG) extends Actor
         with CFGAware {
     override val name = "WebGet"
 
@@ -38,7 +38,7 @@ class WebGet(gather: ActorRef)(implicit cfg: CFG) extends Actor
     import SeedQueue._
     
     def receive(): Receive = {
-        case SeedQueueRequest(seed) => {
+        case SeedQueueRequest(seed,gather) => {
             this.debug("Download %s", seed)
             try {
                 this.debug("Sent to gather %s from cache", seed)

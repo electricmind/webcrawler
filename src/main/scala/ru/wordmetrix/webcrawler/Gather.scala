@@ -22,7 +22,9 @@ import ru.wordmetrix.webcrawler.LinkContext.Feature
 object Gather {
     abstract sealed trait GatherMessage
 
-    case class GatherStorage(storage: Storage) extends GatherMessage
+ //   case class GatherStorage(storage: Storage) extends GatherMessage
+
+    case class GatherLink(storage: ActorRef, sample : ActorRef) extends GatherMessage
     case class GatherStorageAck extends GatherMessage
 
     case class GatherStop extends GatherMessage
@@ -44,14 +46,11 @@ object Gather {
                                  linkcontext: Map[URI, Vector[Feature]])
             extends GatherSeed(seed)
 
-    def props(queue: ActorRef, storage: ActorRef, sample: ActorRef, cfg: CFG): Props =
-        Props(new Gather(queue, storage, sample)(cfg))
+    def props(cfg: CFG): Props =
+        Props(new Gather()(cfg))
 }
 
-class Gather(
-    queue: ActorRef,
-    storage: ActorRef,
-    sample: ActorRef)(
+class Gather()(
         implicit val cfg: CFG)
         extends Actor with CFGAware {
     override val name = "Gather"
@@ -101,6 +100,13 @@ class Gather(
     }
 
     def receive(): Receive = {
+        case GatherLink(storage, sample) => 
+            context.become(active(sender,storage, sample))
+        case x =>
+            println("??? => " + x)
+    }
+    
+    def active(queue: ActorRef,storage: ActorRef,sample: ActorRef) : Receive = {
         case GatherPage(seed, page) => {
             try {
                 val xml = page2xml(page)
@@ -111,7 +117,6 @@ class Gather(
             } catch {
                 case x => log("Gathering failed on %s: %s", seed, x)
             }
-
         }
     }
 }

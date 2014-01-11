@@ -55,14 +55,15 @@ class EvaluatePriorityMatrix(storageprop: Props,
     val queue = new PriorityQueue[Item]()(
         Ordering.fromLessThan((x: Item, y: Item) => x._1 < y._1))
 
-    val storage = context.actorOf(storageprop)
+    val storage = context.actorOf(storageprop,"Storage")
 
-    val gather = context.actorOf(gatherprop)
+    val gather = context.actorOf(gatherprop,"Gather")
 
-    val seedqueue = context.actorOf(seedqueueprop)
+    val seedqueue = context.actorOf(seedqueueprop,"SeedQueue")
 
-    val sample = context.actorOf(sampleprop)
+    val sample = context.actorOf(sampleprop,"Sample")
 
+    println(storage,  gather, seedqueue, sample)
 //    var mode = 0
 
     var factor = new V(List())
@@ -147,7 +148,8 @@ class EvaluatePriorityMatrix(storageprop: Props,
     def receive(): Receive = {
         case EvaluatePriorityMatrixSeed(seed: Seed) => {
             this.log("Initial seed: %s", seed)
-            seedqueue ! SeedQueueRequest(seed)
+            gather ! GatherLink(storage, sample)
+            seedqueue ! SeedQueueRequest(seed, gather)
             context.become(phase_initialization,false)
         }
     }
@@ -163,7 +165,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
             average = average + v1
 
             for (seed <- seeds.toList.sorted) {
-                seedqueue ! SeedQueueRequest(seed)
+                seedqueue ! SeedQueueRequest(seed, gather)
             }
 
             storage ! StorageSign(seed)

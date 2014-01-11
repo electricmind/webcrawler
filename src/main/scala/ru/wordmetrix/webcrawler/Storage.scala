@@ -7,6 +7,7 @@ import ru.wordmetrix.utils.{CFG, CFGAware}
 import ru.wordmetrix.utils.ActorDebug.actor2ActorDebug
 import ru.wordmetrix.utils.Use.anyToUse
 import ru.wordmetrix.utils.log
+import akka.actor.PoisonPill
 
 object Storage {
      sealed abstract class StorageMessage
@@ -50,7 +51,9 @@ class Storage()(implicit val cfg: CFG) extends Actor with CFGAware {
 
                 if (n > cfg.limit) {
                     //TODO: Send kill message to right place
+                    
                     sender ! StorageCompleted
+                    //sender ! PoisonPill
                     //System.exit(0)
                 }
             }

@@ -10,7 +10,7 @@ import ru.wordmetrix.utils.{ CFG, CFGAware }
 
 object SeedQueue {
     abstract sealed trait SeedQueueMessage
-    case class SeedQueueRequest(seed: URI) extends SeedQueueMessage
+    case class SeedQueueRequest(seed: URI, gather : ActorRef) extends SeedQueueMessage
 
     // case class SeedQueuePostpone(seed: URI) extends SeedQueueSeed(seed)
     //case class SeedQueueAck extends SendQueueMessage
@@ -22,7 +22,7 @@ object SeedQueue {
         Props(new SeedQueue(webgetqueue)(cfg))
 }
 
-class SeedQueue(webgetqueueprops: Props)(
+class SeedQueue(webgetprops: Props)(
     implicit val cfg: CFG)
         extends Actor with CFGAware {
     override val name = "Gather"
@@ -30,26 +30,26 @@ class SeedQueue(webgetqueueprops: Props)(
     import SeedQueue._
     import scala.collection.immutable.Queue
 
-    def webget() = context.actorOf(webgetqueueprops)
+    def webget() = context.actorOf(webgetprops)
 
     def receive(): Receive = {
-        case msg @ SeedQueueRequest(seed) =>
+        case msg @ SeedQueueRequest(seed, gather) =>
             webget() ! msg
             context.become(
-                active(Queue[URI](), sender, cfg.servers),
+                active(Queue[SeedQueueRequest](), sender, cfg.servers),
                 false
             )
     }
 
-    def active(queue: Queue[URI], source: ActorRef, n: Int): Receive = {
-        case SeedQueueRequest(seed) => if (n > 0) {
-            queue.enqueue(seed).dequeue match {
-                case (seed, qu) =>
-                    webget() ! SeedQueueRequest(seed)
-                    context.become(active(qu, source, n - 1), false)
+    def active(queue: Queue[SeedQueueRequest], source: ActorRef, n: Int): Receive = {
+        case msg @ SeedQueueRequest(seed,gather) => if (n > 0) {
+            queue.enqueue(msg).dequeue match {
+                case (msg @ SeedQueueRequest(seed, gather), queue) =>
+                    webget() ! msg
+                    context.become(active(queue, source, n - 1), false)
             }
         } else {
-            context.become(active(queue.enqueue(seed), source, n), false)
+            context.become(active(queue.enqueue(msg), source, n), false)
         }
 
         case msg @ SeedQueueGet =>
@@ -58,9 +58,9 @@ class SeedQueue(webgetqueueprops: Props)(
                 source ! msg
                 context.become(active(queue, source, n + 1), false)
             } else queue.dequeue match {
-                case (seed, qu) => {
-                    sender ! SeedQueueRequest(seed)
-                    context.become(active(qu, source, n), false)
+                case (msg @ SeedQueueRequest(seed, gather), queue) => {
+                    sender ! msg
+                    context.become(active(queue, source, n), false)
                 }
             }
     }

@@ -1,7 +1,6 @@
 package ru.wordmetrix.webcrawler
 
 import java.net.URI
-
 import akka.actor.{ActorSystem, Props, actorRef2Scala}
 import ru.wordmetrix.utils.CFG
 
@@ -45,13 +44,20 @@ object WebCrawler extends App {
         else
             SampleHierarchy2PriorityStub.props(cfg)
         // TODO: move out nulls
-        val gatherprop : Props  = Gather.props(null, null, null,cfg)
-        val seedqueueprop = SeedQueue.props(null, cfg)
+            
+            // queue storage sample
+        val gatherprop : Props  = Gather.props(cfg)
+        
+        //queue
+        val webgetprop = WebGet.props(cfg)
+        val seedqueueprop = SeedQueue.props(webgetprop, cfg)
         val queueprop : Props = EvaluatePriorityMatrix.props(storageprop, gatherprop, seedqueueprop, sampleprop, cfg)
-        val queue = system.actorOf(queueprop, "myactor2")
+        
+        val queue = system.actorOf(queueprop, "queue")
 
         for (seed <- cfg.seeds) {
-            queue ! seed
+            println(seed)
+            queue ! EvaluatePriorityMatrix.EvaluatePriorityMatrixSeed(seed)
         }
     }
 }

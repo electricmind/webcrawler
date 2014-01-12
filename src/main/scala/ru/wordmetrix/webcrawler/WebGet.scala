@@ -36,9 +36,16 @@ class WebGet()(implicit cfg: CFG) extends Actor
 
     import Gather._
     import SeedQueue._
-    
+    /*
+    override def postStop() = {
+        this.log("stop")
+        for (child <- context.children) {
+            child ! PoisonPill
+        }
+    }
+*/
     def receive(): Receive = {
-        case SeedQueueRequest(seed,gather) => {
+        case SeedQueueRequest(seed, gather) => {
             this.debug("Download %s", seed)
             try {
                 this.debug("Sent to gather %s from cache", seed)

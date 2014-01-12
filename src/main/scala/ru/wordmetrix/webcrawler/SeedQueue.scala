@@ -1,11 +1,10 @@
 package ru.wordmetrix.webcrawler
 
 import java.net.URI
-
-
 import akka.actor.{ Actor, ActorRef, Props, actorRef2Scala }
 import ru.wordmetrix.utils.{ CFG, CFGAware }
 import ru.wordmetrix.utils.ActorDebug.actor2ActorDebug
+import akka.actor.PoisonPill
 
 /*
  * SeedQueue contains Queue of seeds queued to download.
@@ -73,6 +72,14 @@ class SeedQueue(webgetprops: Props)(
 
     def webget() = context.actorOf(webgetprops)
 
+    override
+    def postStop() = {
+        this.log("stop")
+        for (child <- context.children) {
+            child ! PoisonPill
+        }
+    }
+    
     def receive(): Receive = {
         case msg @ SeedQueueRequest(seed, gather) =>
             webget() ! msg
@@ -97,7 +104,9 @@ class SeedQueue(webgetprops: Props)(
         } else {
             context.become(active(queue.enqueue(msg), source, n), false)
         }
-
+        case PoisonPill =>
+            this.log("get poison")
+            
         case msg @ SeedQueueGet =>
                                     this.log("Get %s",n)
 

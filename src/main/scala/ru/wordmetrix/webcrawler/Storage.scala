@@ -58,13 +58,8 @@ class Storage()(implicit val cfg: CFG) extends Actor with CFGAware {
                 cfg.path / "tmp" / seedToFilename(seed) write(intel)
 
                 if (n > cfg.limit) {
-                    //TODO: Send kill message to right place
-                    
-                    //sender ! StorageCompleted
-                    //
-                    println("!!!",victim)
                     //victim ! StorageCompleted
-                    victim ! PoisonPill
+                    //victim ! PoisonPill
                     //System.exit(0)
                 }
             }

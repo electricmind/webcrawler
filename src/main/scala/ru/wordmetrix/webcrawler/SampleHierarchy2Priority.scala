@@ -40,7 +40,8 @@ class SampleHierarchy2Priority()(implicit val cfg: CFG)
     //TODO: remove nseeds iterator
     val nseeds = Iterator.from(1)
 
-    def receive(): Receive = {
+    override
+    def receive(): Receive = super.receive orElse {
         case GatherLinkContext(seed, map) => {
             this.log("Get map of vectors")
             for ((seed, vector) <- map) {
@@ -96,7 +97,7 @@ class SampleHierarchy2Priority()(implicit val cfg: CFG)
                 }
             }
         }
-    }
+    } 
 
 }
  

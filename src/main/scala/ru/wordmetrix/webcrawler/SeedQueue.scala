@@ -21,45 +21,8 @@ object SeedQueue {
     case class SeedQueueAvailable extends SeedQueueMessage
     case class SeedQueueGet extends SeedQueueMessage
 
-    def props(webgetqueue: Props, cfg: CFG, active: Boolean = false): Props =
-        Props(if (active) new SeedQueueActive(webgetqueue)(cfg) else new SeedQueue(webgetqueue)(cfg))
-}
-
-class SeedQueueActive(webgetprops: Props)(implicit cfg: CFG)
-        extends SeedQueue(webgetprops) {
-
-    import SeedQueue._
-    import scala.collection.immutable.Queue
-
-    //    context.become(active(Queue[SeedQueueRequest](),cfg.servers), false)
-/*
-    override def active(queue: Queue[SeedQueueRequest], source: ActorRef, n: Int): Receive = {
-        case msg @ SeedQueueRequest(seed, gather) => if (n > 0) {
-            queue.enqueue(msg).dequeue match {
-                case (msg @ SeedQueueRequest(seed, gather), queue) =>
-                    webget() ! msg
-                    context.become(active(queue, source, n - 1), false)
-            }
-        } else {
-            context.become(active(queue.enqueue(msg), source, n), false)
-        }
-
-        case msg @ SeedQueueGet =>
-            if (queue.isEmpty) {
-                sender ! SeedQueueEmpty
-                source ! msg
-                context.become(active(queue, source, n + 1), false)
-            } else queue.dequeue match {
-                case (msg @ SeedQueueRequest(seed, gather), queue) => {
-                    sender ! msg
-                    context.become(active(queue, source, n), false)
-                }
-            }
-
-        case SeedQueueAvailable if (n < cfg.servers) =>
-            sender ! SeedQueueGet
-
-    } */
+    def props(webgetqueue: Props, cfg: CFG): Props =
+        Props(new SeedQueue(webgetqueue)(cfg))
 }
 
 class SeedQueue(webgetprops: Props)(
@@ -68,64 +31,77 @@ class SeedQueue(webgetprops: Props)(
     override val name = "SeedQueue"
 
     import SeedQueue._
+    import EvaluatePriorityMatrix._
     import scala.collection.immutable.Queue
 
     def webget() = context.actorOf(webgetprops)
 
-    override
-    def postStop() = {
-        this.log("stop")
-        for (child <- context.children) {
-            child ! PoisonPill
-        }
-    }
-    
     def receive(): Receive = {
         case msg @ SeedQueueRequest(seed, gather) =>
             webget() ! msg
             context.become(
-                active(Queue[SeedQueueRequest](), sender, cfg.servers),
+                active(Queue[SeedQueueRequest](), sender, gather, cfg.servers),
                 false
             )
-
     }
 
-    def active(queue: Queue[SeedQueueRequest], source: ActorRef, n: Int): Receive = {
+    def finit(queue: Queue[SeedQueueRequest], source: ActorRef, gather : ActorRef, n: Int) : Receive = {
+        case msg @ SeedQueueGet =>
+            this.log("Get %s in finit", n)
+            if (queue.isEmpty) {
+               if (n+1 == cfg.servers) {
+                   gather ! EvaluatePriorityMatrixStop
+                   context.stop(self)
+               }
+               context.become(finit(queue, source, gather, n+1), false)
+            } else queue.dequeue match {
+                case (msg @ SeedQueueRequest(seed, gather), queue) => {
+                    sender ! msg
+                    context.become(finit(queue, source, gather, n), false)
+                }
+            }
+
+        
+    }
+    
+    def active(queue: Queue[SeedQueueRequest], source: ActorRef, gather : ActorRef, n: Int): Receive = {
+        case EvaluatePriorityMatrixStop =>
+            context.become(finit(Queue(), source, gather, n),false)
+            
+        //TODO: gather can be moved here            
         case msg @ SeedQueueRequest(seed, gather) =>
-                                                this.log("Request")
+            this.log("Request")
 
             if (n > 0) {
-            queue.enqueue(msg).dequeue match {
-                case (msg @ SeedQueueRequest(seed, gather), queue) =>
-                    webget() ! msg
-                    context.become(active(queue, source, n - 1), false)
+                queue.enqueue(msg).dequeue match {
+                    case (msg @ SeedQueueRequest(seed, gather), queue) =>
+                        webget() ! msg
+                        context.become(active(queue, source, gather, n - 1), false)
+                }
+                //sender ! SeedQueueGet
+            } else {
+                context.become(active(queue.enqueue(msg), source, gather,  n), false)
             }
-            //sender ! SeedQueueGet
-        } else {
-            context.become(active(queue.enqueue(msg), source, n), false)
-        }
-        case PoisonPill =>
-            this.log("get poison")
-            
+
         case msg @ SeedQueueGet =>
-                                    this.log("Get %s",n)
+            this.log("Get %s", n)
 
             if (queue.isEmpty) {
                 sender ! SeedQueueEmpty
                 source ! msg
-                context.become(active(queue, source, n + 1), false)
+                context.become(active(queue, source, gather, n + 1), false)
             } else queue.dequeue match {
                 case (msg @ SeedQueueRequest(seed, gather), queue) => {
                     sender ! msg
-                    context.become(active(queue, source, n), false)
+                    context.become(active(queue, source, gather, n), false)
                 }
             }
 
         case SeedQueueAvailable if (n > 0) =>
-                        this.log("Available")
+            this.log("Available")
 
             sender ! SeedQueueGet
-            
+
         case msg =>
             this.log("Unknown message: %s", msg)
 

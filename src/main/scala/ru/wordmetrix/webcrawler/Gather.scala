@@ -105,8 +105,14 @@ class Gather()(
         case x =>
             println("??? => " + x)
     }
-    
+    import EvaluatePriorityMatrix._
     def active(queue: ActorRef,storage: ActorRef,sample: ActorRef) : Receive = {
+        case EvaluatePriorityMatrixStop =>
+            sample ! EvaluatePriorityMatrixStop
+            storage ! EvaluatePriorityMatrixStop
+            queue ! EvaluatePriorityMatrixStop
+            context.stop(self)
+            
         case GatherPage(seed, page) => {
             try {
                 val xml = page2xml(page)

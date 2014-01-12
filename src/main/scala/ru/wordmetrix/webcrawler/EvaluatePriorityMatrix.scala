@@ -23,7 +23,8 @@ import akka.actor.PoisonPill
 object EvaluatePriorityMatrix {
     abstract sealed class EvaluatePriorityMatrixMessage
 
-    case class EvaluatePriorityMatrixSeed(seed: URI)
+    case class EvaluatePriorityMatrixSeed(seed: URI) extends EvaluatePriorityMatrixMessage
+    case class EvaluatePriorityMatrixStop extends EvaluatePriorityMatrixMessage
 
     def props(storage: Props, gather: Props, seedqueue: Props, sample: Props, cfg: CFG): Props =
         Props(new EvaluatePriorityMatrix(storage, gather, seedqueue, sample)(cfg))
@@ -225,11 +226,17 @@ class EvaluatePriorityMatrix(storageprop: Props,
     }
 
     def phase_estimating(): Receive = {
+        case EvaluatePriorityMatrixStop =>
+            context.system.shutdown()
+            //context.stop(self)
+            
         case Gather.GatherSeeds(seed, seeds, v) => {
             //Do work
             if (ns.next() > cfg.limit) {
                 this.log("Limit has been reached")
-                context.system.shutdown()                
+                //context.system.shutdown()         
+                sample ! EvaluatePriorityMatrixStop
+                seedqueue ! EvaluatePriorityMatrixStop
             } else {
                 this.log("Estimating phase,  attitude = %s, priority = %s, seed = %s",
                     newfactor * central, factor * v.normal, seed)

@@ -201,20 +201,21 @@ class EvaluatePriorityMatrix(storageprop: Props,
 
 
             enqueue(seeds, seed, v)
-            queue.clear()
+            queue.clear()  //TODO: Why?
             
             if (factor * central > cfg.targeting) {
                 priorities = calculate(newfactor, vectors)
                 //target = new TargetVectorCluster[String](target, n = cfg.targets)
                 
                 this.log("Turn into estimation phase")
-                for (seed <- priorities.keys.take(10)) {
+                /*for (seed <- priorities.keys.take(10)) {
                      //val (p, seed) = queue.dequeue
                      //val (_, seeds) = priorities(seed)
                      //priorities = priorities - seed
                      this.log("webget %s", seed)
                      context.actorOf(WebGet.props(cfg)) ! SeedQueueRequest(seed,gather)
-                }
+                }*/
+                seedqueue ! SeedQueueAvailable
                 context.become(phase_estimating, false)
             }
         }
@@ -234,6 +235,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
 
             enqueue(seeds, seed, v)
             sample ! SampleHirarchy2PriorityPriority(seed, factor * v.normal)
+            seedqueue ! SeedQueueAvailable
         }
 
         case SeedQueueGet => {

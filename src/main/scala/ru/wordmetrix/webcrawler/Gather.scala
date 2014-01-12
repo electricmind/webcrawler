@@ -59,7 +59,7 @@ class Gather()(
     
     //TODO: make map immutable
     val map = scala.collection.mutable.Set[String]()
-
+    
     def page2xml_whole(page: WebCrawler.Page) = debug.time("page2xml") {
         (new NoBindingFactoryAdapter).loadXML(
             new InputSource(new CharArrayReader(page.toArray)),
@@ -99,27 +99,31 @@ class Gather()(
         ).wrap()
     }
 
-    def receive(): Receive = {
-        case GatherLink(storage, sample) => 
-            context.become(active(sender,storage, sample))
-        case x =>
-            println("??? => " + x)
-    }
     import EvaluatePriorityMatrix._
-    def active(queue: ActorRef,storage: ActorRef,sample: ActorRef) : Receive = {
+
+    def receive(): Receive = {
+        case GatherLink(storage, sample) =>
+            context.become(active(storage,sample))
+    }
+    
+    def active(storage : ActorRef, sample : ActorRef) : Receive = {
         case EvaluatePriorityMatrixStop =>
+            context.parent ! EvaluatePriorityMatrixStop
             sample ! EvaluatePriorityMatrixStop
             storage ! EvaluatePriorityMatrixStop
-            queue ! EvaluatePriorityMatrixStop
             context.stop(self)
             
         case GatherPage(seed, page) => {
             try {
                 val xml = page2xml(page)
+                
+                storage ! GatherIntel(seed, xml2intel(xml))
+                
                 sample ! GatherLinkContext(seed,
                     new LinkContext(seed).extract(page2xml_whole(page)))
-                storage ! GatherIntel(seed, xml2intel(xml))
-                queue ! GatherSeeds(seed, xml2seeds(xml, seed), xml2vector(xml))
+                    
+                
+                context.parent ! GatherSeeds(seed, xml2seeds(xml, seed), xml2vector(xml))
             } catch {
                 case x => log("Gathering failed on %s: %s", seed, x)
             }

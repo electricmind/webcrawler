@@ -58,15 +58,17 @@ class EvaluatePriorityMatrix(storageprop: Props,
     val gather = context.actorOf(gatherprop, "Gather")
 
     val seedqueue = context.actorOf(seedqueueprop, "SeedQueue")
+    
 
     val storage = context.actorOf(storageprop, "Storage")
 
     val sample = context.actorOf(sampleprop, "Sample")
 
-    storage ! StorageVictim(seedqueue)
+    gather ! GatherLink(storage, sample)
+    
+    seedqueue ! SeedQueueLink(gather)
 
-    println(storage, gather, seedqueue, sample)
-    //    var mode = 0
+    storage ! StorageVictim(seedqueue)
 
     var factor = new V(List())
 
@@ -150,13 +152,16 @@ class EvaluatePriorityMatrix(storageprop: Props,
     def receive(): Receive = {
         case EvaluatePriorityMatrixSeed(seed: Seed) => {
             this.log("Initial seed: %s", seed)
-            gather ! GatherLink(storage, sample)
-            seedqueue ! SeedQueueRequest(seed, gather)
+            //gather ! GatherLink(storage, sample)
+            seedqueue ! SeedQueueRequest(seed)
             context.become(phase_initialization, false)
         }
     }
 
     def phase_initialization(): Receive = {
+        
+        case msg @ Gather.GatherLinkContext(_,_) =>  sample ! msg
+        
         case Gather.GatherSeeds(seed, seeds, v) => {
             ns.next()
             //Initialization
@@ -168,7 +173,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
             average = average + v1
 
             for (seed <- seeds.toList.sorted) {
-                seedqueue ! SeedQueueRequest(seed, gather)
+                seedqueue ! SeedQueueRequest(seed)
             }
 
             storage ! StorageSign(seed)
@@ -268,7 +273,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
                 this.log("Request, priority = %s for %s : %s", p,
                     seed, seeds.headOption.getOrElse("empty"))
                 //TODO: check continue of estimation  phase
-                sender ! SeedQueueRequest(seed, gather)
+                sender ! SeedQueueRequest(seed)
             } else {
                 this.debug("Queue was empty")
             }

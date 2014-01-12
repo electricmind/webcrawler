@@ -1,28 +1,18 @@
 package ru.wordmetrix.webcrawler
-import ru.wordmetrix.smartfile.SmartFile._
-import ru.wordmetrix.utils.Utils._
-import ru.wordmetrix.utils.{ CFG, CFGAware, log, debug }
-import ru.wordmetrix.utils.ActorDebug.actor2ActorDebug
-import java.io.CharArrayReader
+
 import java.net.URI
-import scala.Option.option2Iterable
-import scala.xml.parsing.NoBindingFactoryAdapter
-import org.ccil.cowan.tagsoup.jaxp.SAXFactoryImpl
-import org.xml.sax.InputSource
-import akka.actor.{ Actor, ActorRef, Props, actorRef2Scala }
-import ru.wordmetrix.features.Features
-import ru.wordmetrix.utils.{ CFG, CFGAware, Html2Ascii, debug, log }
-import ru.wordmetrix.vector.Vector
-import ru.wordmetrix.webcrawler.LinkContext.Feature
-import akka.actor.Kill
-import akka.actor.PoisonPill
+
+import Gather.GatherPage
+import SeedQueue.{SeedQueueEmpty, SeedQueueGet}
+import akka.actor.{Actor, ActorRef, Props, actorRef2Scala}
+import ru.wordmetrix.smartfile.SmartFile.fromFile
+import ru.wordmetrix.utils.{CFG, CFGAware}
+import ru.wordmetrix.utils.ActorDebug.actor2ActorDebug
+import ru.wordmetrix.utils.Utils.uriToFilename
 
 object WebGet {
     abstract sealed trait WebGetMessage
-    //case class SeedQueueRequest(seed: URI) extends SeedQueueMessage
-
-    // case class SeedQueuePostpone(seed: URI) extends SeedQueueSeed(seed)
-    //case class SeedQueueAck extends SendQueueMessage
+    case class WebGetRequest(seed: URI, gather : ActorRef) extends WebGetMessage
 
     def props(cfg: CFG): Props =
         Props(new WebGet()(cfg))
@@ -35,17 +25,11 @@ class WebGet()(implicit cfg: CFG) extends Actor
     override val name = "WebGet"
 
     import Gather._
+    import WebGet._
     import SeedQueue._
-    /*
-    override def postStop() = {
-        this.log("stop")
-        for (child <- context.children) {
-            child ! PoisonPill
-        }
-    }
-*/
+  
     def receive(): Receive = {
-        case SeedQueueRequest(seed, gather) => {
+        case WebGetRequest(seed, gather) => {
             this.debug("Download %s", seed)
             try {
                 this.debug("Sent to gather %s from cache", seed)

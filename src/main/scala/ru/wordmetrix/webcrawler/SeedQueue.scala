@@ -2,8 +2,11 @@ package ru.wordmetrix.webcrawler
 
 import java.net.URI
 
+
 import akka.actor.{ Actor, ActorRef, Props, actorRef2Scala }
 import ru.wordmetrix.utils.{ CFG, CFGAware }
+import ru.wordmetrix.utils.ActorDebug.actor2ActorDebug
+
 /*
  * SeedQueue contains Queue of seeds queued to download.
  */
@@ -81,7 +84,10 @@ class SeedQueue(webgetprops: Props)(
     }
 
     def active(queue: Queue[SeedQueueRequest], source: ActorRef, n: Int): Receive = {
-        case msg @ SeedQueueRequest(seed, gather) => if (n > 0) {
+        case msg @ SeedQueueRequest(seed, gather) =>
+                                                this.log("Request")
+
+            if (n > 0) {
             queue.enqueue(msg).dequeue match {
                 case (msg @ SeedQueueRequest(seed, gather), queue) =>
                     webget() ! msg
@@ -93,6 +99,8 @@ class SeedQueue(webgetprops: Props)(
         }
 
         case msg @ SeedQueueGet =>
+                                    this.log("Get %s",n)
+
             if (queue.isEmpty) {
                 sender ! SeedQueueEmpty
                 source ! msg
@@ -105,7 +113,12 @@ class SeedQueue(webgetprops: Props)(
             }
 
         case SeedQueueAvailable if (n > 0) =>
+                        this.log("Available")
+
             sender ! SeedQueueGet
+            
+        case msg =>
+            this.log("Unknown message: %s", msg)
 
     }
 }

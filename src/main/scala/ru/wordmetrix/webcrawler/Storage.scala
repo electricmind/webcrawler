@@ -8,13 +8,16 @@ import ru.wordmetrix.utils.ActorDebug.actor2ActorDebug
 import ru.wordmetrix.utils.Use.anyToUse
 import ru.wordmetrix.utils.log
 import akka.actor.PoisonPill
+import akka.actor.ActorRef
+import akka.actor.Kill
 
 object Storage {
      sealed abstract class StorageMessage
 
      case class StorageSign(seed : WebCrawler.Seed) extends StorageMessage
      case class StorageCompleted() extends StorageMessage
-    
+     case class StorageVictim(victim : ActorRef) extends StorageMessage
+     
      def props(cfg: CFG): Props =
         Props(new Storage()(cfg))
 }
@@ -35,6 +38,11 @@ class Storage()(implicit val cfg: CFG) extends Actor with CFGAware {
     }
     
     def receive() : Receive = {
+        case StorageVictim(victim) => 
+            context.become(active(victim),false)
+    } 
+    
+    def active(victim : ActorRef) : Receive = {
             case StorageSign(seed) => {
                 this.log("Datum %s seemed significant", seed)
                 
@@ -52,9 +60,11 @@ class Storage()(implicit val cfg: CFG) extends Actor with CFGAware {
                 if (n > cfg.limit) {
                     //TODO: Send kill message to right place
                     
-                    sender ! StorageCompleted
+                    //sender ! StorageCompleted
                     //
-                    sender ! PoisonPill
+                    println("!!!",victim)
+                    //victim ! StorageCompleted
+                    victim ! PoisonPill
                     //System.exit(0)
                 }
             }

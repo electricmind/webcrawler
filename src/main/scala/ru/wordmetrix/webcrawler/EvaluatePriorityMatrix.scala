@@ -55,13 +55,16 @@ class EvaluatePriorityMatrix(storageprop: Props,
     val queue = new PriorityQueue[Item]()(
         Ordering.fromLessThan((x: Item, y: Item) => x._1 < y._1))
 
-    val storage = context.actorOf(storageprop,"Storage")
 
     val gather = context.actorOf(gatherprop,"Gather")
 
     val seedqueue = context.actorOf(seedqueueprop,"SeedQueue")
 
+    val storage = context.actorOf(storageprop,"Storage")
+
     val sample = context.actorOf(sampleprop,"Sample")
+    
+    storage ! StorageVictim(seedqueue)
 
     println(storage,  gather, seedqueue, sample)
 //    var mode = 0
@@ -239,7 +242,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
         }
 
         case SeedQueueGet => {
-            this.debug("Get dispather request")
+            this.debug("Get dispather request %s",sender)
             if (!queue.isEmpty) {
                 val (p, seed) = queue.dequeue
                 val (_, seeds) = priorities(seed)

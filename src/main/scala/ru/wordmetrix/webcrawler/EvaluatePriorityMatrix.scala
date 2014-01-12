@@ -96,7 +96,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
 
     var central = new V(List())
 
-    def enqueue(seeds: Set[Seed], seed: Seed, v: V) = debug.time("enque") {
+    def enqueue(seeds: Set[Seed], seed: Seed, v: V) = debug.time("enqueue") {
         vectors = vectors + (seed -> (v, seeds))
         for (item <- seeds) {
             val qq = (
@@ -206,7 +206,15 @@ class EvaluatePriorityMatrix(storageprop: Props,
             if (factor * central > cfg.targeting) {
                 priorities = calculate(newfactor, vectors)
                 //target = new TargetVectorCluster[String](target, n = cfg.targets)
+                
                 this.log("Turn into estimation phase")
+                for (seed <- priorities.keys.take(10)) {
+                     //val (p, seed) = queue.dequeue
+                     //val (_, seeds) = priorities(seed)
+                     //priorities = priorities - seed
+                     this.log("webget %s", seed)
+                     context.actorOf(WebGet.props(cfg)) ! SeedQueueRequest(seed,gather)
+                }
                 context.become(phase_estimating, false)
             }
         }
@@ -242,7 +250,8 @@ class EvaluatePriorityMatrix(storageprop: Props,
                 }
                 this.log("Request, priority = %s for %s : %s", p,
                     seed, seeds.headOption.getOrElse("empty"))
-                sender ! seed
+                    //TODO: check continue of estimation  phase
+                sender ! SeedQueueRequest(seed,gather)
             } else {
                 this.debug("Queue was empty")
             }

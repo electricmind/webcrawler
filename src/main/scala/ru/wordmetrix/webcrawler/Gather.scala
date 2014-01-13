@@ -13,7 +13,7 @@ import org.xml.sax.InputSource
 import EvaluatePriorityMatrix.EvaluatePriorityMatrixStop
 import akka.actor.{ Actor, ActorRef, Props, actorRef2Scala }
 import ru.wordmetrix.features.Features
-import ru.wordmetrix.utils.{ CFG, CFGAware, Html2Ascii, debug, log }
+import ru.wordmetrix.utils.{ CFG, CFGAware, Html2Ascii }
 import ru.wordmetrix.vector.Vector
 import ru.wordmetrix.webcrawler.LinkContext.Feature
 
@@ -57,7 +57,7 @@ class Gather()(
 
     import Gather._
 
-    def page2xml_whole(page: WebCrawler.Page) = debug.time("page2xml") {
+    def page2xml_whole(page: WebCrawler.Page) = time("page2xml") {
         (new NoBindingFactoryAdapter).loadXML(
             new InputSource(new CharArrayReader(page.toArray)),
             new SAXFactoryImpl().newSAXParser())
@@ -82,12 +82,12 @@ class Gather()(
     def xml2vector(xml: scala.xml.NodeSeq) =
         Features.fromText(Html2Ascii(xml).dump())
 
-    def xml2intel(xml: scala.xml.NodeSeq) = debug.time("xml2intel") {
+    def xml2intel(xml: scala.xml.NodeSeq) = time("xml2intel") {
         new Html2Ascii(
             xml \\ "div" find (
                 x => x.attribute("id").getOrElse("").toString
                     == "mw-content-text"
-            ) getOrElse <html></html>
+            ) getOrElse xml \\ "body" //getOrElse <html></html>
         ).wrap()
     }
 
@@ -109,7 +109,6 @@ class Gather()(
         case GatherPage(seed, page) => {
             try {
                 val xml = page2xml(page)
-
                 storage ! GatherIntel(seed, xml2intel(xml))
 
                 sample ! GatherLinkContext(seed,

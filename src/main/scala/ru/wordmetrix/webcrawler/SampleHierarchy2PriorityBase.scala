@@ -5,8 +5,7 @@ package ru.wordmetrix.webcrawler
 
 import EvaluatePriorityMatrix.EvaluatePriorityMatrixStop
 import akka.actor.{ Actor, Props }
-import ru.wordmetrix.utils.{ CFG, CFGAware }
-import ru.wordmetrix.utils.ActorDebug.actor2ActorDebug
+import ru.wordmetrix.utils._
 
 trait SampleHirarchy2PriorityBase {
     abstract class SampleHirarchy2PriorityMessage

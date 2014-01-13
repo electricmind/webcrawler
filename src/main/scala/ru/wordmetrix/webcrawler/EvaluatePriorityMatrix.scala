@@ -1,9 +1,7 @@
 package ru.wordmetrix.webcrawler
 
 import java.net.URI
-
 import scala.collection.mutable.PriorityQueue
-
 import Gather.GatherLink
 import SampleHierarchy2Priority.SampleHirarchy2PriorityPriority
 import SeedQueue.{
@@ -15,8 +13,7 @@ import SeedQueue.{
 import Storage.{ StorageSign, StorageVictim }
 import WebCrawler.{ Seed, Word }
 import akka.actor.{ Actor, Props, actorRef2Scala }
-import ru.wordmetrix.utils.{ CFG, CFGAware, debug }
-import ru.wordmetrix.utils.ActorDebug.actor2ActorDebug
+import ru.wordmetrix.utils._
 
 object EvaluatePriorityMatrix {
     abstract sealed class EvaluatePriorityMatrixMessage
@@ -101,7 +98,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
 
     var central = new V(List())
 
-    def enqueue(seeds: Set[Seed], seed: Seed, v: V) = debug.time("enqueue") {
+    def enqueue(seeds: Set[Seed], seed: Seed, v: V) = time("enqueue") {
         vectors = vectors + (seed -> (v, seeds))
         for (item <- seeds) {
             val qq = (
@@ -127,29 +124,29 @@ class EvaluatePriorityMatrix(storageprop: Props,
         }
     }
 
-    def estimate(seed: Seed, v: V) = debug.time(
+    def estimate(seed: Seed, v: V) = time(
         "estimate, average size: %s, target size: %s / %s".format(
             average.vector.size, target.average.vector.size, target.vs.length)) {
             average = average + v
             target = target + (v, {
-                this.debug("accepted %s with %s in %s", seed,
+                debug("accepted %s with %s in %s", seed,
                     v * target.average.normal, target.priority())
                 storage ! StorageSign(seed)
             })
 
             newfactor = target.normal - average.normal
 
-            this.debug("direction = %s %s",
+            debug("direction = %s %s",
                 (target.normal - average.normal) * central, factor * central)
 
-            this.debug("limit? %s < %s",
+            debug("limit? %s < %s",
                 newfactor.normal * factor.normal, limit
             )
         }
 
     def receive(): Receive = {
         case EvaluatePriorityMatrixSeed(seed: Seed) => {
-            this.log("Initial seed: %s", seed)
+            log("Initial seed: %s", seed)
             seedqueue ! SeedQueueRequest(seed)
             context.become(phase_initialization, false)
         }
@@ -163,7 +160,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
             ns.next()
             //Initialization
             val v1 = v.normal
-            this.log("Initial phase, v = %s, n = %s, seed = %s",
+            log("Initial phase, v = %s, n = %s, seed = %s",
                 v.norm, seeds.size, seed)
             central = v1
             target = target + v1
@@ -174,7 +171,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
             }
 
             storage ! StorageSign(seed)
-            this.log("Start targeting " + target.vs.length)
+            log("Start targeting " + target.vs.length)
             context.become(phase_targeting, false)
 
         }
@@ -183,27 +180,27 @@ class EvaluatePriorityMatrix(storageprop: Props,
     def phase_targeting(): Receive = {
         //Accumulate initial vectors for target
         case SeedQueueGet => {
-            this.log("Targeting impossible, too little casualties")
+            log("Targeting impossible, too little casualties")
             //TODO: Initial SEED can contain too little links for estimation phase
         }
 
         case Gather.GatherSeeds(seed, seeds, v) => {
-            this.debug(s"Targeting phase $seed")
+            debug(s"Targeting phase $seed")
             ns.next()
 
             estimate(seed, v.normal)
-            this.log("Targeting phase, attitude = %s, n = %s, " +
+            log("Targeting phase, attitude = %s, n = %s, " +
                 "seed = %s",
                 newfactor * central, seeds.size, seed)
 
-            this.debug("target - average| = %s",
+            debug("target - average| = %s",
                 (target.normal - average.normal).norm)
 
-            this.debug("target*central = %s",
+            debug("target*central = %s",
                 target.normal * central)
 
             factor = newfactor
-            this.debug("factor*central = %s (required %s)",
+            debug("factor*central = %s (required %s)",
                 factor * central, cfg.targeting)
 
             enqueue(seeds, seed, v)
@@ -213,7 +210,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
                 priorities = calculate(newfactor, vectors)
                 //target = new TargetVectorCluster[String](target, n = cfg.targets)
 
-                this.log("Turn into estimation phase")
+                log("Turn into estimation phase")
                 seedqueue ! SeedQueueAvailable
                 context.become(phase_estimating, false)
             }
@@ -226,15 +223,15 @@ class EvaluatePriorityMatrix(storageprop: Props,
 
         case Gather.GatherSeeds(seed, seeds, v) => {
             if (ns.next() > cfg.limit) {
-                this.log("Limit has been reached")
+                log("Limit has been reached")
                 sample ! EvaluatePriorityMatrixStop
                 seedqueue ! EvaluatePriorityMatrixStop
             } else {
-                this.log("Estimating phase,  attitude = %s, priority = %s, seed = %s",
+                log("Estimating phase,  attitude = %s, priority = %s, seed = %s",
                     newfactor * central, factor * v.normal, seed)
                 estimate(seed, v.normal)
                 if (newfactor.normal * factor.normal < limit) {
-                    this.debug("Priorities should be recalculated")
+                    debug("Priorities should be recalculated")
                     priorities = calculate(newfactor, vectors)
                     factor = newfactor
                 }
@@ -246,7 +243,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
         }
 
         case SeedQueueGet => {
-            this.debug("Get dispather request %s", sender)
+            debug("Get dispather request %s", sender)
             if (!queue.isEmpty) {
                 val (p, seed) = queue.dequeue
                 val (_, seeds) = priorities(seed)
@@ -257,15 +254,15 @@ class EvaluatePriorityMatrix(storageprop: Props,
                         (vector, seeds - seed)
                     })
                 }
-                this.log("Request, priority = %s for %s : %s", p,
+                log("Request, priority = %s for %s : %s", p,
                     seed, seeds.headOption.getOrElse("empty"))
                 //TODO: check continue of estimation  phase
                 sender ! SeedQueueRequest(seed)
             } else {
-                this.debug("Queue was empty")
+                debug("Queue was empty")
             }
         }
-        case x => this.debug("!!!! Unknown message %s from %s",
+        case x => debug("!!!! Unknown message %s from %s",
             x, sender)
 
     }

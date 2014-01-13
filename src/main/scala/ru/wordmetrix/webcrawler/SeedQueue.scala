@@ -1,10 +1,13 @@
 package ru.wordmetrix.webcrawler
 
 import java.net.URI
-import akka.actor.{ Actor, ActorRef, Props, actorRef2Scala }
-import ru.wordmetrix.utils.{ CFG, CFGAware }
-import ru.wordmetrix.utils.ActorDebug.actor2ActorDebug
-import akka.actor.PoisonPill
+
+import scala.collection.immutable.Queue
+
+import EvaluatePriorityMatrix.EvaluatePriorityMatrixStop
+import WebGet.WebGetRequest
+import akka.actor.{Actor, ActorRef, Props, actorRef2Scala}
+import ru.wordmetrix.utils.{CFG, CFGAware}
 
 /*
  * SeedQueue contains Queue of seeds queued to download.

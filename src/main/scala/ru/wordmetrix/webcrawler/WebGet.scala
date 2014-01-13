@@ -7,8 +7,7 @@ import SeedQueue.{ SeedQueueEmpty, SeedQueueGet }
 import akka.actor.{ Actor, ActorRef, Props, actorRef2Scala }
 import ru.wordmetrix.smartfile.SmartFile.fromFile
 import ru.wordmetrix.utils.{ CFG, CFGAware }
-import ru.wordmetrix.utils.ActorDebug.actor2ActorDebug
-import ru.wordmetrix.utils.Utils.uriToFilename
+import ru.wordmetrix.utils.impl.URIEx
 
 object WebGet {
     abstract sealed trait WebGetMessage
@@ -34,7 +33,7 @@ class WebGet()(implicit cfg: CFG) extends Actor
             try {
                 gather ! GatherPage(
                     seed,
-                    (cfg.cache / uriToFilename(seed)).readLines.mkString("")
+                    (cfg.cache / seed.toFilename).readLines.mkString("")
                 )
             } catch {
                 case x: Throwable =>
@@ -45,14 +44,14 @@ class WebGet()(implicit cfg: CFG) extends Actor
                                 val text = io.Source.fromInputStream(
                                     connection.getInputStream()).
                                     getLines().mkString("\n")
-                                (cfg.cache / uriToFilename(seed)).write(text)
+                                (cfg.cache / seed.toFilename).write(text)
 
                                 gather ! GatherPage(seed, text)
                             }
                             case _ => None
                         }
                     } catch {
-                        case x => this.log("Download fault %s",x)
+                        case x => this.log("Download fault %s", x)
                     }
             }
             sender ! SeedQueueGet

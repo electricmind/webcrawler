@@ -10,7 +10,6 @@ import WebCrawler.{ Priority, Seed }
 import akka.actor.{ Actor, Props }
 import ru.wordmetrix.smartfile.SmartFile.fromFile
 import ru.wordmetrix.utils.{ CFG, CFGAware }
-import ru.wordmetrix.utils.ActorDebug.actor2ActorDebug
 import ru.wordmetrix.vector.Vector
 import ru.wordmetrix.webcrawler.LinkContext.Feature
 

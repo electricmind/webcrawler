@@ -2,18 +2,16 @@ package ru.wordmetrix.webcrawler
 
 import java.io.CharArrayReader
 import java.net.URI
-
 import scala.Option.option2Iterable
 import scala.xml.parsing.NoBindingFactoryAdapter
-
 import org.ccil.cowan.tagsoup.jaxp.SAXFactoryImpl
 import org.xml.sax.InputSource
-
 import akka.actor.{ Actor, ActorRef, Props, actorRef2Scala }
 import ru.wordmetrix.features.Features
 import ru.wordmetrix.utils.{ CFG, CFGAware, Html2Ascii, debug, log }
 import ru.wordmetrix.vector.Vector
 import ru.wordmetrix.webcrawler.LinkContext.Feature
+import scala.util.Try
 
 /*
  * Gather analyzes a page and elicits links and useful load.
@@ -70,11 +68,16 @@ class Gather()(
     //                x => x.attribute("id").getOrElse("").toString ==
     //                    "mw-content-text"))
 
-    def xml2seeds(xml: scala.xml.NodeSeq, base: URI, map: Set[String]) = (xml \\ "a").
-        map(x => x.attribute("href")).flatten.
-        map(x => WebCrawler.normalize(base, x.toString)).
-        filter(x => x.getHost() == base.getHost()).
-        filterNot(x => map contains x.toString()).toSet
+    def xml2seeds(xml: scala.xml.NodeSeq, base: URI, map: Set[String]): Set[URI] =
+        (for {
+            tag <- (xml \\ "a")
+            link <- tag.attribute("href")
+            uri <- Try(WebCrawler.normalize(base, link.toString)).toOption
+            if uri.getHost() == base.getHost()
+            if !map.contains(uri.toString())
+        } yield uri).toSet
+
+    //      filterNot(x => map contains x.toString()).toSet
 
     def xml2vector(xml: scala.xml.NodeSeq) =
         Features.fromText(Html2Ascii(xml).dump())

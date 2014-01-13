@@ -6,10 +6,10 @@ package ru.wordmetrix.webcrawler
 import scala.collection.mutable
 
 import Gather.GatherLinkContext
-import WebCrawler.{Priority, Seed}
-import akka.actor.{Actor, Props}
+import WebCrawler.{ Priority, Seed }
+import akka.actor.{ Actor, Props }
 import ru.wordmetrix.smartfile.SmartFile.fromFile
-import ru.wordmetrix.utils.{CFG, CFGAware}
+import ru.wordmetrix.utils.{ CFG, CFGAware }
 import ru.wordmetrix.utils.ActorDebug.actor2ActorDebug
 import ru.wordmetrix.vector.Vector
 import ru.wordmetrix.webcrawler.LinkContext.Feature
@@ -40,8 +40,7 @@ class SampleHierarchy2Priority()(implicit val cfg: CFG)
     //TODO: remove nseeds iterator
     val nseeds = Iterator.from(1)
 
-    override
-    def receive(): Receive = super.receive orElse {
+    override def receive(): Receive = super.receive orElse {
         case GatherLinkContext(seed, map) => {
             this.log("Get map of vectors")
             for ((seed, vector) <- map) {
@@ -80,24 +79,35 @@ class SampleHierarchy2Priority()(implicit val cfg: CFG)
                         vector <- record
                     } {
                         // vector.toList().
-                        val map: Map[String, Double] = vector.toMap.map({ case (x, y) => x.toString -> y }).filter(x => count(x._1) > 10).withDefaultValue(0.0)
+                        val map: Map[String, Double] = vector.toMap.map({
+                            case (x, y) => x.toString -> y
+                        }).filter(
+                            x => count(x._1) > 10).withDefaultValue(0.0)
                         //dump.write("%10s : %s\n".format(priority, vector.map(_._1.toString).filter(! _.startsWith("class=\"page"))).getBytes)
                         //dump.write("%s %s\n".format(seed2N,map -- seed2N.keySet).getBytes)
 
                         dump.write("%8.2f : %s\n".format(priority, {
                             seed2N.toList.sortBy(_._2).map(_._1).map(map) ++
-                                map.filterNot(x => seed2N.contains(x._1)).map({ case (x, y) => { seed2N += (x -> N.next); y } })
+                                map.filterNot(x => seed2N.contains(x._1)).
+                                map({
+                                    case (x, y) => {
+                                        seed2N += (x -> N.next)
+                                        y
+                                    }
+                                })
                         }.map(x => "%2.0f".format(x)).mkString(" ")))
 
                         dump.write("%s\n".format(seed2N.size))
                     }
-                    dump.write(seed2N.toList.sortBy(_._2).map(_._1).mkString(" "))
+                    dump.write(
+                        seed2N.toList.sortBy(_._2).map(_._1).mkString(" ")
+                    )
                     dump.write(("\n"))
                     dump.close()
                 }
             }
         }
-    } 
+    }
 
 }
  

@@ -1,10 +1,13 @@
 package ru.wordmetrix.webcrawler
-/*
- * LinkContext extracts a context of links from xml page as feature-vector
- */
-import WebCrawler.Seed
-import ru.wordmetrix.vector._
+
 import java.net.URI
+
+import scala.Array.canBuildFrom
+import scala.Option.option2Iterable
+
+import WebCrawler.Seed
+import ru.wordmetrix.vector.Vector
+
 object LinkContext {
     object Feature {
         def apply(x: String) = x.split("=") match {
@@ -38,8 +41,6 @@ object LinkContext {
     }
 
     implicit val featureOrdering = Ordering.fromLessThan[Feature]((x, y) => {
-        //println(x,y)
-        //x.toString < y.toString
         if (x.order < y.order) {
             true
         } else if (x.order > y.order) {
@@ -58,8 +59,7 @@ class LinkContext(base: URI) {
 
     def extract(xml: scala.xml.Node,
                 v: V = new Vector[Feature](),
-                map: Map[Seed, Vector[Feature]] = Map()): //
-                Map[Seed, Vector[Feature]] =
+                map: Map[Seed, Vector[Feature]] = Map()): Map[Seed, Vector[Feature]] =
         if (xml.isEmpty) {
             map
         } else {
@@ -72,15 +72,23 @@ class LinkContext(base: URI) {
                             }
                             case None => None
                         }) :: (x.attribute("class") match {
-                            case Some(x) => x.toString.split(" ").filterNot(_.startsWith("page")).map(x =>
-                                Some(new FeatureClass(x))).toList
+                            case Some(x) => x.toString.split(" ")
+                                .filterNot(_.startsWith("page"))
+                                .map(x => Some(new FeatureClass(x)))
+                                .toList
                             case None => List[Option[Feature]]()
                         }) flatten);
 
                     val v1 = v + Vector[Feature](l.map(x => x -> 1.0))
+                    val host = base.getHost()
+
                     extract(x, v1, x.attribute("href") match {
-                        case Some(ref) if (new URI(ref.toString).getHost() == base.getHost()) => {
-                            val x = WebCrawler.normalize(base.toString.replace("|", "%124"), ref.toString.replace("|", "%124"))
+                        case Some(ref) if (
+                            new URI(ref.toString).getHost() == host) => {
+                            val x = WebCrawler.normalize(
+                                base.toString.replace("|", "%124"),
+                                ref.toString.replace("|", "%124")
+                            )
 
                             map + (x -> (map.get(x) match {
                                 case Some(v) => v + v1

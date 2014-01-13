@@ -3,11 +3,9 @@
  */
 package ru.wordmetrix.webcrawler
 
-import akka.actor.Actor
-import ru.wordmetrix.utils.CFG
-import akka.actor.Props
-import EvaluatePriorityMatrix._
-import ru.wordmetrix.utils.CFGAware
+import EvaluatePriorityMatrix.EvaluatePriorityMatrixStop
+import akka.actor.{ Actor, Props }
+import ru.wordmetrix.utils.{ CFG, CFGAware }
 import ru.wordmetrix.utils.ActorDebug.actor2ActorDebug
 
 trait SampleHirarchy2PriorityBase {
@@ -15,11 +13,10 @@ trait SampleHirarchy2PriorityBase {
 }
 
 trait SampleHierarchy2PriorityBase extends Actor with CFGAware {
-    implicit val cfg : CFG
-    
+    implicit val cfg: CFG
+
     def receive(): Receive = {
         case EvaluatePriorityMatrixStop => {
-            this.log("Stop")
             context.stop(self)
         }
     }
@@ -30,4 +27,5 @@ object SampleHierarchy2PriorityStub extends SampleHirarchy2PriorityBase {
         Props(new SampleHierarchy2PriorityStub()(cfg))
 }
 
-class SampleHierarchy2PriorityStub(implicit val cfg : CFG) extends SampleHierarchy2PriorityBase
+class SampleHierarchy2PriorityStub(
+    implicit val cfg: CFG) extends SampleHierarchy2PriorityBase

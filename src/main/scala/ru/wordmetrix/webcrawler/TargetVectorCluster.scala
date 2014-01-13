@@ -4,10 +4,10 @@
 package ru.wordmetrix.webcrawler
 
 import scala.collection.immutable.List
-import ru.wordmetrix.vector._
 import scala.math.Ordering
-import ru.wordmetrix.utils.{CFG, CFGAware, log, debug}
-import ru.wordmetrix.utils.ActorDebug.actor2ActorDebug
+
+import ru.wordmetrix.utils.{ CFG, log }
+import ru.wordmetrix.vector.Vector
 
 /**
  * @author cray
@@ -44,7 +44,6 @@ class TargetVectorCluster[F](average: AverageVector[F],
              * 2 - 95.5%
              * 3 - 99.5%
              * */
-            println("new D: %s > %s", Sigma, p)
 
             /*   if (cfg.sigma * Sigma > p) {
                 println("add: %s (%s,%s,p)", vs.length + 1, cfg.sigma, Sigma, p)

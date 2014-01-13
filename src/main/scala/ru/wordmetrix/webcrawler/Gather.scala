@@ -2,16 +2,20 @@ package ru.wordmetrix.webcrawler
 
 import java.io.CharArrayReader
 import java.net.URI
+
 import scala.Option.option2Iterable
+import scala.util.Try
 import scala.xml.parsing.NoBindingFactoryAdapter
+
 import org.ccil.cowan.tagsoup.jaxp.SAXFactoryImpl
 import org.xml.sax.InputSource
+
+import EvaluatePriorityMatrix.EvaluatePriorityMatrixStop
 import akka.actor.{ Actor, ActorRef, Props, actorRef2Scala }
 import ru.wordmetrix.features.Features
 import ru.wordmetrix.utils.{ CFG, CFGAware, Html2Ascii, debug, log }
 import ru.wordmetrix.vector.Vector
 import ru.wordmetrix.webcrawler.LinkContext.Feature
-import scala.util.Try
 
 /*
  * Gather analyzes a page and elicits links and useful load.
@@ -19,8 +23,6 @@ import scala.util.Try
 
 object Gather {
     abstract sealed trait GatherMessage
-
-    //   case class GatherStorage(storage: Storage) extends GatherMessage
 
     case class GatherLink(storage: ActorRef, sample: ActorRef) extends GatherMessage
     case class GatherStorageAck extends GatherMessage
@@ -68,16 +70,14 @@ class Gather()(
     //                x => x.attribute("id").getOrElse("").toString ==
     //                    "mw-content-text"))
 
-    def xml2seeds(xml: scala.xml.NodeSeq, base: URI, map: Set[String]): Set[URI] =
-        (for {
-            tag <- (xml \\ "a")
-            link <- tag.attribute("href")
-            uri <- Try(WebCrawler.normalize(base, link.toString)).toOption
-            if uri.getHost() == base.getHost()
-            if !map.contains(uri.toString())
-        } yield uri).toSet
-
-    //      filterNot(x => map contains x.toString()).toSet
+    def xml2seeds(xml: scala.xml.NodeSeq, base: URI,
+                  map: Set[String]): Set[URI] = (for {
+        tag <- (xml \\ "a")
+        link <- tag.attribute("href")
+        uri <- Try(WebCrawler.normalize(base, link.toString)).toOption
+        if uri.getHost() == base.getHost()
+        if !map.contains(uri.toString())
+    } yield uri).toSet
 
     def xml2vector(xml: scala.xml.NodeSeq) =
         Features.fromText(Html2Ascii(xml).dump())
@@ -98,7 +98,8 @@ class Gather()(
             context.become(active(storage, sample, Set()))
     }
 
-    def active(storage: ActorRef, sample: ActorRef, links: Set[String]): Receive = {
+    def active(storage: ActorRef, sample: ActorRef,
+               links: Set[String]): Receive = {
         case EvaluatePriorityMatrixStop =>
             context.parent ! EvaluatePriorityMatrixStop
             sample ! EvaluatePriorityMatrixStop

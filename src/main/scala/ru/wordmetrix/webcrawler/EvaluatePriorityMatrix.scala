@@ -1,33 +1,34 @@
 package ru.wordmetrix.webcrawler
 
-import ru.wordmetrix.utils.{ CFG, CFGAware, log }
-import ru.wordmetrix.utils.ActorDebug.actor2ActorDebug
-import WebCrawler.{ Seed, Word }
-import scala.collection.mutable.PriorityQueue
-import ru.wordmetrix.vector.Vector
-import ru.wordmetrix.utils.debug
-import java.io.CharArrayReader
 import java.net.URI
-import scala.Option.option2Iterable
-import scala.xml.parsing.NoBindingFactoryAdapter
-import org.ccil.cowan.tagsoup.jaxp.SAXFactoryImpl
-import org.xml.sax.InputSource
-import akka.actor.{ Actor, ActorRef, Props, actorRef2Scala }
-import ru.wordmetrix.features.Features
-import ru.wordmetrix.utils.{ CFG, CFGAware, Html2Ascii, debug, log }
-import ru.wordmetrix.vector.Vector
-import ru.wordmetrix.webcrawler.LinkContext.Feature
-import akka.actor.Kill
-import akka.actor.PoisonPill
+
+import scala.collection.mutable.PriorityQueue
+
+import Gather.GatherLink
+import SampleHierarchy2Priority.SampleHirarchy2PriorityPriority
+import SeedQueue.{
+    SeedQueueAvailable,
+    SeedQueueGet,
+    SeedQueueLink,
+    SeedQueueRequest
+}
+import Storage.{ StorageSign, StorageVictim }
+import WebCrawler.{ Seed, Word }
+import akka.actor.{ Actor, Props, actorRef2Scala }
+import ru.wordmetrix.utils.{ CFG, CFGAware, debug }
+import ru.wordmetrix.utils.ActorDebug.actor2ActorDebug
 
 object EvaluatePriorityMatrix {
     abstract sealed class EvaluatePriorityMatrixMessage
 
-    case class EvaluatePriorityMatrixSeed(seed: URI) extends EvaluatePriorityMatrixMessage
+    case class EvaluatePriorityMatrixSeed(seed: URI)
+        extends EvaluatePriorityMatrixMessage
     case class EvaluatePriorityMatrixStop extends EvaluatePriorityMatrixMessage
 
-    def props(storage: Props, gather: Props, seedqueue: Props, sample: Props, cfg: CFG): Props =
-        Props(new EvaluatePriorityMatrix(storage, gather, seedqueue, sample)(cfg))
+    def props(storage: Props, gather: Props, seedqueue: Props, sample: Props,
+              cfg: CFG): Props =
+        Props(
+            new EvaluatePriorityMatrix(storage, gather, seedqueue, sample)(cfg))
 }
 
 class EvaluatePriorityMatrix(storageprop: Props,
@@ -48,9 +49,6 @@ class EvaluatePriorityMatrix(storageprop: Props,
     import Storage._
     import SampleHierarchy2Priority._
     val ns = Iterator.from(1)
-    var priorities = Map[Seed, (Priority, Set[Seed])]()
-
-    var vectors = Map[Seed, (V, Set[Seed])]()
 
     val queue = new PriorityQueue[Item]()(
         Ordering.fromLessThan((x: Item, y: Item) => x._1 < y._1))
@@ -58,14 +56,13 @@ class EvaluatePriorityMatrix(storageprop: Props,
     val gather = context.actorOf(gatherprop, "Gather")
 
     val seedqueue = context.actorOf(seedqueueprop, "SeedQueue")
-    
 
     val storage = context.actorOf(storageprop, "Storage")
 
     val sample = context.actorOf(sampleprop, "Sample")
 
     gather ! GatherLink(storage, sample)
-    
+
     seedqueue ! SeedQueueLink(gather)
 
     storage ! StorageVictim(seedqueue)
@@ -80,6 +77,10 @@ class EvaluatePriorityMatrix(storageprop: Props,
 
     var limit = 0.90
 
+    var priorities = Map[Seed, (Priority, Set[Seed])]()
+
+    var vectors = Map[Seed, (V, Set[Seed])]()
+
     def calculate(factor: V, vectors: Map[Seed, (V, Set[Seed])]) =
         vectors.map({
             case (seed, (vector, seeds)) => {
@@ -91,7 +92,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
                 seed -> ps.map(_._2)
         }).map({
             case (seed, ps) =>
-                seed -> ((combinepolicy(ps), priorities(seed) /*.getOrElse(seed, (0d, Set[Seed]()))*/ ._2))
+                seed -> ((combinepolicy(ps), priorities(seed)._2))
         })
 
     def combinepolicy(priorities: Iterable[Double]) = priorities.max
@@ -116,14 +117,8 @@ class EvaluatePriorityMatrix(storageprop: Props,
                     )
                 )
             )
-            //            this.log("QQ %s %s",qq._1,qq._2)
             priorities = priorities + qq
         }
-
-        /*        if (queue.isEmpty) {
-            this.log("Empty queue, beg dispatcher for webget")
-            this ! dispatcher
-        }*/
 
         queue.clear()
 
@@ -132,36 +127,38 @@ class EvaluatePriorityMatrix(storageprop: Props,
         }
     }
 
-    def estimate(seed: Seed, v: V) = debug.time("estimate, average size: %s, target size: %s / %s".format(average.vector.size, target.average.vector.size, target.vs.length)) {
-        average = average + v
-        target = target + (v, {
-            this.debug("accepted %s with %s in %s", seed, v * target.average.normal, target.priority())
-            storage ! StorageSign(seed)
-        })
+    def estimate(seed: Seed, v: V) = debug.time(
+        "estimate, average size: %s, target size: %s / %s".format(
+            average.vector.size, target.average.vector.size, target.vs.length)) {
+            average = average + v
+            target = target + (v, {
+                this.debug("accepted %s with %s in %s", seed,
+                    v * target.average.normal, target.priority())
+                storage ! StorageSign(seed)
+            })
 
-        newfactor = target.normal - average.normal
+            newfactor = target.normal - average.normal
 
-        this.debug("direction = %s %s",
-            (target.normal - average.normal) * central, factor * central)
+            this.debug("direction = %s %s",
+                (target.normal - average.normal) * central, factor * central)
 
-        this.debug("limit? %s < %s",
-            newfactor.normal * factor.normal, limit
-        )
-    }
+            this.debug("limit? %s < %s",
+                newfactor.normal * factor.normal, limit
+            )
+        }
 
     def receive(): Receive = {
         case EvaluatePriorityMatrixSeed(seed: Seed) => {
             this.log("Initial seed: %s", seed)
-            //gather ! GatherLink(storage, sample)
             seedqueue ! SeedQueueRequest(seed)
             context.become(phase_initialization, false)
         }
     }
 
     def phase_initialization(): Receive = {
-        
-        case msg @ Gather.GatherLinkContext(_,_) =>  sample ! msg
-        
+
+        case msg @ Gather.GatherLinkContext(_, _) => sample ! msg
+
         case Gather.GatherSeeds(seed, seeds, v) => {
             ns.next()
             //Initialization
@@ -217,13 +214,6 @@ class EvaluatePriorityMatrix(storageprop: Props,
                 //target = new TargetVectorCluster[String](target, n = cfg.targets)
 
                 this.log("Turn into estimation phase")
-                /*for (seed <- priorities.keys.take(10)) {
-                     //val (p, seed) = queue.dequeue
-                     //val (_, seeds) = priorities(seed)
-                     //priorities = priorities - seed
-                     this.log("webget %s", seed)
-                     context.actorOf(WebGet.props(cfg)) ! SeedQueueRequest(seed,gather)
-                }*/
                 seedqueue ! SeedQueueAvailable
                 context.become(phase_estimating, false)
             }
@@ -233,13 +223,10 @@ class EvaluatePriorityMatrix(storageprop: Props,
     def phase_estimating(): Receive = {
         case EvaluatePriorityMatrixStop =>
             context.system.shutdown()
-            //context.stop(self)
-            
+
         case Gather.GatherSeeds(seed, seeds, v) => {
-            //Do work
             if (ns.next() > cfg.limit) {
                 this.log("Limit has been reached")
-                //context.system.shutdown()         
                 sample ! EvaluatePriorityMatrixStop
                 seedqueue ! EvaluatePriorityMatrixStop
             } else {

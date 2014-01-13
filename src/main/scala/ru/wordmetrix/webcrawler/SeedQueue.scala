@@ -32,16 +32,15 @@ class SeedQueue(webgetprops: Props)(
     import EvaluatePriorityMatrix._
     import scala.collection.immutable.Queue
 
-
     def webget() = context.actorOf(webgetprops)
 
-    
-
-    def receive() : Receive = {
-        case SeedQueueLink(gather) => context.become(active(Queue(), gather, cfg.servers))    
+    def receive(): Receive = {
+        case SeedQueueLink(gather) =>
+            context.become(active(Queue(), gather, cfg.servers))
     }
-    
-    def finit(queue: Queue[SeedQueueRequest], gather: ActorRef, n: Int): Receive = {
+
+    def finit(queue: Queue[SeedQueueRequest], gather: ActorRef,
+              n: Int): Receive = {
         case msg @ SeedQueueGet =>
             this.log("Get %s in finit", n)
             if (queue.isEmpty) {
@@ -58,15 +57,13 @@ class SeedQueue(webgetprops: Props)(
             }
     }
 
-    def active(queue: Queue[SeedQueueRequest], gather: ActorRef, n: Int): Receive = {
+    def active(queue: Queue[SeedQueueRequest], gather: ActorRef,
+               n: Int): Receive = {
         case EvaluatePriorityMatrixStop =>
             context.become(finit(Queue(), gather, n), false)
 
         case msg @ SeedQueueRequest(seed) =>
-            this.log("Request")
-
             if (n > 0) {
-                println(1)
                 queue.enqueue(msg).dequeue match {
                     case (msg @ SeedQueueRequest(seed), queue) =>
                         webget() ! WebGetRequest(seed, gather)
@@ -77,28 +74,20 @@ class SeedQueue(webgetprops: Props)(
             }
 
         case msg @ SeedQueueGet =>
-            this.log("Get %s %s", n, queue.isEmpty)
-
             if (queue.isEmpty) {
                 sender ! SeedQueueEmpty
-                println(context.parent,msg,"QQ")
                 context.parent ! msg
                 context.become(active(queue, gather, n + 1), false)
             } else queue.dequeue match {
                 case (msg @ SeedQueueRequest(seed), queue) => {
                     sender ! WebGetRequest(seed, gather)
-                    println(sender,msg)
                     context.become(active(queue, gather, n), false)
                 }
             }
 
         case SeedQueueAvailable if (n > 0) =>
             this.log("Available")
-
             sender ! SeedQueueGet
-
-        case msg =>
-            this.log("Unknown message: %s", msg)
 
     }
 }

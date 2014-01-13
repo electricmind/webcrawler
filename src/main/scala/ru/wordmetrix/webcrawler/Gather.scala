@@ -57,9 +57,6 @@ class Gather()(
 
     import Gather._
     
-    //TODO: make map immutable
-    val map = scala.collection.mutable.Set[String]()
-    
     def page2xml_whole(page: WebCrawler.Page) = debug.time("page2xml") {
         (new NoBindingFactoryAdapter).loadXML(
             new InputSource(new CharArrayReader(page.toArray)),
@@ -73,19 +70,11 @@ class Gather()(
     //                x => x.attribute("id").getOrElse("").toString ==
     //                    "mw-content-text"))
 
-    def xml2seeds(xml: scala.xml.NodeSeq, base: URI) = (xml \\ "a").
+    def xml2seeds(xml: scala.xml.NodeSeq, base: URI, map : Set[String]) = (xml \\ "a").
         map(x => x.attribute("href")).flatten.
         map(x => WebCrawler.normalize(base, x.toString)).
         filter(x => x.getHost() == "en.wikipedia.org").
-        filter(x => {
-            val id = x.toString
-            if (map contains id) {
-                false
-            } else {
-                map.+=(id)
-                true
-            }
-        }).toSet
+        filterNot(x => map contains x.toString()).toSet
 
     def xml2vector(xml: scala.xml.NodeSeq) =
         Features.fromText(Html2Ascii(xml).dump())
@@ -103,10 +92,10 @@ class Gather()(
 
     def receive(): Receive = {
         case GatherLink(storage, sample) =>
-            context.become(active(storage,sample))
+            context.become(active(storage,sample,Set()))
     }
     
-    def active(storage : ActorRef, sample : ActorRef) : Receive = {
+    def active(storage : ActorRef, sample : ActorRef, links : Set[String]) : Receive = {
         case EvaluatePriorityMatrixStop =>
             context.parent ! EvaluatePriorityMatrixStop
             sample ! EvaluatePriorityMatrixStop
@@ -122,8 +111,11 @@ class Gather()(
                 sample ! GatherLinkContext(seed,
                     new LinkContext(seed).extract(page2xml_whole(page)))
                     
+                val seeds = xml2seeds(xml, seed, links)
                 
-                context.parent ! GatherSeeds(seed, xml2seeds(xml, seed), xml2vector(xml))
+                context.parent ! GatherSeeds(seed, seeds,  xml2vector(xml))
+                
+                context.become(active(storage, sample, links | seeds.map(_.toString)), false)
             } catch {
                 case x => log("Gathering failed on %s: %s", seed, x)
             }

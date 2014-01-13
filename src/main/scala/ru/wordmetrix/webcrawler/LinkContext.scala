@@ -10,16 +10,16 @@ object LinkContext {
         def apply(x: String) = x.split("=") match {
             case Array("id", v)    => new FeatureId(v)
             case Array("class", v) => new FeatureClass(v)
-            case Array(v)  => new FeatureName(v)
+            case Array(v)          => new FeatureName(v)
         }
     }
     abstract class Feature {
         val order: Int
         val x: String
-        
-        override def equals(f : Any) = f match {
-            case f : Feature => order == f.order && x == f.x
-            case _ => false
+
+        override def equals(f: Any) = f match {
+            case f: Feature => order == f.order && x == f.x
+            case _          => false
         }
     }
     class FeatureName(val x: String) extends Feature {
@@ -45,7 +45,7 @@ object LinkContext {
         } else if (x.order > y.order) {
             false
         } else x.x < y.x
-        
+
     })
 
 }
@@ -76,19 +76,19 @@ class LinkContext(base: URI) {
                                 Some(new FeatureClass(x))).toList
                             case None => List[Option[Feature]]()
                         }) flatten);
-                    
+
                     val v1 = v + Vector[Feature](l.map(x => x -> 1.0))
                     extract(x, v1, x.attribute("href") match {
-                        case Some(ref) => {
-                            val x = WebCrawler.normalize(base.toString.replace("|","%124"),ref.toString.replace("|","%124"))
-                            
+                        case Some(ref) if (new URI(ref.toString).getHost() == base.getHost()) => {
+                            val x = WebCrawler.normalize(base.toString.replace("|", "%124"), ref.toString.replace("|", "%124"))
+
                             map + (x -> (map.get(x) match {
                                 case Some(v) => v + v1
                                 case None    => v1
                             }))
-                            
+
                         }
-                        case None => map
+                        case None | _ => map
                     })
                 }
             })

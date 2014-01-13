@@ -9,9 +9,9 @@ import scala.xml.parsing.NoBindingFactoryAdapter
 import org.ccil.cowan.tagsoup.jaxp.SAXFactoryImpl
 import org.xml.sax.InputSource
 
-import akka.actor.{Actor, ActorRef, Props, actorRef2Scala}
+import akka.actor.{ Actor, ActorRef, Props, actorRef2Scala }
 import ru.wordmetrix.features.Features
-import ru.wordmetrix.utils.{CFG, CFGAware, Html2Ascii, debug, log}
+import ru.wordmetrix.utils.{ CFG, CFGAware, Html2Ascii, debug, log }
 import ru.wordmetrix.vector.Vector
 import ru.wordmetrix.webcrawler.LinkContext.Feature
 
@@ -22,9 +22,9 @@ import ru.wordmetrix.webcrawler.LinkContext.Feature
 object Gather {
     abstract sealed trait GatherMessage
 
- //   case class GatherStorage(storage: Storage) extends GatherMessage
+    //   case class GatherStorage(storage: Storage) extends GatherMessage
 
-    case class GatherLink(storage: ActorRef, sample : ActorRef) extends GatherMessage
+    case class GatherLink(storage: ActorRef, sample: ActorRef) extends GatherMessage
     case class GatherStorageAck extends GatherMessage
 
     case class GatherStop extends GatherMessage
@@ -51,12 +51,12 @@ object Gather {
 }
 
 class Gather()(
-        implicit val cfg: CFG)
+    implicit val cfg: CFG)
         extends Actor with CFGAware {
     override val name = "Gather"
 
     import Gather._
-    
+
     def page2xml_whole(page: WebCrawler.Page) = debug.time("page2xml") {
         (new NoBindingFactoryAdapter).loadXML(
             new InputSource(new CharArrayReader(page.toArray)),
@@ -70,10 +70,10 @@ class Gather()(
     //                x => x.attribute("id").getOrElse("").toString ==
     //                    "mw-content-text"))
 
-    def xml2seeds(xml: scala.xml.NodeSeq, base: URI, map : Set[String]) = (xml \\ "a").
+    def xml2seeds(xml: scala.xml.NodeSeq, base: URI, map: Set[String]) = (xml \\ "a").
         map(x => x.attribute("href")).flatten.
         map(x => WebCrawler.normalize(base, x.toString)).
-        filter(x => x.getHost() == "en.wikipedia.org").
+        filter(x => x.getHost() == base.getHost()).
         filterNot(x => map contains x.toString()).toSet
 
     def xml2vector(xml: scala.xml.NodeSeq) =
@@ -92,30 +92,32 @@ class Gather()(
 
     def receive(): Receive = {
         case GatherLink(storage, sample) =>
-            context.become(active(storage,sample,Set()))
+            context.become(active(storage, sample, Set()))
     }
-    
-    def active(storage : ActorRef, sample : ActorRef, links : Set[String]) : Receive = {
+
+    def active(storage: ActorRef, sample: ActorRef, links: Set[String]): Receive = {
         case EvaluatePriorityMatrixStop =>
             context.parent ! EvaluatePriorityMatrixStop
             sample ! EvaluatePriorityMatrixStop
             storage ! EvaluatePriorityMatrixStop
             context.stop(self)
-            
+
         case GatherPage(seed, page) => {
             try {
                 val xml = page2xml(page)
-                
+
                 storage ! GatherIntel(seed, xml2intel(xml))
-                
+
                 sample ! GatherLinkContext(seed,
                     new LinkContext(seed).extract(page2xml_whole(page)))
-                    
+
                 val seeds = xml2seeds(xml, seed, links)
-                
-                context.parent ! GatherSeeds(seed, seeds,  xml2vector(xml))
-                
-                context.become(active(storage, sample, links | seeds.map(_.toString)), false)
+
+                context.parent ! GatherSeeds(seed, seeds, xml2vector(xml))
+
+                context.become(
+                    active(storage, sample, links | seeds.map(_.toString)),
+                    false)
             } catch {
                 case x => log("Gathering failed on %s: %s", seed, x)
             }

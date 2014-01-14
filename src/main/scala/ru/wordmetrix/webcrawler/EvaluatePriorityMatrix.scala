@@ -163,13 +163,17 @@ class EvaluatePriorityMatrix(storageprop: Props,
                         )
                     )
                 )
+        } match {
+            case priorities =>
+                log("=====================")
+                // TODO: Fix scalaz stack overflow
+                val l = (vectors, priorities, priorities.take(1000).foldLeft(PQ[Item]) {
+                    case (queue, ((seed, (p, seeds)))) => queue insert (-p, seed)
+                })
+                
+                log("---------------------")
+                l
         }
-
-        // queue.clear()
-
-        (vectors, priorities, priorities.foldLeft(PQ[Item]) {
-            case (queue, ((seed, (p, seeds)))) => queue.insert((p, seed))
-        })
     }
     /**
      * Estimate how seed was relevant
@@ -191,7 +195,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
         case EvaluatePriorityMatrixSeed(seed: Seed) => {
             log("Initial seed: %s", seed)
             seedqueue ! SeedQueueRequest(seed)
-            context.become(phase_initialization, false)
+            context.become(phase_initialization, true)
         }
     }
 
@@ -219,7 +223,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
             storage ! StorageSign(seed)
 
             log("Start targeting " + target.vs.length)
-            context.become(phase_targeting(central, target, average, Map[Seed, (V, Set[Seed])](), Map[Seed, (Priority, Set[Seed])]()), false)
+            context.become(phase_targeting(central, target, average, Map[Seed, (V, Set[Seed])](), Map[Seed, (Priority, Set[Seed])]()), true)
         }
     }
 
@@ -249,9 +253,9 @@ class EvaluatePriorityMatrix(storageprop: Props,
 
                 log("Turn into estimation phase")
                 seedqueue ! SeedQueueAvailable
-                context.become(phase_estimating(central, target1, average1, vectors1, priorities2, factor, PQ[Item]), false)
+                context.become(phase_estimating(central, target1, average1, vectors1, priorities2, factor, PQ[Item]), true)
             } else {
-                context.become(phase_targeting(central, target1, average1, vectors1, priorities1), false)
+                context.become(phase_targeting(central, target1, average1, vectors1, priorities1), true)
             }
         }
     }
@@ -261,7 +265,9 @@ class EvaluatePriorityMatrix(storageprop: Props,
             context.system.shutdown()
 
         case Gather.GatherSeeds(seed, seeds, v) => {
-            if (ns.next() > cfg.limit) {
+            val n = ns.next()
+            log("Seed #%s: %s %s", n, seed, cfg.limit)
+            if (n > cfg.limit) {
                 log("Limit has been reached")
                 sample ! EvaluatePriorityMatrixStop
                 seedqueue ! EvaluatePriorityMatrixStop
@@ -275,10 +281,11 @@ class EvaluatePriorityMatrix(storageprop: Props,
                 } else priorities
 
                 val (vectors1, priorities1, queue1) = enqueue(seeds, factor, seed, v, vectors, priorities)
+                debug("Queue size: %s", queue.size)
                 sample ! SampleHirarchy2PriorityPriority(seed, factor * v.normal)
                 seedqueue ! SeedQueueAvailable
 
-                context.become(phase_estimating(central, target1, average1, vectors1, priorities1, newfactor, queue1), false)
+                context.become(phase_estimating(central, target1, average1, vectors1, priorities1, newfactor, queue1), true)
             }
         }
 
@@ -300,7 +307,8 @@ class EvaluatePriorityMatrix(storageprop: Props,
 
                     //TODO: check continue of estimation  phase
                     sender ! SeedQueueRequest(seed)
-                    
+                    context.become(phase_estimating(central, target, average, vectors, priorities, factor, queue), true)
+
                 case _ => {
                     debug("Queue was empty")
                 }

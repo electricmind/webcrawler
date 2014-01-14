@@ -27,6 +27,10 @@ object EvaluatePriorityMatrix {
         extends EvaluatePriorityMatrixMessage
 
     case class EvaluatePriorityMatrixStop extends EvaluatePriorityMatrixMessage
+
+    /**
+     * Extension of scalaz.Heap to alleviate pattern matching
+     */
     object PQ {
         import scalaz._
         import std.option._, std.list._
@@ -35,16 +39,16 @@ object EvaluatePriorityMatrix {
 
         def apply[U](i1: U)(implicit o: scalaz.Order[U]) =
             Heap.fromData(List[U](i1))
-            
+
         def apply[U](x1: U, x2: U, xs: U*)(
             implicit f: scalaz.Foldable[List], o: scalaz.Order[U]) =
             xs.foldLeft(Heap.fromData(List(x1, x2))) {
                 case (heap, x) => heap.insert(x)
             }
-        
+
         def apply[U](i1: U, heap: Heap[U])(
             implicit o: scalaz.Order[U]) = heap.insert(i1)
-            
+
         def unapply[U](heap: Heap[U]) =
             if (heap.isEmpty) None else Some((heap.minimum, heap.deleteMin))
     }
@@ -80,9 +84,6 @@ class EvaluatePriorityMatrix(storageprop: Props,
     import EvaluatePriorityMatrix._
     val ns = Iterator.from(1)
 
-    val queue = new PriorityQueue[Item]()(
-        Ordering.fromLessThan((x: Item, y: Item) => x._1 < y._1))
-
     val gather = context.actorOf(gatherprop, "Gather")
 
     val seedqueue = context.actorOf(seedqueueprop, "SeedQueue")
@@ -97,7 +98,13 @@ class EvaluatePriorityMatrix(storageprop: Props,
 
     storage ! StorageVictim(seedqueue)
 
-    var factor = new V(List())
+    /*
+ *    
+ *        
+ *                val queue = new PriorityQueue[Item]()(
+        Ordering.fromLessThan((x: Item, y: Item) => x._1 < y._1))
+ *                
+ *                        var factor = new V(List())
 
     var newfactor = new V(List())
 
@@ -110,13 +117,19 @@ class EvaluatePriorityMatrix(storageprop: Props,
     var priorities = Map[Seed, (Priority, Set[Seed])]()
 
     var vectors = Map[Seed, (V, Set[Seed])]()
+    
+        var amount = 4
 
+    var central = new V(List())
+    
+*/
     /*
      * Calculate priorities all of the seeds that are in queue by multiplying 
      * factor of new seed on all of the seeds that sourced from it.
      * 
      */
-    def calculate(factor: V, vectors: Map[Seed, (V, Set[Seed])]) =
+
+    def calculate(factor: V, vectors: Map[Seed, (V, Set[Seed])], priorities: Map[Seed, (Priority, Set[Seed])]) =
         vectors.map({
             case (seed, (vector, seeds)) => {
                 val priority = vector * factor.normal
@@ -132,59 +145,47 @@ class EvaluatePriorityMatrix(storageprop: Props,
 
     def combinepolicy(priorities: Iterable[Double]) = priorities.max
 
-    var amount = 4
+    def enqueue(seeds: Set[Seed], factor: V, seed: Seed, v: V, vectors: Map[Seed, (V, Set[Seed])], priorities: Map[Seed, (Priority, Set[Seed])]) = {
+        val vectors1 = vectors + (seed -> (v, seeds))
 
-    var central = new V(List())
-
-    def enqueue(seeds: Set[Seed], seed: Seed, v: V) = time("enqueue") {
-        vectors = vectors + (seed -> (v, seeds))
-        for (item <- seeds) {
-            val qq = (
-                item -> (
-                    (combinepolicy(
-                        priorities.getOrElse(
-                            item,
-                            (0d, Set[Seed]())
-                        )._2.map(
-                                x => vectors(x)._1 * factor) + v * factor
-                    ),
-                        priorities.getOrElse(item, (0d, Set[Seed]()))._2 + seed
+        seeds.foldLeft(priorities) {
+            case (priorities, seed) =>
+                priorities + (
+                    seed -> (
+                        (combinepolicy(
+                            priorities.getOrElse(
+                                seed,
+                                (0d, Set[Seed]())
+                            )._2.map(
+                                    x => vectors(x)._1 * factor) + v * factor
+                        ),
+                            priorities.getOrElse(seed, (0d, Set[Seed]()))._2 + seed
+                        )
                     )
                 )
-            )
-            priorities = priorities + qq
         }
 
-        queue.clear()
+        // queue.clear()
 
-        for ((seed, (p, seeds)) <- priorities) {
-            queue.enqueue((p, seed))
-        }
+        (vectors, priorities, priorities.foldLeft(PQ[Item]) {
+            case (queue, ((seed, (p, seeds)))) => queue.insert((p, seed))
+        })
     }
     /**
      * Estimate how seed was relevant
      *
      * @return target, average, (new)factor
      */
-    def estimate(seed: Seed, v: V) = time(
-        "estimate, average size: %s, target size: %s / %s".format(
-            average.vector.size, target.average.vector.size, target.vs.length)) {
-            average = average + v
-            target = target + (v, {
-                debug("accepted %s with %s in %s", seed,
-                    v * target.average.normal, target.priority())
-                storage ! StorageSign(seed)
-            })
+    def estimate(seed: Seed, v: V, target: TargetVector[String], average: AverageVector[String]) = {
+        val average1 = average + v
+        val target1 = target + (v, {
+            debug("accepted %s with %s in %s", seed,
+                v * target.average.normal, target.priority())
+            storage ! StorageSign(seed)
+        })
 
-            newfactor = target.normal - average.normal
-
-            debug("direction = %s %s",
-                (target.normal - average.normal) * central, factor * central)
-
-            debug("limit? %s < %s",
-                newfactor.normal * factor.normal, limit
-            )
-        }
+        (target1, average1, target1.normal - average1.normal)
+    }
 
     def receive(): Receive = {
         case EvaluatePriorityMatrixSeed(seed: Seed) => {
@@ -204,9 +205,11 @@ class EvaluatePriorityMatrix(storageprop: Props,
             val v1 = v.normal
             log("Initial phase, v = %s, n = %s, seed = %s",
                 v.norm, seeds.size, seed)
-            central = v1
-            target = target + v1
-            average = average + v1
+
+            val central = v1
+
+            val target = new TargetVector[String](n = cfg.targets) + v1
+            val average = new AverageVector[String](v1)
 
             // I need it only to do deterministic test
             for (seed <- seeds.toList.sorted) {
@@ -214,12 +217,14 @@ class EvaluatePriorityMatrix(storageprop: Props,
             }
 
             storage ! StorageSign(seed)
+
             log("Start targeting " + target.vs.length)
-            context.become(phase_targeting, false)
+            context.become(phase_targeting(central, target, average, Map[Seed, (V, Set[Seed])](), Map[Seed, (Priority, Set[Seed])]()), false)
         }
     }
 
-    def phase_targeting(): Receive = {
+    def phase_targeting(central: V, target: TargetVector[String], average: AverageVector[String], vectors: Map[Seed, (V, Set[Seed])], priorities: Map[Seed, (Priority, Set[Seed])]): Receive = {
+
         //Accumulate initial vectors for target
         case SeedQueueGet => {
             log("Targeting impossible, too little casualties")
@@ -230,37 +235,28 @@ class EvaluatePriorityMatrix(storageprop: Props,
             debug(s"Targeting phase $seed")
             ns.next()
 
-            estimate(seed, v.normal)
-            log("Targeting phase, attitude = %s, n = %s, " +
-                "seed = %s",
-                newfactor * central, seeds.size, seed)
+            val (target1, average1, factor) = estimate(seed, v.normal, target, average)
 
-            debug("target - average| = %s",
-                (target.normal - average.normal).norm)
-
-            debug("target*central = %s",
-                target.normal * central)
-
-            factor = newfactor
             debug("factor*central = %s (required %s)",
                 factor * central, cfg.targeting)
+            debug("central = %s, factor = %s, v = %s", central, factor, v)
+            val (vectors1, priorities1, _) = enqueue(seeds, factor, seed, v, vectors, priorities)
 
-            enqueue(seeds, seed, v)
-            queue.clear() //TODO: Why?
+            //queue.clear() //TODO: Why?
 
             if (factor * central > cfg.targeting) {
-                priorities = calculate(newfactor, vectors)
-                //target = new TargetVectorCluster[String](target, n = cfg.targets)
+                val priorities2 = calculate(factor, vectors1, priorities1)
 
                 log("Turn into estimation phase")
                 seedqueue ! SeedQueueAvailable
-                context.become(phase_estimating, false)
+                context.become(phase_estimating(central, target1, average1, vectors1, priorities2, factor, PQ[Item]), false)
+            } else {
+                context.become(phase_targeting(central, target1, average1, vectors1, priorities1), false)
             }
         }
-
     }
 
-    def phase_estimating(): Receive = {
+    def phase_estimating(central: V, target: TargetVector[String], average: AverageVector[String], vectors: Map[Seed, (V, Set[Seed])], priorities: Map[Seed, (Priority, Set[Seed])], factor: V, queue: scalaz.Heap[Item]): Receive = {
         case EvaluatePriorityMatrixStop =>
             context.system.shutdown()
 
@@ -270,43 +266,49 @@ class EvaluatePriorityMatrix(storageprop: Props,
                 sample ! EvaluatePriorityMatrixStop
                 seedqueue ! EvaluatePriorityMatrixStop
             } else {
-                log("Estimating phase,  attitude = %s, priority = %s, seed = %s",
-                    newfactor * central, factor * v.normal, seed)
-                estimate(seed, v.normal)
-                if (newfactor.normal * factor.normal < limit) {
-                    debug("Priorities should be recalculated")
-                    priorities = calculate(newfactor, vectors)
-                    factor = newfactor
-                }
 
-                enqueue(seeds, seed, v)
+                val (target1, average1, newfactor) = estimate(seed, v.normal, target, average)
+
+                val priorities2 = if (newfactor.normal * factor.normal < cfg.limit) {
+                    debug("Priorities should be recalculated")
+                    calculate(factor, vectors, priorities)
+                } else priorities
+
+                val (vectors1, priorities1, queue1) = enqueue(seeds, factor, seed, v, vectors, priorities)
                 sample ! SampleHirarchy2PriorityPriority(seed, factor * v.normal)
                 seedqueue ! SeedQueueAvailable
+
+                context.become(phase_estimating(central, target1, average1, vectors1, priorities1, newfactor, queue1), false)
             }
         }
 
         case SeedQueueGet => {
             debug("Get dispather request %s", sender)
-            if (!queue.isEmpty) {
-                val (p, seed) = queue.dequeue
-                val (_, seeds) = priorities(seed)
-                priorities = priorities - seed
-                vectors = vectors ++ {
-                    seeds.filter(vectors contains _).map(x => x -> {
-                        val (vector, seeds) = vectors(x)
-                        (vector, seeds - seed)
-                    })
-                }
-                log("Request, priority = %s for %s : %s", p,
-                    seed, seeds.headOption.getOrElse("empty"))
-                //TODO: check continue of estimation  phase
-                sender ! SeedQueueRequest(seed)
-            } else {
-                debug("Queue was empty")
-            }
-        }
-        case x => debug("!!!! Unknown message %s from %s",
-            x, sender)
+            queue match {
+                case PQ((priority, seed), queue) =>
+                    val (_, seeds) = priorities(seed)
 
+                    val priorities1 = priorities - seed
+                    val vectors1 = vectors ++ {
+                        seeds.filter(vectors contains _).map(x => x -> {
+                            val (vector, seeds) = vectors(x)
+                            (vector, seeds - seed)
+                        })
+                    }
+                    log("Request, priority = %s for %s : %s", priority,
+                        seed, seeds.headOption.getOrElse("empty"))
+
+                    //TODO: check continue of estimation  phase
+                    sender ! SeedQueueRequest(seed)
+                    
+                case _ => {
+                    debug("Queue was empty")
+                }
+            }
+
+        }
+
+        case x => debug("!!!! Unknown message %s from %s", x, sender)
     }
 }
+

@@ -29,14 +29,15 @@ class WebGet()(implicit cfg: CFG) extends Actor
 
     def receive(): Receive = {
         case WebGetRequest(seed, gather) => {
-            this.debug("Download %s", seed)
+            log("Getting a page %s ", seed)
             try {
-                gather ! GatherPage(
-                    seed,
-                    (cfg.cache / seed.toFilename).readLines.mkString("")
-                )
+                val page = (cfg.cache / seed.toFilename).readLines.mkString("")
+                debug("Getting from caches %s ", seed)
+                gather ! GatherPage(seed, page)
+
             } catch {
                 case x: Throwable =>
+                    debug("Getting from source %s ", seed)
                     try {
                         val connection = seed.toURL.openConnection()
                         connection.getContentType().split(";").head match {
@@ -51,7 +52,8 @@ class WebGet()(implicit cfg: CFG) extends Actor
                             case _ => None
                         }
                     } catch {
-                        case x => this.log("Download fault %s", x)
+                        case x =>
+                            this.log("Download fault %s because %s", seed, x)
                     }
             }
             sender ! SeedQueueGet

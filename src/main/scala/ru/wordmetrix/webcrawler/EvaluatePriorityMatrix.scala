@@ -1,27 +1,56 @@
 package ru.wordmetrix.webcrawler
-
+/**
+ * An actor that evaluates priorities of links on the base of content of pages
+ * that contains these links
+ *
+ * @author Elec
+ * @version 1.1
+ */
 import java.net.URI
+
 import scala.collection.mutable.PriorityQueue
+
 import Gather.GatherLink
 import SampleHierarchy2Priority.SampleHirarchy2PriorityPriority
-import SeedQueue.{
-    SeedQueueAvailable,
-    SeedQueueGet,
-    SeedQueueLink,
-    SeedQueueRequest
-}
+import SeedQueue.{ SeedQueueAvailable, SeedQueueGet, SeedQueueLink, SeedQueueRequest }
 import Storage.{ StorageSign, StorageVictim }
 import WebCrawler.{ Seed, Word }
 import akka.actor.{ Actor, Props, actorRef2Scala }
-import ru.wordmetrix.utils._
+import ru.wordmetrix.utils.{ CFG, CFGAware }
+//     import scalaz._
+//     import std.option._, std.list._
 
 object EvaluatePriorityMatrix {
     abstract sealed class EvaluatePriorityMatrixMessage
 
     case class EvaluatePriorityMatrixSeed(seed: URI)
         extends EvaluatePriorityMatrixMessage
-    case class EvaluatePriorityMatrixStop extends EvaluatePriorityMatrixMessage
 
+    case class EvaluatePriorityMatrixStop extends EvaluatePriorityMatrixMessage
+    object PQ {
+        import scalaz._
+        import std.option._, std.list._
+        def apply[U]()(implicit o: scalaz.Order[U]) = Heap.fromData(List[U]())
+        def apply[U](i1: U)(implicit o: scalaz.Order[U]) = Heap.fromData(List[U](i1))
+        def apply[U](x1: U, x2: U, xs: U*)(implicit f: scalaz.Foldable[List], o: scalaz.Order[U]) =
+            xs.foldLeft(Heap.fromData(List(x1, x2))) {
+                case (heap, x) => heap.insert(x)
+            }
+        def apply[U](i1: U, heap: Heap[U])(implicit o: scalaz.Order[U]) = heap.insert(i1)
+        def unapply[U](heap: Heap[U]) =
+            if (heap.isEmpty) None else Some((heap.minimum, heap.deleteMin))
+    }
+    /**
+     * Define an EvaluatePriorityMatrix
+     *
+     * @param storage    A storage for pages;
+     * @param gather     An actor that elicits data from pages;
+     * @param seedqueue  A dispatcher of requests;
+     * @param sample     An actor that maintains a sample of mapping content of
+     *                   links to priorities;
+     * @param cfg        A configure object;
+     * @return           An props for EvaluatePriorityMatrix.
+     */
     def props(storage: Props, gather: Props, seedqueue: Props, sample: Props,
               cfg: CFG): Props =
         Props(
@@ -41,10 +70,6 @@ class EvaluatePriorityMatrix(storageprop: Props,
     type VItem = (Priority, V)
 
     import EvaluatePriorityMatrix._
-    import SeedQueue._
-    import Gather._
-    import Storage._
-    import SampleHierarchy2Priority._
     val ns = Iterator.from(1)
 
     val queue = new PriorityQueue[Item]()(
@@ -78,6 +103,11 @@ class EvaluatePriorityMatrix(storageprop: Props,
 
     var vectors = Map[Seed, (V, Set[Seed])]()
 
+    /*
+     * Calculate priorities all of the seeds that are in queue by multiplying 
+     * factor of new seed on all of the seeds that sourced from it.
+     * 
+     */
     def calculate(factor: V, vectors: Map[Seed, (V, Set[Seed])]) =
         vectors.map({
             case (seed, (vector, seeds)) => {
@@ -123,7 +153,11 @@ class EvaluatePriorityMatrix(storageprop: Props,
             queue.enqueue((p, seed))
         }
     }
-
+    /**
+     * Estimate how seed was relevant
+     *
+     * @return target, average, (new)factor
+     */
     def estimate(seed: Seed, v: V) = time(
         "estimate, average size: %s, target size: %s / %s".format(
             average.vector.size, target.average.vector.size, target.vs.length)) {
@@ -166,6 +200,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
             target = target + v1
             average = average + v1
 
+            // I need it only to do deterministic test
             for (seed <- seeds.toList.sorted) {
                 seedqueue ! SeedQueueRequest(seed)
             }
@@ -173,7 +208,6 @@ class EvaluatePriorityMatrix(storageprop: Props,
             storage ! StorageSign(seed)
             log("Start targeting " + target.vs.length)
             context.become(phase_targeting, false)
-
         }
     }
 
@@ -215,6 +249,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
                 context.become(phase_estimating, false)
             }
         }
+
     }
 
     def phase_estimating(): Receive = {

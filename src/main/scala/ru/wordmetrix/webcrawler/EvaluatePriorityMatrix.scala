@@ -209,6 +209,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
                         priorities: Map[Seed, (Priority, Set[Seed])]): Receive = {
         case EvaluatePriorityMatrixStopTargeting => {
             log("Targeting impossible, too little casualties")
+            //context.stop(self)
             context.system.shutdown
         }
 

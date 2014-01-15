@@ -47,7 +47,7 @@ class SeedQueue(webgetprops: Props)(
         case msg @ SeedQueueGet =>
             this.log("Get %s in finit", n)
             if (queue.isEmpty) {
-                debug("Servers remains: %s", n)
+                debug("Servers are vacant: %s", n)
 
                 if (n + 1 == cfg.servers) {
                     debug("Command gather to stop")

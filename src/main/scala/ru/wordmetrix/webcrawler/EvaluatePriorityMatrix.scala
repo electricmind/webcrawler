@@ -31,7 +31,7 @@ object EvaluatePriorityMatrix {
      * Extension of SortedSet to use as priority queue
      */
     object PQ {
-        implicit val o = Ordering.fromLessThan((x: Item, y: Item) => x._1 < y._1)
+        implicit val o = Ordering[Item].reverse 
         def apply() = SortedSet[Item]()
         def apply(i1: Item) = SortedSet[Item](i1)
         def apply(x1: Item, x2: Item, xs: Item*) =
@@ -46,8 +46,8 @@ object EvaluatePriorityMatrix {
             }
     }
 
-    implicit class PQEx(map: SortedSet[Item]) {
-        def insert(x: Item) = map + (x)
+    implicit class PQEx(set: SortedSet[Item]) {
+        def insert(x: Item) = set + (x)
     }
     /**
      * Define an EvaluatePriorityMatrix
@@ -64,7 +64,6 @@ object EvaluatePriorityMatrix {
               cfg: CFG): Props =
         Props(
             new EvaluatePriorityMatrix(storage, gather, seedqueue, sample)(cfg))
-
 }
 
 class EvaluatePriorityMatrix(storageprop: Props,
@@ -179,7 +178,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
         case GatherSeeds(seed, seeds, v) => {
             ns.next()
             val v1 = v.normal
-            log("Initial phase, n = %s, seed = %s", seeds.size, seed) //**
+            log("Initial phase, n = %s, seed = %s", seeds.size, seed) 
 
             val central = v1
 
@@ -218,7 +217,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
 
         case Gather.GatherSeeds(seed, seeds, v) => {
             val n = ns.next()
-            debug(s"Targeting with (%d) $seed", n, seed)
+            debug("Targeting with (%d) %s %s %s", n, seed, seeds.size, vectors.size)
 
             val (target1, average1, factor) =
                 estimate(seed, v.normal, target, average)
@@ -277,20 +276,20 @@ class EvaluatePriorityMatrix(storageprop: Props,
                 debug("Priorities actual while %s > %s",
                     newfactor.normal * factor.normal, cfg.prioriting)
 
-                val (priorities2,  pfactor1) =
+                val (priorities1,  pfactor1) = 
                     if (newfactor.normal * factor.normal < cfg.prioriting) {
                         debug("Priorities should be recalculated")
                         (calculate(factor, vectors, priorities), newfactor.normal)
                     } else (priorities, pfactor)
 
-                val (vectors1, priorities1, queue1) =
-                    enqueue(seeds, factor, seed, v, vectors, priorities)
+                val (vectors1, priorities2, queue1) =
+                    enqueue(seeds, factor, seed, v, vectors, priorities1)
 
                 sample ! SampleHirarchy2PriorityPriority(seed, factor * v.normal)
                 seedqueue ! SeedQueueAvailable
 
                 context.become(phase_estimating(central, target1, average1,
-                    vectors1, priorities1, newfactor, pfactor1, queue1))
+                    vectors1, priorities2, newfactor, pfactor1, queue1))
             }
         }
 
@@ -314,7 +313,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
 
                     sender ! SeedQueueRequest(seed)
                     context.become(phase_estimating(central, target, average,
-                        vectors, priorities, factor, pfactor, queue))
+                        vectors1, priorities1, factor, pfactor, queue))
 
                 case _ => {
                     debug("Queue was empty")

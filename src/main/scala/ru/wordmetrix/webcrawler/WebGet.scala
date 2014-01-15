@@ -47,7 +47,7 @@ class WebGet()(implicit cfg: CFG) extends Actor
                                     getLines().mkString("\n")
                                 (cfg.cache / seed.toFilename).write(text)
 
-                                gather ! GatherPage(seed, text)
+                                gather ! GatherPage(seed, text)                                
                             }
                             case _ => None
                         }

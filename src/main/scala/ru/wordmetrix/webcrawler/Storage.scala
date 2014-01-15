@@ -40,7 +40,7 @@ class Storage()(implicit val cfg: CFG) extends Actor with CFGAware {
 
     def active(victim: ActorRef): Receive = {
         case StorageSign(seed) => {
-            this.log("Datum %s seemed significant", seed)
+            log("Datum %s seemed significant", seed)
 
             seedToFilename(seed) match {
                 case name => cfg.path / "tmp" / name copyTo cfg.path / name
@@ -49,14 +49,9 @@ class Storage()(implicit val cfg: CFG) extends Actor with CFGAware {
 
         case GatherIntel(seed, intel: String) => {
             val n = ns.next()
-            this.log("%04d (%04d)- Datum %s has come", n, cfg.limit, seed)
+            log("Datum %04d %s has come", n, seed)
+            
             cfg.path / "tmp" / seedToFilename(seed) write (intel)
-
-            if (n > cfg.limit) {
-                //victim ! StorageCompleted
-                //victim ! PoisonPill
-                //System.exit(0)
-            }
         }
     }
 }

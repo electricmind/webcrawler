@@ -20,7 +20,6 @@ class TargetVector[F](val average: AverageVector[F],
                 case (p, v) :: vs => if (v == v1) {
                     this
                 } else {
-
                     callback
                     factory(average - v + v1, vs)
                 }

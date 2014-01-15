@@ -53,7 +53,7 @@ class TargetVectorCluster[F](average: AverageVector[F],
                 this
             }*/
             val tvc = new TargetVectorCluster[F](average + v, (p, v) :: vs, n)
-            log("TargetVectorClaster tvc : this %s < %s", tvc.Sigma, Sigma)
+            log("TargetVectorCluster tvc : this %s < %s", tvc.Sigma, Sigma)
             if (tvc.Sigma < Sigma) {
                 callback
                 tvc

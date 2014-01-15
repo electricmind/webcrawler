@@ -113,10 +113,10 @@ class EvaluatePriorityMatrix(storageprop: Props,
 
     def combinepolicy(priorities: Iterable[Double]) = priorities.max
 
-    def enqueue(seeds: Set[Seed], factor: V, seed: Seed, v: V,
+    def enqueue(seeds: Set[Seed], factor: V, source_seed: Seed, v: V,
                 vectors: Map[Seed, (V, Set[Seed])],
                 priorities: Map[Seed, (Priority, Set[Seed])]) = {
-        val vectors1 = vectors + (seed -> (v, seeds))
+        val vectors1 = vectors + (source_seed -> (v, seeds))
 
         seeds.foldLeft(priorities) {
             case (priorities, seed) =>
@@ -126,16 +126,16 @@ class EvaluatePriorityMatrix(storageprop: Props,
                             priorities.getOrElse(
                                 seed,
                                 (0d, Set[Seed]())
-                            )._2.map(
-                                    x => vectors(x)._1 * factor) + v * factor
-                        ),
-                            priorities.getOrElse(seed, (0d, Set[Seed]()))._2 + seed
+                            )._2.map(x => vectors1(x)._1 * factor)
+                                + v * factor
+                        ), priorities.getOrElse(seed, (0d, Set[Seed]()))._2
+                            + source_seed
                         )
                     )
                 )
         } match {
             case priorities =>
-                (vectors, priorities, priorities.foldLeft(PQ[Item]) {
+                (vectors1, priorities, priorities.foldLeft(PQ[Item]) {
                     case (queue, ((seed, (p, seeds)))) => queue insert (-p, seed)
                 })
         }
@@ -226,6 +226,8 @@ class EvaluatePriorityMatrix(storageprop: Props,
 
             val (vectors1, priorities1, _) =
                 enqueue(seeds, factor, seed, v, vectors, priorities)
+
+            log("vectors: %s", vectors1.keySet)
 
             if (factor * central > cfg.targeting) {
                 val priorities2 = calculate(factor, vectors1, priorities1)

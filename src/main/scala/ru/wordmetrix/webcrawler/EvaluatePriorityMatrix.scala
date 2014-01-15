@@ -195,7 +195,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
         case EvaluatePriorityMatrixSeed(seed: Seed) => {
             log("Initial seed: %s", seed)
             seedqueue ! SeedQueueRequest(seed)
-            context.become(phase_initialization, true)
+            context.become(phase_initialization)
         }
     }
 
@@ -223,7 +223,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
             storage ! StorageSign(seed)
 
             log("Start targeting " + target.vs.length)
-            context.become(phase_targeting(central, target, average, Map[Seed, (V, Set[Seed])](), Map[Seed, (Priority, Set[Seed])]()), true)
+            context.become(phase_targeting(central, target, average, Map[Seed, (V, Set[Seed])](), Map[Seed, (Priority, Set[Seed])]()))
         }
     }
 
@@ -253,9 +253,9 @@ class EvaluatePriorityMatrix(storageprop: Props,
 
                 log("Turn into estimation phase")
                 seedqueue ! SeedQueueAvailable
-                context.become(phase_estimating(central, target1, average1, vectors1, priorities2, factor, PQ[Item]), true)
+                context.become(phase_estimating(central, target1, average1, vectors1, priorities2, factor, PQ[Item]))
             } else {
-                context.become(phase_targeting(central, target1, average1, vectors1, priorities1), true)
+                context.become(phase_targeting(central, target1, average1, vectors1, priorities1))
             }
         }
     }
@@ -285,7 +285,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
                 sample ! SampleHirarchy2PriorityPriority(seed, factor * v.normal)
                 seedqueue ! SeedQueueAvailable
 
-                context.become(phase_estimating(central, target1, average1, vectors1, priorities1, newfactor, queue1), true)
+                context.become(phase_estimating(central, target1, average1, vectors1, priorities1, newfactor, queue1))
             }
         }
 
@@ -307,7 +307,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
 
                     //TODO: check continue of estimation  phase
                     sender ! SeedQueueRequest(seed)
-                    context.become(phase_estimating(central, target, average, vectors, priorities, factor, queue), true)
+                    context.become(phase_estimating(central, target, average, vectors, priorities, factor, queue))
 
                 case _ => {
                     debug("Queue was empty")

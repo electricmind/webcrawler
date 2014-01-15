@@ -7,9 +7,7 @@ package ru.wordmetrix.webcrawler
  * @version 1.1
  */
 import java.net.URI
-
 import scala.collection.mutable.PriorityQueue
-
 import Gather.GatherLink
 import SampleHierarchy2Priority.SampleHirarchy2PriorityPriority
 import SeedQueue.{ SeedQueueAvailable, SeedQueueGet, SeedQueueLink, SeedQueueRequest }
@@ -17,8 +15,7 @@ import Storage.{ StorageSign, StorageVictim }
 import WebCrawler.{ Seed, Word }
 import akka.actor.{ Actor, Props, actorRef2Scala }
 import ru.wordmetrix.utils.{ CFG, CFGAware }
-import scalaz._
-import std.option._, std.list._
+import scala.collection.immutable.SortedMap
 
 object EvaluatePriorityMatrix {
     abstract sealed class EvaluatePriorityMatrixMessage
@@ -29,29 +26,29 @@ object EvaluatePriorityMatrix {
     case class EvaluatePriorityMatrixStop extends EvaluatePriorityMatrixMessage
 
     /**
-     * Extension of scalaz.Heap to alleviate pattern matching
+     * Extension of SortedMap to use as priority queue
      */
     object PQ {
-        import scalaz._
-        import std.option._, std.list._
 
-        def apply[U]()(implicit o: scalaz.Order[U]) = Heap.fromData(List[U]())
-
-        def apply[U](i1: U)(implicit o: scalaz.Order[U]) =
-            Heap.fromData(List[U](i1))
-
-        def apply[U](x1: U, x2: U, xs: U*)(
-            implicit f: scalaz.Foldable[List], o: scalaz.Order[U]) =
-            xs.foldLeft(Heap.fromData(List(x1, x2))) {
-                case (heap, x) => heap.insert(x)
+        def apply[U]()(implicit o: Ordering[U]) = SortedMap[U, U]()
+        def apply[U](i1: U)(implicit o: Ordering[U]) = SortedMap[U, U](i1 -> i1)
+        def apply[U](x1: U, x2: U, xs: U*)(implicit o: Ordering[U]) =
+            xs.foldLeft(SortedMap[U, U](x1 -> x1, x2 -> x2)) {
+                case (map, x) => map + (x -> x)
+            }
+        def apply[U](i1: U, map: SortedMap[U, U])(implicit o: Ordering[U]) = map + (i1 -> i1)
+        def unapply[U](map: SortedMap[U, U]) =
+            map.headOption match {
+                case None         => None
+                case Some((x, _)) => Some((x, map.tail))
             }
 
-        def apply[U](i1: U, heap: Heap[U])(
-            implicit o: scalaz.Order[U]) = heap.insert(i1)
-
-        def unapply[U](heap: Heap[U]) =
-            if (heap.isEmpty) None else Some((heap.minimum, heap.deleteMin))
     }
+
+    implicit class PQEx[U](map: SortedMap[U, U]) {
+        def insert(x: U) = map + (x -> x)
+    }
+
     /**
      * Define an EvaluatePriorityMatrix
      *
@@ -260,7 +257,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
         }
     }
 
-    def phase_estimating(central: V, target: TargetVector[String], average: AverageVector[String], vectors: Map[Seed, (V, Set[Seed])], priorities: Map[Seed, (Priority, Set[Seed])], factor: V, queue: scalaz.Heap[Item]): Receive = {
+    def phase_estimating(central: V, target: TargetVector[String], average: AverageVector[String], vectors: Map[Seed, (V, Set[Seed])], priorities: Map[Seed, (Priority, Set[Seed])], factor: V, queue: SortedMap[Item,Item]): Receive = {
         case EvaluatePriorityMatrixStop =>
             context.system.shutdown()
 

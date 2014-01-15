@@ -234,7 +234,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
                 log("Turn into estimation phase")
                 seedqueue ! SeedQueueAvailable
                 context.become(phase_estimating(central, target1, average1,
-                    vectors1, priorities2, factor, PQ()))
+                    vectors1, priorities2, factor, factor.normal, PQ()))
             } else {
                 context.become(phase_targeting(central, target1, average1,
                     vectors1, priorities1))
@@ -250,7 +250,9 @@ class EvaluatePriorityMatrix(storageprop: Props,
     def phase_estimating(central: V,
                          target: TargetVector[String], average: AverageVector[String],
                          vectors: Map[Seed, (V, Set[Seed])],
-                         priorities: Map[Seed, (Priority, Set[Seed])], factor: V,
+                         priorities: Map[Seed, (Priority, Set[Seed])], 
+                         factor: V,
+                         pfactor : V,
                          queue: SortedSet[Item]): Receive = {
         case EvaluatePriorityMatrixStop =>
             debug("ActorSystem shutdown")
@@ -275,11 +277,11 @@ class EvaluatePriorityMatrix(storageprop: Props,
                 debug("Priorities actual while %s > %s",
                     newfactor.normal * factor.normal, cfg.prioriting)
 
-                val priorities2 =
+                val (priorities2,  pfactor1) =
                     if (newfactor.normal * factor.normal < cfg.prioriting) {
                         debug("Priorities should be recalculated")
-                        calculate(factor, vectors, priorities)
-                    } else priorities
+                        (calculate(factor, vectors, priorities), newfactor.normal)
+                    } else (priorities, pfactor)
 
                 val (vectors1, priorities1, queue1) =
                     enqueue(seeds, factor, seed, v, vectors, priorities)
@@ -288,7 +290,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
                 seedqueue ! SeedQueueAvailable
 
                 context.become(phase_estimating(central, target1, average1,
-                    vectors1, priorities1, newfactor, queue1))
+                    vectors1, priorities1, newfactor, pfactor1, queue1))
             }
         }
 
@@ -312,7 +314,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
 
                     sender ! SeedQueueRequest(seed)
                     context.become(phase_estimating(central, target, average,
-                        vectors, priorities, factor, queue))
+                        vectors, priorities, factor, pfactor, queue))
 
                 case _ => {
                     debug("Queue was empty")

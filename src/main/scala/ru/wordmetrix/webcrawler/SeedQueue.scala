@@ -47,6 +47,8 @@ class SeedQueue(webgetprops: Props)(
         case msg @ SeedQueueGet =>
             this.log("Get %s in finit", n)
             if (queue.isEmpty) {
+                debug("Servers remains: %s", n)
+
                 if (n + 1 == cfg.servers) {
                     debug("Command gather to stop")
                     gather ! EvaluatePriorityMatrixStop
@@ -61,12 +63,42 @@ class SeedQueue(webgetprops: Props)(
             }
     }
 
+    def exhaust(queue: Queue[SeedQueueRequest], gather: ActorRef,
+               n: Int): Receive = {
+       
+        case msg @ SeedQueueGet =>
+            if (queue.isEmpty) {
+                sender ! SeedQueueEmpty
+                if (n + 1 == cfg.servers) {
+                    context.parent ! msg
+                    gather ! EvaluatePriorityMatrixStopTargeting
+                    context.become(active(queue, gather, n + 1))
+                } else {
+                    context.become(exhaust(queue, gather, n + 1))
+                }
+            } else queue.dequeue match {
+                case (msg @ SeedQueueRequest(seed), queue) => {
+                    sender ! WebGetRequest(seed, gather)
+                    context.become(exhaust(queue, gather, n))
+                }
+            }
+        
+        
+    }
     def active(queue: Queue[SeedQueueRequest], gather: ActorRef,
                n: Int): Receive = {
+        case EvaluatePriorityMatrixStopTargeting =>
+            context.become(exhaust(queue, gather, n))
+            
         case EvaluatePriorityMatrixStop =>
-            debug("Enter inot finit state")
-            context.become(finit(Queue(), gather, n))
-
+            debug("Enter into finit state %s",n)
+            if (n == cfg.servers) {
+                    debug("Command gather to stop 1")
+                    gather ! EvaluatePriorityMatrixStop
+                    context.stop(self)
+            } else {
+               context.become(finit(Queue(), gather, n))
+            }
         case msg @ SeedQueueRequest(seed) =>
             if (n > 0) {
                 queue.enqueue(msg).dequeue match {

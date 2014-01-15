@@ -107,6 +107,11 @@ class Gather()(
             sample ! EvaluatePriorityMatrixStop
             storage ! EvaluatePriorityMatrixStop
             context.stop(self)
+            
+        case EvaluatePriorityMatrixStopTargeting =>
+            debug("Stop targeting")
+            context.parent ! EvaluatePriorityMatrixStopTargeting
+
 
         case GatherPage(seed, page) => {
             try {

@@ -17,8 +17,8 @@ import Storage.{ StorageSign, StorageVictim }
 import WebCrawler.{ Seed, Word }
 import akka.actor.{ Actor, Props, actorRef2Scala }
 import ru.wordmetrix.utils.{ CFG, CFGAware }
-//     import scalaz._
-//     import std.option._, std.list._
+import scalaz._
+import std.option._, std.list._
 
 object EvaluatePriorityMatrix {
     abstract sealed class EvaluatePriorityMatrixMessage
@@ -167,10 +167,10 @@ class EvaluatePriorityMatrix(storageprop: Props,
             case priorities =>
                 log("=====================")
                 // TODO: Fix scalaz stack overflow
-                val l = (vectors, priorities, priorities.take(1000).foldLeft(PQ[Item]) {
+                val l = (vectors, priorities, priorities.foldLeft(PQ[Item]) {
                     case (queue, ((seed, (p, seeds)))) => queue insert (-p, seed)
                 })
-                
+
                 log("---------------------")
                 l
         }

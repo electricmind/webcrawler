@@ -48,14 +48,15 @@ class SeedQueue(webgetprops: Props)(
             this.log("Get %s in finit", n)
             if (queue.isEmpty) {
                 if (n + 1 == cfg.servers) {
+                    debug("Command gather to stop")
                     gather ! EvaluatePriorityMatrixStop
                     context.stop(self)
                 }
-                context.become(finit(queue, gather, n + 1), false)
+                context.become(finit(queue, gather, n + 1))
             } else queue.dequeue match {
                 case (msg @ SeedQueueRequest(seed), queue) => {
                     sender ! msg
-                    context.become(finit(queue, gather, n), false)
+                    context.become(finit(queue, gather, n))
                 }
             }
     }
@@ -63,28 +64,29 @@ class SeedQueue(webgetprops: Props)(
     def active(queue: Queue[SeedQueueRequest], gather: ActorRef,
                n: Int): Receive = {
         case EvaluatePriorityMatrixStop =>
-            context.become(finit(Queue(), gather, n), false)
+            debug("Enter inot finit state")
+            context.become(finit(Queue(), gather, n))
 
         case msg @ SeedQueueRequest(seed) =>
             if (n > 0) {
                 queue.enqueue(msg).dequeue match {
                     case (msg @ SeedQueueRequest(seed), queue) =>
                         webget() ! WebGetRequest(seed, gather)
-                        context.become(active(queue, gather, n - 1), false)
+                        context.become(active(queue, gather, n - 1))
                 }
             } else {
-                context.become(active(queue.enqueue(msg), gather, n), false)
+                context.become(active(queue.enqueue(msg), gather, n))
             }
 
         case msg @ SeedQueueGet =>
             if (queue.isEmpty) {
                 sender ! SeedQueueEmpty
                 context.parent ! msg
-                context.become(active(queue, gather, n + 1), false)
+                context.become(active(queue, gather, n + 1))
             } else queue.dequeue match {
                 case (msg @ SeedQueueRequest(seed), queue) => {
                     sender ! WebGetRequest(seed, gather)
-                    context.become(active(queue, gather, n), false)
+                    context.become(active(queue, gather, n))
                 }
             }
 

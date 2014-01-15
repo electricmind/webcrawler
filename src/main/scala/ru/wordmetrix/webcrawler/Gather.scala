@@ -100,7 +100,9 @@ class Gather()(
 
     def active(storage: ActorRef, sample: ActorRef,
                links: Set[String]): Receive = {
+        
         case EvaluatePriorityMatrixStop =>
+            debug("Stop gather")
             context.parent ! EvaluatePriorityMatrixStop
             sample ! EvaluatePriorityMatrixStop
             storage ! EvaluatePriorityMatrixStop
@@ -119,8 +121,7 @@ class Gather()(
                 context.parent ! GatherSeeds(seed, seeds, xml2vector(xml))
 
                 context.become(
-                    active(storage, sample, links | seeds.map(_.toString)),
-                    false)
+                    active(storage, sample, links | seeds.map(_.toString)))
             } catch {
                 case x => log("Gathering failed on %s: %s", seed, x)
             }

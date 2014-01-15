@@ -15,7 +15,7 @@ import Storage.{ StorageSign, StorageVictim }
 import WebCrawler.{ Seed, Word }
 import akka.actor.{ Actor, Props, actorRef2Scala }
 import ru.wordmetrix.utils.{ CFG, CFGAware }
-import scala.collection.immutable.SortedMap
+import scala.collection.immutable.SortedSet
 
 object EvaluatePriorityMatrix {
     abstract sealed class EvaluatePriorityMatrixMessage
@@ -26,27 +26,25 @@ object EvaluatePriorityMatrix {
     case class EvaluatePriorityMatrixStop extends EvaluatePriorityMatrixMessage
 
     /**
-     * Extension of SortedMap to use as priority queue
+     * Extension of SortedSet to use as priority queue
      */
     object PQ {
-
-        def apply[U]()(implicit o: Ordering[U]) = SortedMap[U, U]()
-        def apply[U](i1: U)(implicit o: Ordering[U]) = SortedMap[U, U](i1 -> i1)
+        def apply[U]()(implicit o: Ordering[U]) = SortedSet[U]()
+        def apply[U](i1: U)(implicit o: Ordering[U]) = SortedSet[U](i1)
         def apply[U](x1: U, x2: U, xs: U*)(implicit o: Ordering[U]) =
-            xs.foldLeft(SortedMap[U, U](x1 -> x1, x2 -> x2)) {
-                case (map, x) => map + (x -> x)
+            xs.foldLeft(SortedSet[U](x1,x2)) {
+                case (map, x) => map + (x )
             }
-        def apply[U](i1: U, map: SortedMap[U, U])(implicit o: Ordering[U]) = map + (i1 -> i1)
-        def unapply[U](map: SortedMap[U, U]) =
+        def apply[U](i1: U, map: SortedSet[U])(implicit o: Ordering[U]) = map + (i1)
+        def unapply[U](map: SortedSet[U]) =
             map.headOption match {
                 case None         => None
-                case Some((x, _)) => Some((x, map.tail))
+                case Some(x) => Some((x, map.tail))
             }
-
     }
 
-    implicit class PQEx[U](map: SortedMap[U, U]) {
-        def insert(x: U) = map + (x -> x)
+    implicit class PQEx[U](map: SortedSet[U]) {
+        def insert(x: U) = map + (x)
     }
 
     /**
@@ -257,8 +255,9 @@ class EvaluatePriorityMatrix(storageprop: Props,
         }
     }
 
-    def phase_estimating(central: V, target: TargetVector[String], average: AverageVector[String], vectors: Map[Seed, (V, Set[Seed])], priorities: Map[Seed, (Priority, Set[Seed])], factor: V, queue: SortedMap[Item,Item]): Receive = {
+    def phase_estimating(central: V, target: TargetVector[String], average: AverageVector[String], vectors: Map[Seed, (V, Set[Seed])], priorities: Map[Seed, (Priority, Set[Seed])], factor: V, queue: SortedSet[Item]): Receive = {
         case EvaluatePriorityMatrixStop =>
+            debug("ActorSystem shutdown")
             context.system.shutdown()
 
         case Gather.GatherSeeds(seed, seeds, v) => {

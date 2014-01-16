@@ -75,44 +75,17 @@ object EvaluatePriorityMatrix {
               cfg: CFG): Props =
         Props(
             new EvaluatePriorityMatrix(storage, gather, seedqueue, sample,
-                    new NetworkEstimator()(cfg))(cfg))
+                    new NetworkEstimator()(cfg))(cfg, v => new SemanticEstimator(v)(cfg)))
 }
 
-class SemanticEstimator(val central: V, val target: TargetVector[String],
-                        val average: AverageVector[String]) {
+abstract class SemanticEstimatorBase[SE <: SemanticEstimatorBase[SE]] {
+    def estimate(seed: Seed, v: V, storage: ActorRef)(implicit cfg: CFG): SE
 
-    def this(central: V)(implicit cfg: CFG) = this(
-        central = central,
-        target = new TargetVector[String](n = cfg.targets) + central,
-        average = new AverageVector[String](central)
-    )
-
-    def copy(central: V = central, target: TargetVector[String] = target,
-             average: AverageVector[String] = average) =
-        new SemanticEstimator(central, target, average)
-    /**
-     * Estimate how seed was relevant
-     *
-     * @return target, average, (new)factor
-     */
-    def estimate(seed: Seed, v: V, storage: ActorRef)(implicit cfg: CFG): SemanticEstimator = {
-        val average1 = average + v
-        val target1 = target + (v, {
-            val pv = v * target.average.normal;
-            val p = target.priority()
-
-            debug("Seed %s was accepted as target %s, it's %s < %s",
-                seed, target.vs.length,
-                p, pv)
-            //TODO: we should factor out storage                
-            storage ! StorageSign(seed)
-        })
-
-        copy(target = target1, average = average1)
-    }
-
-    def factor = target.normal - average.normal
-
+    def factor : V
+    
+    val central : V
+    
+    val size : Int
 }
 
 abstract trait NetworkEstimatorBase[U <: NetworkEstimatorBase[U]] {
@@ -121,20 +94,18 @@ abstract trait NetworkEstimatorBase[U <: NetworkEstimatorBase[U]] {
     def update(seeds: Set[Seed], factor: V, source_seed: Seed, v: V): U
     def check(factor: V) : U
     def eliminate(seed: Seed): U
-    
-    // TODO: Exterminate!!
     val size : Int
-//    val vectors : Map[Seed, (V, Set[Seed])] 
-  //  val priorities: Map[Seed, (Priority, Set[Seed])] 
-    //val pfactor: V = ru.wordmetrix.vector.Vector[String]()
 }
 
-class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE]](storageprop: Props,
+class EvaluatePriorityMatrix[
+    NE <: NetworkEstimatorBase[NE],
+    SE <: SemanticEstimatorBase[SE]
+    ](storageprop: Props,
                              gatherprop: Props,
                              seedqueueprop: Props,
                              sampleprop: Props,
                              networkestimator : NE
-                             )(implicit cfg: CFG) extends Actor
+                             )(implicit cfg: CFG, factoryse : V => SE) extends Actor
         with CFGAware {
     override val name = "Evaluate . Matrix"
 
@@ -173,7 +144,7 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE]](storageprop: Props,
         case Gather.GatherSeeds(seed, seeds, v) => {
             ns.next()
             log("Initial phase, n = %s, seed = %s", seeds.size, seed)
-            val sense = new SemanticEstimator(v.normal)
+            val sense = factoryse(v.normal)
 
             // I need it only to do deterministic test
             for (seed <- seeds.toList.sorted) {
@@ -183,7 +154,7 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE]](storageprop: Props,
             seedqueue ! EvaluatePriorityMatrixStopTargeting
             storage ! StorageSign(seed)
 
-            log("Start targeting " + sense.target.vs.length)
+            log("Start targeting " + sense.size)
 
             context.become(
                 phase_targeting(
@@ -198,8 +169,7 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE]](storageprop: Props,
      * Targeting Phase: accumulate sample of pages until target is locked
      */
 
-    def phase_targeting(sense: SemanticEstimator,
-                        network: NE): Receive = {
+    def phase_targeting(sense: SE, network: NE): Receive = {
         case EvaluatePriorityMatrixStopTargeting => {
             log("Targeting impossible, too little casualties")
             //context.stop(self)
@@ -241,7 +211,7 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE]](storageprop: Props,
      * Estimation Phase: estimate gotten pages and request new one on priority
      * base.
      */
-    def phase_estimating(sense: SemanticEstimator,
+    def phase_estimating(sense: SE,
                          //factor: V,
                          network: NE,
                          queue: SortedSet[Item]): Receive = {

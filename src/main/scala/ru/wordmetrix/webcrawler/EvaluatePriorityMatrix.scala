@@ -74,12 +74,22 @@ object EvaluatePriorityMatrix {
     def props(storage: Props, gather: Props, seedqueue: Props, sample: Props,
               cfg: CFG): Props =
         Props(
-            new EvaluatePriorityMatrix(storage, gather, seedqueue, sample)(cfg))
+            new EvaluatePriorityMatrix(storage, gather, seedqueue, sample,
+                    new NetworkEstimator()(cfg))(cfg))
 }
 
-case class SemanticEstimator(central: V, target: TargetVector[String],
-                             average: AverageVector[String]) {
+class SemanticEstimator(val central: V, val target: TargetVector[String],
+                        val average: AverageVector[String]) {
 
+    def this(central: V)(implicit cfg: CFG) = this(
+        central = central,
+        target = new TargetVector[String](n = cfg.targets) + central,
+        average = new AverageVector[String](central)
+    )
+
+    def copy(central: V = central, target: TargetVector[String] = target,
+             average: AverageVector[String] = average) =
+        new SemanticEstimator(central, target, average)
     /**
      * Estimate how seed was relevant
      *
@@ -105,113 +115,26 @@ case class SemanticEstimator(central: V, target: TargetVector[String],
 
 }
 
-case class NetworkEstimator(
-        val vectors: Map[Seed, (V, Set[Seed])] = Map[Seed, (V, Set[Seed])](),
-        val priorities: Map[Seed, (Priority, Set[Seed])] = Map[Seed, (Priority, Set[Seed])](),
-        val pfactor: V = ru.wordmetrix.vector.Vector[String]())(implicit cfg: CFG) {
-    import EvaluatePriorityMatrix._
-
-    type PQQ = SortedSet[Item]
-
-    /**
-     * Update priority queue with new priorities
-     * 
-     * @param queue  - A queue
-     * @return       - An updated queue
-     */
+abstract trait NetworkEstimatorBase[U <: NetworkEstimatorBase[U]] {
+    def queue(queue: SortedSet[Item] = PQ()): SortedSet[Item]
+    def calculate(factor: V) : U
+    def update(seeds: Set[Seed], factor: V, source_seed: Seed, v: V): U
+    def check(factor: V) : U
+    def eliminate(seed: Seed): U
     
-    def queue(queue: PQQ = PQ()): PQQ =
-        priorities.foldLeft(PQ()) {
-            case (queue, ((seed, (p, seeds)))) => queue insert (p, seed)
-        }
-
-    /**
-     * Calculate new matrix of actual
-     * priorities all of the seeds that are in queue by multiplying
-     * factor of new seed on all of the seeds that sourced from it.
-     *
-     * @param factor   Current factor of similarity
-     * @return         New matrix
-     */
-
-    def calculate(factor: V) = copy(
-        priorities = vectors.map({
-            case (seed, (vector, seeds)) => {
-                val priority = vector * factor.normal
-                seeds.map((_, priority))
-            }
-        }).flatten.groupBy(x => x._1).map({
-            case (seed, ps) =>
-                seed -> ps.map(_._2)
-        }).map({
-            case (seed, ps) =>
-                seed -> ((combinepolicy(ps), priorities(seed)._2))
-        }),
-        pfactor = factor
-    )
-
-    /**
-     *  The rule of combination of priorities two adjacent vertices on
-     *  the neighborhood graph.
-     */
-    protected def combinepolicy(priorities: Iterable[Double]) = priorities.max
-
-    /**
-     * Add new seed to known network
-     *
-     * @param seeds    New set of seed associated with given seed
-     * @param seed     New seed
-     * @param factor   Current factor of similarity
-     * @param v        Content vector of seed
-     * @return         New matrix
-     */
-    def update(seeds: Set[Seed], factor: V, source_seed: Seed, v: V): NetworkEstimator = {
-        vectors + (source_seed -> (v, seeds)) match {
-            case vectors =>
-                copy(vectors = vectors,
-                    priorities = seeds.foldLeft(priorities) {
-                        case (priorities, seed) =>
-                            priorities + (
-                                seed -> (
-                                    (combinepolicy(
-                                        priorities.getOrElse(
-                                            seed,
-                                            (0d, Set[Seed]())
-                                        )._2.map(x => vectors(x)._1 * factor)
-                                            + v * factor
-                                    ),
-                                        priorities.getOrElse(seed, (0d, Set[Seed]()))._2
-                                        + source_seed
-                                    )
-                                )
-                            )
-                    }
-                )
-        }
-    }
-
-    def check(factor: V) = if (factor.normal * pfactor < cfg.prioriting) {
-        debug("Priorities should be recalculated")
-        calculate(factor)
-    } else this
-
-    def eliminate(seed: Seed): NetworkEstimator = {
-        val (_, seeds) = priorities(seed)
-        val priorities1 = priorities - seed
-        val vectors1 = vectors ++ {
-            seeds.filter(vectors contains _).map(x => x -> {
-                val (vector, seeds) = vectors(x)
-                (vector, seeds - seed)
-            })
-        }
-        copy(priorities = priorities1, vectors = vectors1)
-    }
+    // TODO: Exterminate!!
+    val size : Int
+//    val vectors : Map[Seed, (V, Set[Seed])] 
+  //  val priorities: Map[Seed, (Priority, Set[Seed])] 
+    //val pfactor: V = ru.wordmetrix.vector.Vector[String]()
 }
 
-class EvaluatePriorityMatrix(storageprop: Props,
+class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE]](storageprop: Props,
                              gatherprop: Props,
                              seedqueueprop: Props,
-                             sampleprop: Props)(implicit cfg: CFG) extends Actor
+                             sampleprop: Props,
+                             networkestimator : NE
+                             )(implicit cfg: CFG) extends Actor
         with CFGAware {
     override val name = "Evaluate . Matrix"
 
@@ -247,15 +170,10 @@ class EvaluatePriorityMatrix(storageprop: Props,
 
         case msg @ GatherLinkContext(_, _) => sample ! msg
 
-        case GatherSeeds(seed, seeds, v) => {
+        case Gather.GatherSeeds(seed, seeds, v) => {
             ns.next()
-            val v1 = v.normal
             log("Initial phase, n = %s, seed = %s", seeds.size, seed)
-            val sense = SemanticEstimator(
-                central = v1,
-                target = new TargetVector[String](n = cfg.targets) + v1,
-                average = new AverageVector[String](v1)
-            )
+            val sense = new SemanticEstimator(v.normal)
 
             // I need it only to do deterministic test
             for (seed <- seeds.toList.sorted) {
@@ -270,7 +188,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
             context.become(
                 phase_targeting(
                     sense,
-                    NetworkEstimator()
+                    networkestimator
                 )
             )
         }
@@ -281,7 +199,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
      */
 
     def phase_targeting(sense: SemanticEstimator,
-                        network: NetworkEstimator): Receive = {
+                        network: NE): Receive = {
         case EvaluatePriorityMatrixStopTargeting => {
             log("Targeting impossible, too little casualties")
             //context.stop(self)
@@ -290,40 +208,42 @@ class EvaluatePriorityMatrix(storageprop: Props,
 
         case Gather.GatherSeeds(seed, seeds, v) => {
             val n = ns.next()
+
             debug("Targeting with (%d) %s %s %s", n, seed, seeds.size,
-                network.vectors.size)
+                network.size)
 
-            val sense1 = sense.estimate(seed, v.normal, storage)
+            sense.estimate(seed, v.normal, storage) match {
+                case sense =>
+                    val network1 = network.update(seeds, sense.factor, seed, v)
 
-            val network1 = network.update(seeds, sense1.factor, seed, v)
+                    log("Check if %s > %s (direction is collinear to specimen)",
+                        sense.factor * sense.central, cfg.targeting)
 
-            log("Check if %s > %s (direction is collinear to specimen)",
-                sense1.factor * sense1.central, cfg.targeting)
+                    if (sense.factor * sense.central > cfg.targeting) {
+                        log("Turn into estimation phase")
+                        val network2 = network1.calculate(sense.factor)
 
-            if (sense1.factor * sense1.central > cfg.targeting) {
-                log("Turn into estimation phase")
-                val network2 = network1.calculate(sense1.factor)
-                seedqueue ! SeedQueueAvailable
+                        seedqueue ! SeedQueueAvailable
 
-                context.become(
-                    phase_estimating(sense1, network, network.queue())
-                )
-            } else {
-                context.become(
-                    phase_targeting(sense1, network1)
-                )
+                        context.become(
+                            phase_estimating(sense, network2, network2.queue())
+                        )
+
+                    } else {
+                        context.become(
+                            phase_targeting(sense, network1)
+                        )
+                    }
             }
         }
     }
-
     /**
      * Estimation Phase: estimate gotten pages and request new one on priority
      * base.
      */
-
     def phase_estimating(sense: SemanticEstimator,
                          //factor: V,
-                         network: NetworkEstimator,
+                         network: NE,
                          queue: SortedSet[Item]): Receive = {
 
         case EvaluatePriorityMatrixStop =>
@@ -332,6 +252,7 @@ class EvaluatePriorityMatrix(storageprop: Props,
 
         case GatherSeeds(seed, seeds, v) => {
             val n = ns.next()
+
             log("Estimation of seed #%s (%s): %s, queue = %s",
                 n, cfg.limit, seed, queue.size)
             if (n > cfg.limit) {
@@ -347,16 +268,17 @@ class EvaluatePriorityMatrix(storageprop: Props,
                 debug("Priorities actual while %s > %s",
                     sense1.factor.normal * sense.factor.normal, cfg.prioriting)
 
-                val network1 = network.check(sense1.factor.normal)
-                val network2 = network1.update(seeds, sense.factor, seed, v)
-                val queue2 = network2.queue(queue)
+                val network1 = network.check(sense1.factor.normal).update(seeds,
+                    sense.factor, seed, v)
+
+                val queue2 = network1.queue(queue)
 
                 sample ! SampleHirarchy2PriorityPriority(seed,
                     sense.factor * v.normal)
 
                 seedqueue ! SeedQueueAvailable
 
-                context.become(phase_estimating(sense1, network2, queue2))
+                context.become(phase_estimating(sense1, network1, queue2))
             }
         }
 
@@ -376,6 +298,5 @@ class EvaluatePriorityMatrix(storageprop: Props,
                 }
             }
         }
-        case x => debug("!!!! Unknown message %s from %s", x, sender)
     }
 }

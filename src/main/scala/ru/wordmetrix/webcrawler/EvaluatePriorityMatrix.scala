@@ -214,7 +214,6 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
      * base.
      */
     def phase_estimating(sense: SE,
-                         //factor: V,
                          network: NE,
                          queue: SortedSet[Item]): Receive = {
 

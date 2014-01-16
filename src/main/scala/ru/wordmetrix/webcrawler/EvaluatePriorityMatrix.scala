@@ -74,38 +74,40 @@ object EvaluatePriorityMatrix {
     def props(storage: Props, gather: Props, seedqueue: Props, sample: Props,
               cfg: CFG): Props =
         Props(
-            new EvaluatePriorityMatrix(storage, gather, seedqueue, sample,
-                    new NetworkEstimator()(cfg))(cfg, v => new SemanticEstimator(v)(cfg)))
+            new EvaluatePriorityMatrix(
+                storage, gather, seedqueue, sample,
+                new NetworkEstimator()(cfg)
+            )(
+                cfg,
+                v => new SemanticEstimator(v)(cfg)
+            )
+        )
 }
 
 abstract class SemanticEstimatorBase[SE <: SemanticEstimatorBase[SE]] {
-    def estimate(seed: Seed, v: V, storage: ActorRef)(implicit cfg: CFG): SE
+    def estimate(seed: Seed, v: V, storage: ActorRef): SE
 
-    def factor : V
-    
-    val central : V
-    
-    val size : Int
+    def factor: V
+
+    val central: V
+
+    val size: Int
 }
 
 abstract trait NetworkEstimatorBase[U <: NetworkEstimatorBase[U]] {
     def queue(queue: SortedSet[Item] = PQ()): SortedSet[Item]
-    def calculate(factor: V) : U
+    def calculate(factor: V): U
     def update(seeds: Set[Seed], factor: V, source_seed: Seed, v: V): U
-    def check(factor: V) : U
+    def check(factor: V): U
     def eliminate(seed: Seed): U
-    val size : Int
+    val size: Int
 }
 
-class EvaluatePriorityMatrix[
-    NE <: NetworkEstimatorBase[NE],
-    SE <: SemanticEstimatorBase[SE]
-    ](storageprop: Props,
-                             gatherprop: Props,
-                             seedqueueprop: Props,
-                             sampleprop: Props,
-                             networkestimator : NE
-                             )(implicit cfg: CFG, factoryse : V => SE) extends Actor
+class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstimatorBase[SE]](storageprop: Props,
+                                                                                              gatherprop: Props,
+                                                                                              seedqueueprop: Props,
+                                                                                              sampleprop: Props,
+                                                                                              networkestimator: NE)(implicit cfg: CFG, factoryse: V => SE) extends Actor
         with CFGAware {
     override val name = "Evaluate . Matrix"
 

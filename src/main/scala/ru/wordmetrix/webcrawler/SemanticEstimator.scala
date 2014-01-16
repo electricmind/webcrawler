@@ -6,9 +6,15 @@ import ru.wordmetrix.utils.CFG
 import EvaluatePriorityMatrix._
 import akka.actor.ActorRef
 import ru.wordmetrix.utils.debug
-
+/**
+ * An implementation of SemanticEstimator that collects vectors trying to
+ * estimate their value in comparison with specimen.
+ *
+ * @author Elec
+ */
 class SemanticEstimator(val central: V, val target: TargetVector[String],
-                        val average: AverageVector[String]) extends SemanticEstimatorBase[SemanticEstimator]() {
+                        val average: AverageVector[String])(implicit cfg: CFG)
+        extends SemanticEstimatorBase[SemanticEstimator]() {
 
     def this(central: V)(implicit cfg: CFG) = this(
         central = central,
@@ -16,8 +22,8 @@ class SemanticEstimator(val central: V, val target: TargetVector[String],
         average = new AverageVector[String](central)
     )
 
-    val size = target.vs.length
-    
+    lazy val size = target.vs.length
+
     def copy(central: V = central, target: TargetVector[String] = target,
              average: AverageVector[String] = average) =
         new SemanticEstimator(central, target, average)
@@ -26,7 +32,7 @@ class SemanticEstimator(val central: V, val target: TargetVector[String],
      *
      * @return target, average, (new)factor
      */
-    def estimate(seed: Seed, v: V, storage: ActorRef)(implicit cfg: CFG): SemanticEstimator = {
+    def estimate(seed: Seed, v: V, storage: ActorRef): SemanticEstimator = {
         val average1 = average + v
         val target1 = target + (v, {
             val pv = v * target.average.normal;
@@ -42,6 +48,5 @@ class SemanticEstimator(val central: V, val target: TargetVector[String],
         copy(target = target1, average = average1)
     }
 
-    def factor = target.normal - average.normal
-
+    lazy val factor = target.normal - average.normal
 }

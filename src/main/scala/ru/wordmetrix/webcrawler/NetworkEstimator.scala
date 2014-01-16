@@ -5,7 +5,14 @@ import WebCrawler._
 import scala.collection.immutable.SortedSet
 import ru.wordmetrix.utils.CFG
 import ru.wordmetrix.utils.debug
-
+/**
+ * An implementation of NetworkEstimator that propagates estimation of semantic
+ * similarity throughout known part of network trying to determine how suitable
+ * new vertices could be.
+ * 
+ * @author Elec
+ * 
+ */
 class NetworkEstimator(
         val vectors: Map[Seed, (V, Set[Seed])] = Map[Seed, (V, Set[Seed])](),
         val priorities: Map[Seed, (Priority, Set[Seed])] = Map[Seed, (Priority, Set[Seed])](),

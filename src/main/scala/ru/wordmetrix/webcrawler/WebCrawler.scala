@@ -33,7 +33,7 @@ object WebCrawler extends App {
     //new URI(uri.getScheme() + ":" + java.net.URLEncoder.encode(uri.getSchemeSpecificPart())).normalize 
 
     override def main(args: Array[String]) {
-        implicit val cfg = CFG1(args.toList)
+        implicit val cfg = CFG(args.toList)
         val system = ActorSystem("mySystem")
 
         val storageprop = Storage.props(cfg)

@@ -1,7 +1,7 @@
 package ru.wordmetrix.webcrawler
 
 import Gather.GatherIntel
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{ Actor, ActorRef, Props }
 import ru.wordmetrix.smartfile.SmartFile.fromFile
 import ru.wordmetrix.utils._
 
@@ -43,14 +43,27 @@ class Storage()(implicit val cfg: CFG) extends Actor with CFGAware {
             log("Datum %s seemed significant", seed)
 
             seedToFilename(seed) match {
-                case name => cfg.path / "tmp" / name copyTo cfg.path / name
+                case name =>
+
+                    cfg.path / "tmp" / name copyTo cfg.path / name
             }
+
         }
 
         case GatherIntel(seed, intel: String) => {
             val n = ns.next()
             log("Datum %04d %s has come", n, seed)
-            
+
+            val map: List[String] = try {
+                cfg.map readLines () toList
+            } catch {
+                case x => List()
+            }
+
+            cfg.map.write(
+                s"${seedToFilename(seed)} : $seed" :: map mkString ("\n")
+            )
+
             cfg.path / "tmp" / seedToFilename(seed) write (intel)
         }
     }

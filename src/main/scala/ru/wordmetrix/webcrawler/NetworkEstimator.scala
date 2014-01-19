@@ -47,7 +47,9 @@ class NetworkEstimator(
      * @param factor   Current factor of similarity
      * @return         New matrix
      */
-
+    // Theoretically, we can propagate priority a few iteration that allows
+    // to pass through "technical pages", like indexes. Page priority would 
+    // become priority of page + priority that comes to page thru the links.
     def calculate(factor: V) = copy(
         priorities = vectors.map({
             case (seed, (vector, seeds)) => {
@@ -59,7 +61,10 @@ class NetworkEstimator(
                 seed -> ps.map(_._2)
         }).map({
             case (seed, ps) =>
-                seed -> ((combinepolicy(ps), priorities(seed)._2))
+                seed -> ((
+                        combinepolicy(ps) /* + self-priority if it is known */, 
+                        priorities(seed)._2
+                        ))
         }),
         pfactor = factor
     )
@@ -92,7 +97,7 @@ class NetworkEstimator(
                                             seed,
                                             (0d, Set[Seed]())
                                         )._2.map(x => vectors(x)._1 * factor)
-                                            + v * factor
+                                            + v * factor // + ,_1 to propagate
                                     ),
                                         priorities.getOrElse(seed, (0d, Set[Seed]()))._2
                                         + source_seed

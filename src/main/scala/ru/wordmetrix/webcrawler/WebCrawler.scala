@@ -2,8 +2,7 @@ package ru.wordmetrix.webcrawler
 
 import java.net.URI
 import akka.actor.{ActorSystem, Props, actorRef2Scala}
-import ru.wordmetrix.utils.CFG
-import ru.wordmetrix.utils.CFGParse
+import ru.wordmetrix.utils._
 
 /*
  * WebCrawler is a base web crawler application.
@@ -30,10 +29,11 @@ object WebCrawler extends App {
 
     def normalize(uri: URI) =
         new URI(uri.getScheme(), uri.getHost(), uri.getPath(), null).normalize
+        
     //new URI(uri.getScheme() + ":" + java.net.URLEncoder.encode(uri.getSchemeSpecificPart())).normalize 
 
     override def main(args: Array[String]) {
-        implicit val cfg = CFGParse(args)
+        implicit val cfg = CFG(args.toList)
         val system = ActorSystem("mySystem")
 
         val storageprop = Storage.props(cfg)

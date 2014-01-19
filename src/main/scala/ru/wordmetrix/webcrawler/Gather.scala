@@ -84,10 +84,17 @@ class Gather()(
 
     def xml2intel(xml: scala.xml.NodeSeq) = {
         new Html2Ascii(
-            xml \\ "div" find (
-                x => x.attribute("id").getOrElse("").toString
-                    == "mw-content-text"
-            ) getOrElse xml \\ "body" //getOrElse <html></html>
+            <html>{ xml \\ "title" }{
+                    xml \\ "div" find (
+                        x => x.attribute("id").getOrElse("").toString
+                            == "mw-content-text"
+                    ) match {
+                            case Some(x)=> <body> { x } </body>
+                            case None=> xml \\ "body" //getOrElse<html></html> 
+                        }
+
+                }
+            </html>
         ).wrap()
     }
 
@@ -101,24 +108,24 @@ class Gather()(
 
     def active(storage: ActorRef, sample: ActorRef,
                links: Set[String]): Receive = {
-        
+
         case EvaluatePriorityMatrixStop =>
             debug("Stop gather")
             context.parent ! EvaluatePriorityMatrixStop
             sample ! EvaluatePriorityMatrixStop
             storage ! EvaluatePriorityMatrixStop
             context.stop(self)
-            
+
         case EvaluatePriorityMatrixStopTargeting =>
             debug("Stop targeting")
             context.parent ! EvaluatePriorityMatrixStopTargeting
 
-
         case GatherPage(seed, page) => {
-            debug("Gather page %s",seed)
+            debug("Gather page %s", seed)
             try {
                 val xml = page2xml(page)
-                storage ! GatherIntel(seed, xml2intel(xml))
+
+                storage ! GatherIntel(seed, xml2intel(page2xml_whole(page)))
 
                 sample ! GatherLinkContext(seed,
                     new LinkContext(seed).extract(page2xml_whole(page)))

@@ -43,7 +43,7 @@ object EvaluatePriorityMatrix {
     object PQ {
         implicit val o = Ordering.fromLessThan[Item]({
             case ((p1, u1), (p2, u2)) =>
-                if (Math.abs((p1 - p2) / (p1 + p2)) < 0.0000000001)
+                if (p1 == p2)
                     u1.toString() < u2.toString()
                 else
                     p1 < p2
@@ -267,11 +267,6 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
                 case PQ((priority, seed), queue) =>
                     log("Request priority = %s for %s", priority, seed)
                     //TODO: check continue of estimation  phase
-                    debug("Priorities: %s %s", queue.size, queue.toList.take(20).map(_._1))
-                    debug("Priorities: %s %s", queue.size, (1 to 20).scanLeft(queue)({ case (q, n) => queue - queue.head }).map(_.head._1))
-                    debug("Priorities: %s %s", queue.size, queue.toList.take(20).map(_._2))
-                    debug("Priorities: %s %s", queue.size, (1 to 20).scanLeft(queue)({ case (q, n) => q - q.head }).map(_.head._2))
-                    debug("Priorities: %s %s", queue.size, (1 to 20).scanLeft(queue)({ case (q, n) => q - q.head }).map(_.size))
                     sender ! SeedQueueRequest(seed)
                     context.become(phase_estimating(
                         sense, network.eliminate(seed), queue

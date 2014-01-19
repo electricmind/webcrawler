@@ -41,7 +41,13 @@ object EvaluatePriorityMatrix {
      * Extension of SortedSet to use as priority queue
      */
     object PQ {
-        implicit val o = Ordering[Item].reverse
+        implicit val o = Ordering.fromLessThan[Item]({
+            case ((p1, u1), (p2, u2)) =>
+                if (Math.abs((p1 - p2) / (p1 + p2)) < 0.0000000001)
+                    u1.toString() < u2.toString()
+                else
+                    p1 < p2
+        }).reverse
         def apply() = SortedSet[Item]()
         def apply(i1: Item) = SortedSet[Item](i1)
         def apply(x1: Item, x2: Item, xs: Item*) =
@@ -52,8 +58,9 @@ object EvaluatePriorityMatrix {
         def unapply(map: SortedSet[Item]) =
             map.headOption match {
                 case None    => None
-                case Some(x) => Some((x, map.tail))
+                case Some(x) => Some((x, map - x))
             }
+        def apply(set: SortedSet[Item]) = new PQEx(set)
     }
 
     implicit class PQEx(set: SortedSet[Item]) {
@@ -255,11 +262,16 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
 
         case SeedQueueGet => {
             debug("Get dispather request %s", sender)
+
             queue match {
                 case PQ((priority, seed), queue) =>
                     log("Request priority = %s for %s", priority, seed)
                     //TODO: check continue of estimation  phase
-
+                    debug("Priorities: %s %s", queue.size, queue.toList.take(20).map(_._1))
+                    debug("Priorities: %s %s", queue.size, (1 to 20).scanLeft(queue)({ case (q, n) => queue - queue.head }).map(_.head._1))
+                    debug("Priorities: %s %s", queue.size, queue.toList.take(20).map(_._2))
+                    debug("Priorities: %s %s", queue.size, (1 to 20).scanLeft(queue)({ case (q, n) => q - q.head }).map(_.head._2))
+                    debug("Priorities: %s %s", queue.size, (1 to 20).scanLeft(queue)({ case (q, n) => q - q.head }).map(_.size))
                     sender ! SeedQueueRequest(seed)
                     context.become(phase_estimating(
                         sense, network.eliminate(seed), queue

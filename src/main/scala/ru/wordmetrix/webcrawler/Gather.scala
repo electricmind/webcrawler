@@ -57,13 +57,13 @@ class Gather()(
 
     import Gather._
 
-    def page2xml_whole(page: WebCrawler.Page) = {
+    def page2xml_whole(page: Page) = {
         (new NoBindingFactoryAdapter).loadXML(
             new InputSource(new CharArrayReader(page.toArray)),
             new SAXFactoryImpl().newSAXParser())
     }
 
-    def page2xml(page: WebCrawler.Page): scala.xml.NodeSeq =
+    def page2xml(page: Page): scala.xml.NodeSeq =
         (page2xml_whole(page) \\ "body")
     //        ((page2xml_whole(page) \\ "div").
     //            filter(
@@ -74,7 +74,7 @@ class Gather()(
                   map: Set[String]): Set[URI] = (for {
         tag <- (xml \\ "a")
         link <- tag.attribute("href")
-        uri <- Try(WebCrawler.normalize(base, link.toString)).toOption
+        uri <- Try(normalize(base, link.toString)).toOption
         if uri.getHost() == base.getHost()
         if !map.contains(uri.toString())
     } yield uri).toSet

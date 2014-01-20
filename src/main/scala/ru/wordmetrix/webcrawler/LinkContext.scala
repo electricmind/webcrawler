@@ -5,7 +5,6 @@ import java.net.URI
 import scala.Array.canBuildFrom
 import scala.Option.option2Iterable
 
-import WebCrawler.Seed
 import ru.wordmetrix.vector.Vector
 
 object LinkContext {
@@ -85,7 +84,7 @@ class LinkContext(base: URI) {
                     extract(x, v1, x.attribute("href") match {
                         case Some(ref) if (
                             new URI(ref.toString).getHost() == host) => {
-                            val x = WebCrawler.normalize(
+                            val x = normalize(
                                 base.toString.replace("|", "%124"),
                                 ref.toString.replace("|", "%124")
                             )

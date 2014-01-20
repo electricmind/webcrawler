@@ -16,7 +16,6 @@ import Gather.{ GatherLink, GatherLinkContext, GatherSeeds }
 import SampleHierarchy2Priority.SampleHirarchy2PriorityPriority
 import SeedQueue.{ SeedQueueAvailable, SeedQueueGet, SeedQueueLink, SeedQueueRequest }
 import Storage.{ StorageSign, StorageVictim }
-import WebCrawler.{ Seed, Word }
 import akka.actor.{ Actor, Props, actorRef2Scala }
 import ru.wordmetrix.utils.{ CFG, CFGAware, debug }
 import EvaluatePriorityMatrix._

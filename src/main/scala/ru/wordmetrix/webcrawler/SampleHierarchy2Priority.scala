@@ -6,7 +6,6 @@ package ru.wordmetrix.webcrawler
 import scala.collection.mutable
 
 import Gather.GatherLinkContext
-import WebCrawler.{ Priority, Seed }
 import akka.actor.{ Actor, Props }
 import ru.wordmetrix.smartfile.SmartFile.fromFile
 import ru.wordmetrix.utils.{ CFG, CFGAware }

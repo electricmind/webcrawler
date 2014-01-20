@@ -8,7 +8,7 @@ import ru.wordmetrix.utils._
 object Storage {
     sealed abstract class StorageMessage
 
-    case class StorageSign(seed: WebCrawler.Seed) extends StorageMessage
+    case class StorageSign(seed: Seed) extends StorageMessage
     case class StorageCompleted() extends StorageMessage
     case class StorageVictim(victim: ActorRef) extends StorageMessage
 
@@ -24,7 +24,7 @@ class Storage()(implicit val cfg: CFG) extends Actor with CFGAware {
 
     val ns = Iterator.from(1)
 
-    def seedToFilename(seed: WebCrawler.Seed) =
+    def seedToFilename(seed: Seed) =
         """[/:\\]""".r.replaceAllIn(
             """https?://""".r.replaceFirstIn(seed.toString, ""), "-"
         ) match {

@@ -55,6 +55,7 @@ class Gather()(
         extends Actor with CFGAware {
     override val name = "Gather"
 
+        
     import Gather._
 
     def page2xml_whole(page: Page) = {

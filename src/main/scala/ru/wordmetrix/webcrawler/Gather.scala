@@ -1,21 +1,20 @@
 package ru.wordmetrix.webcrawler
 
 import java.io.CharArrayReader
-import java.net.URI
 
+import java.net.URI
 import scala.Option.option2Iterable
 import scala.util.Try
 import scala.xml.parsing.NoBindingFactoryAdapter
-
 import org.ccil.cowan.tagsoup.jaxp.SAXFactoryImpl
 import org.xml.sax.InputSource
-
 import EvaluatePriorityMatrix.EvaluatePriorityMatrixStop
 import akka.actor.{ Actor, ActorRef, Props, actorRef2Scala }
 import ru.wordmetrix.features.Features
 import ru.wordmetrix.utils.{ CFG, CFGAware, Html2Ascii }
 import ru.wordmetrix.vector.Vector
 import ru.wordmetrix.webcrawler.LinkContext.Feature
+import ru.wordmetrix.features.Features
 
 /*
  * Gather analyzes a page and elicits links and useful load.
@@ -38,7 +37,7 @@ object Gather {
     case class GatherIntel[U](seed: URI, load: U) extends GatherSeed(seed)
 
     // Queue new seed
-    case class GatherSeeds(seed: URI, seeds: Set[URI], vector: Vector[String])
+    case class GatherSeeds(seed: URI, seeds: Set[URI], vector: Vector[Word])
         extends GatherSeed(seed)
 
     // Sample of links for future estimation
@@ -55,7 +54,6 @@ class Gather()(
         extends Actor with CFGAware {
     override val name = "Gather"
 
-        
     import Gather._
 
     def page2xml_whole(page: Page) = {
@@ -80,8 +78,9 @@ class Gather()(
         if !map.contains(uri.toString())
     } yield uri).toSet
 
-    def xml2vector(xml: scala.xml.NodeSeq) =
-        Features.fromText(Html2Ascii(xml).dump())
+    def xml2vector(xml: scala.xml.NodeSeq,
+                   index: Features.String2Word[String, Double]) =
+        Features.fromText(Html2Ascii(xml).dump(), index)
 
     def xml2intel(xml: scala.xml.NodeSeq) = {
         new Html2Ascii(
@@ -104,11 +103,12 @@ class Gather()(
     def receive(): Receive = {
         case GatherLink(storage, sample) =>
             log("Register storage: %s, sample: %s", storage, sample)
-            context.become(active(storage, sample, Set()))
+            context.become(active(storage, sample, Set(),
+                Features.String2Word[String, Double]()))
     }
 
     def active(storage: ActorRef, sample: ActorRef,
-               links: Set[String]): Receive = {
+               links: Set[String], index: Features.String2Word[String, Double]): Receive = {
 
         case EvaluatePriorityMatrixStop =>
             debug("Stop gather")
@@ -133,10 +133,12 @@ class Gather()(
 
                 val seeds = xml2seeds(xml, seed, links)
 
-                context.parent ! GatherSeeds(seed, seeds, xml2vector(xml))
+                val (v, index1) = xml2vector(xml,index)
+                
+                context.parent ! GatherSeeds(seed, seeds, v)
 
                 context.become(
-                    active(storage, sample, links | seeds.map(_.toString)))
+                    active(storage, sample, links | seeds.map(_.toString), index1))
             } catch {
                 case x => log("Gathering failed on %s: %s", seed, x)
             }

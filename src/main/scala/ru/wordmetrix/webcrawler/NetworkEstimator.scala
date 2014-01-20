@@ -16,7 +16,7 @@ import ru.wordmetrix.utils.debug
 class NetworkEstimator(
         val vectors: Map[Seed, (V, Set[Seed])] = Map[Seed, (V, Set[Seed])](),
         val priorities: Map[Seed, (Priority, Set[Seed])] = Map[Seed, (Priority, Set[Seed])](),
-        val pfactor: V = ru.wordmetrix.vector.Vector[String]())(implicit cfg: CFG) extends NetworkEstimatorBase[NetworkEstimator] {
+        val pfactor: V = ru.wordmetrix.vector.Vector[Word]())(implicit cfg: CFG) extends NetworkEstimatorBase[NetworkEstimator] {
     import EvaluatePriorityMatrix._
 
     type PQQ = SortedSet[Item]

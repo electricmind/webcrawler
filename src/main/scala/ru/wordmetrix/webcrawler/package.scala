@@ -5,10 +5,12 @@ package object webcrawler {
     type Seed = URI
     type Page = String
     type Intel = String
-    type Word = String
+    type Word = Int
     type Priority = Double
+    type V = ru.wordmetrix.vector.Vector[Word]
+    type Item = (Priority, Seed)
+    type VItem = (Priority, V)
 
-    
     def normalize(s: String): URI = normalize(new URI(s))
 
     def normalize(base: String, s: String): URI =

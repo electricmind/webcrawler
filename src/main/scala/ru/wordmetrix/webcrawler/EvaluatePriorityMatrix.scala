@@ -24,11 +24,7 @@ import akka.actor.ActorRef
 object EvaluatePriorityMatrix {
     abstract sealed class EvaluatePriorityMatrixMessage
 
-    type Priority = Double
-    type V = ru.wordmetrix.vector.Vector[Word]
-    type Item = (Priority, Seed)
-    type VItem = (Priority, V)
-
+ 
     case class EvaluatePriorityMatrixSeed(seed: URI)
         extends EvaluatePriorityMatrixMessage
 

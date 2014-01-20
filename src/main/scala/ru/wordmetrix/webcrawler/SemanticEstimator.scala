@@ -12,20 +12,20 @@ import ru.wordmetrix.utils.debug
  *
  * @author Elec
  */
-class SemanticEstimator(val central: V, val target: TargetVector[String],
-                        val average: AverageVector[String])(implicit cfg: CFG)
+class SemanticEstimator(val central: V, val target: TargetVector[Word],
+                        val average: AverageVector[Word])(implicit cfg: CFG)
         extends SemanticEstimatorBase[SemanticEstimator]() {
 
     def this(central: V)(implicit cfg: CFG) = this(
         central = central,
-        target = new TargetVector[String](n = cfg.targets) + central,
-        average = new AverageVector[String](central)
+        target = new TargetVector[Word](n = cfg.targets) + central,
+        average = new AverageVector[Word](central)
     )
 
     lazy val size = target.vs.length
 
-    def copy(central: V = central, target: TargetVector[String] = target,
-             average: AverageVector[String] = average) =
+    def copy(central: V = central, target: TargetVector[Word] = target,
+             average: AverageVector[Word] = average) =
         new SemanticEstimator(central, target, average)
     /**
      * Estimate how seed was relevant

@@ -1,10 +1,8 @@
 package ru.wordmetrix.webcrawler
 
 import java.net.URI
-
 import scala.Array.canBuildFrom
 import scala.Option.option2Iterable
-
 import ru.wordmetrix.vector.Vector
 
 object LinkContext {
@@ -51,13 +49,12 @@ object LinkContext {
 }
 
 class LinkContext(base: URI) {
-
     import LinkContext._
     type V = Vector[Feature]
-    val v = new Vector[Feature]()
+    val v = Vector[Feature]()
 
     def extract(xml: scala.xml.Node,
-                v: V = new Vector[Feature](),
+                v: V = Vector[Feature](),
                 map: Map[Seed, Vector[Feature]] = Map()): Map[Seed, Vector[Feature]] =
         if (xml.isEmpty) {
             map

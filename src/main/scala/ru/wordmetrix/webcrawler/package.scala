@@ -15,13 +15,16 @@ package object webcrawler {
     type Item = (Priority, SeedId)
     type VItem = (Priority, V)
 
-    implicit class NetworkEstimatorDump[NE <: NetworkEstimatorBase[NE]](net : NE) {
-        def dump(index : EvaluatePriorityMatrix.RevMap[Seed]) = net match {
-            case net : NetworkEstimator => new NetworkDump(net).dump(index)
-            case _ => "This feature have not implemented yet"
-        }   
+    implicit class NetworkEstimatorDump[NE <: NetworkEstimatorBase[NE]](net: NE) {
+        def dump(index: EvaluatePriorityMatrix.RevMap[Seed],
+                 estimator: SemanticEstimatorBase[_]) = net match {
+            case net: NetworkEstimator =>
+                new NetworkDump(net).dump(index, estimator)
+            case _ =>
+                "This feature have not implemented yet"
+        }
     }
-    
+
     def normalize(s: String): URI = normalize(new URI(s))
 
     def normalize(base: String, s: String): URI =

@@ -177,6 +177,7 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
             }
 
             seedqueue ! EvaluatePriorityMatrixStopTargeting
+            
             storage ! StorageSign(seed)
 
             log("Start targeting " + sense.size)
@@ -223,6 +224,7 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
 
                                 if (sense.factor * sense.central > cfg.targeting) {
                                     log("Turn into estimation phase")
+
                                     val network2 = network1.calculate(sense.factor)
 
                                     seedqueue ! SeedQueueAvailable
@@ -253,15 +255,13 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
         case EvaluatePriorityMatrixDump =>
             log("Dump network")
             Future({
-                
-                (cfg.path / "network.gml").write(network.dump(index))
+                (cfg.path / "network.gml").write(network.dump(index,sense))
                 debug("Dump network completed, sleep for awhile")
 
                 Thread.sleep(60000)
                 debug("Dump network sleep completed, initiate new round")
 
                 EvaluatePriorityMatrixDump
-
             }) pipeTo self
 
         case EvaluatePriorityMatrixStop =>
@@ -343,3 +343,4 @@ abstract trait NetworkEstimatorBase[U <: NetworkEstimatorBase[U]] {
     def eliminate(seed: SeedId): U
     val size: Int
 }
+ 

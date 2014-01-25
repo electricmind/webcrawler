@@ -1,8 +1,10 @@
-package ru.wordmetrix.webcrawler
+package ru.wordmetrix.webcrawler    
 import ru.wordmetrix.vector._
 
 class NetworkDump(net: NetworkEstimator) {
-    def dump(index: EvaluatePriorityMatrix.RevMap[Seed]): String = {
+    val edges = Iterator.from(1)
+    
+    def dump(index: EvaluatePriorityMatrix.RevMap[Seed], estimator : SemanticEstimatorBase[_]): String = {
         s"""
         graph
         [
@@ -10,20 +12,18 @@ class NetworkDump(net: NetworkEstimator) {
         directed 1
         ${
             (for {
-                (id, (priority, ids)) <- net.priorities
+                (id, (v, ids)) <- net.vectors
                 uri <- index.rmap.get(id)
                 
-                v <- net.vectors.get(id) match {
-                    case Some((v, _)) => Some(v)
-                    case None         => Some(VectorHASH.empty[Word])
-                }
+                if ids.size > 0
             } yield {
                 s"""
                 node 
                 [
                   id ${id}
-                  label ${Storage.seedToFilename(uri)}
-                  priority ${priority}
+                  label "${Storage.seedToFilename(uri)}"
+                  similarity ${estimator.central.normal * v.normal}
+                  priority ${estimator.factor.normal * v.normal}
                   dimension ${v.size}
                 length ${v.norm} 
                 ]
@@ -32,19 +32,26 @@ class NetworkDump(net: NetworkEstimator) {
         }
         ${
             (for {
-                ((id1, (priority, ids)), id) <- net.priorities.zipWithIndex
+                (id1, (v1, ids)) <- net.vectors
                 id2 <- ids
-                (v1, _) <- net.vectors.get(id1) orElse Some((VectorHASH.empty[Word], Set()))
-                (v2, _) <- net.vectors.get(id2) orElse Some((VectorHASH.empty[Word], Set()))
+                //if (net.vectors contains id2)
+                //if ! (net.priorities contains id2)
+                (v2, ids2) <- net.vectors.get(id2) orElse Some(
+                    (VectorHASH.empty[Word], Set)
+                )
+                
+                
             } yield {
                 s"""
                 edge 
                 [
-                  id ${id}
+                  id ${edges.next}
                   source ${id1}
                   target ${id2}
                   value ${(v1 - v2).norm}
                   angle ${v1.normal * v2.normal}
+                  exist ${ (net.priorities contains id2) }
+                  
                 ]
                 """
             }) mkString ("\n")

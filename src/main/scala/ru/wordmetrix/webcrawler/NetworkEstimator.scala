@@ -9,9 +9,9 @@ import ru.wordmetrix.utils.debug
  * An implementation of NetworkEstimator that propagates estimation of semantic
  * similarity throughout known part of network trying to determine how suitable
  * new vertices could be.
- * 
+ *
  * @author Elec
- * 
+ *
  */
 class NetworkEstimator(
         val vectors: Map[SeedId, (V, Set[SeedId])] = Map[SeedId, (V, Set[SeedId])](),
@@ -21,7 +21,7 @@ class NetworkEstimator(
 
     type PQQ = SortedSet[Item]
 
-    val size = vectors.size 
+    val size = vectors.size
     def copy(vectors: Map[SeedId, (V, Set[SeedId])] = vectors,
              priorities: Map[SeedId, (Priority, Set[SeedId])] = priorities,
              pfactor: V = pfactor)(implicit cfg: CFG) =
@@ -62,9 +62,9 @@ class NetworkEstimator(
         }).map({
             case (seed, ps) =>
                 seed -> ((
-                        combinepolicy(ps) /* + self-priority if it is known */, 
-                        priorities(seed)._2
-                        ))
+                    combinepolicy(ps) /* + self-priority if it is known */ ,
+                    priorities(seed)._2
+                ))
         }),
         pfactor = factor
     )
@@ -74,7 +74,7 @@ class NetworkEstimator(
      *  the neighborhood graph.
      */
     protected def combinepolicy(priorities: Iterable[Double]) = priorities.max
-
+    
     /**
      * Add new seed to known network
      *

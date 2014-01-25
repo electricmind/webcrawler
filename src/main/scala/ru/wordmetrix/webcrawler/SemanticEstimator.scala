@@ -32,20 +32,20 @@ class SemanticEstimator(val central: V, val target: TargetVector[Word],
      *
      * @return target, average, (new)factor
      */
-    def estimate(seed: Seed, v: V, storage: ActorRef): SemanticEstimator = {
+    def estimate(seed: SeedId, v: V, callback : => Unit): SemanticEstimator = {
         val average1 = average + v
-        val target1 = target + (v, {
-            val pv = v * target.average.normal;
-            val p = target.priority()
-
-            debug("Seed %s was accepted as target %s, it's %s < %s",
-                seed, target.vs.length,
-                p, pv)
-            //TODO: we should factor out storage                
-            storage ! StorageSign(seed)
-        })
-
+        val target1 = target + (v, callback)
         copy(target = target1, average = average1)
+        
+        /*
+         * val pv = v * sense.target.average.normal;
+         * val p = sense.target.priority()
+         *
+         * debug("Seed %s was accepted as target %s, it's %s < %s",
+         *      seed, target.vs.length,
+         *      p, pv)
+         *      
+         */
     }
 
     lazy val factor = target.normal - average.normal

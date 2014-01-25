@@ -20,16 +20,26 @@ import akka.actor.{ Actor, Props, actorRef2Scala }
 import ru.wordmetrix.utils.{ CFG, CFGAware, debug }
 import EvaluatePriorityMatrix._
 import akka.actor.ActorRef
+import ru.wordmetrix.features.Features
+import scala.concurrent.Future
+import ru.wordmetrix.smartfile.SmartFile._
+import scala.util.Try
+import akka.pattern.pipe
+
+//import scala.concurrent.ExecutionContext.Implicits.global
 
 object EvaluatePriorityMatrix {
     abstract sealed class EvaluatePriorityMatrixMessage
 
- 
     case class EvaluatePriorityMatrixSeed(seed: URI)
         extends EvaluatePriorityMatrixMessage
 
     case class EvaluatePriorityMatrixStopTargeting
         extends EvaluatePriorityMatrixMessage
+
+    case class EvaluatePriorityMatrixDump
+        extends EvaluatePriorityMatrixMessage
+
     case class EvaluatePriorityMatrixStop extends EvaluatePriorityMatrixMessage
 
     /**
@@ -62,6 +72,34 @@ object EvaluatePriorityMatrix {
         def insert(x: Item) = set + (x)
     }
 
+    case class RevMap[F](val map: Map[F, Int] = Map[F, Int](),
+                         val rmap: Map[Int, F] = Map[Int, F](),
+                         n: Int = 0) {
+        def update(word: F): (Int, RevMap[F]) = {
+            map.get(word) match {
+                case Some(x) => (x, this)
+                case None =>
+                    val x = n + 1
+                    (x, copy(
+                        map = map + (word -> x),
+                        rmap = rmap + (x -> word),
+                        x))
+            }
+        }
+
+        def update(xs: Set[F])(implicit cfg: CFG): (Set[Int], RevMap[F]) =
+            (xs.foldLeft(Set[Int](), this) {
+                case ((set, index), (x)) =>
+                    index.update(x) match {
+                        case (n, index) => (set + n, index)
+                    }
+            })
+
+        def decode(xs: Iterable[Int])(implicit cfg: CFG) = xs.map(x => rmap(x))
+
+        def decode(x: Int)(implicit cfg: CFG) = rmap(x)
+    }
+
     /**
      * Define an EvaluatePriorityMatrix
      *
@@ -86,25 +124,6 @@ object EvaluatePriorityMatrix {
         )
 }
 
-abstract class SemanticEstimatorBase[SE <: SemanticEstimatorBase[SE]] {
-    def estimate(seed: Seed, v: V, storage: ActorRef): SE
-
-    def factor: V
-
-    val central: V
-
-    val size: Int
-}
-
-abstract trait NetworkEstimatorBase[U <: NetworkEstimatorBase[U]] {
-    def queue(queue: SortedSet[Item] = PQ()): SortedSet[Item]
-    def calculate(factor: V): U
-    def update(seeds: Set[Seed], factor: V, source_seed: Seed, v: V): U
-    def check(factor: V): U
-    def eliminate(seed: Seed): U
-    val size: Int
-}
-
 class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstimatorBase[SE]](storageprop: Props,
                                                                                               gatherprop: Props,
                                                                                               seedqueueprop: Props,
@@ -113,7 +132,9 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
         with CFGAware {
     override val name = "Evaluate . Matrix"
 
+    import context.dispatcher
     import EvaluatePriorityMatrix._
+
     val ns = Iterator.from(1)
 
     val gather = context.actorOf(gatherprop, "Gather")
@@ -163,7 +184,8 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
             context.become(
                 phase_targeting(
                     sense,
-                    networkestimator
+                    networkestimator,
+                    RevMap[Seed]()
                 )
             )
         }
@@ -173,7 +195,7 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
      * Targeting Phase: accumulate sample of pages until target is locked
      */
 
-    def phase_targeting(sense: SE, network: NE): Receive = {
+    def phase_targeting(sense: SE, network: NE, index: RevMap[Seed]): Receive = {
         case EvaluatePriorityMatrixStopTargeting => {
             log("Targeting impossible, too little casualties")
             //context.stop(self)
@@ -186,38 +208,61 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
             debug("Targeting with (%d) %s %s %s", n, seed, seeds.size,
                 network.size)
 
-            sense.estimate(seed, v.normal, storage) match {
-                case sense =>
-                    val network1 = network.update(seeds, sense.factor, seed, v)
+            index.update(seed) match {
+                case (id, index) => index.update(seeds) match {
+                    case (ids, index) =>
+                        sense.estimate(id, v.normal, {
+                            debug("Seed %s was accepted as target", seed)
+                            storage ! StorageSign(seed)
+                        }) match {
+                            case sense =>
+                                val network1 = network.update(ids, sense.factor, id, v)
 
-                    log("Check if %s > %s (direction is collinear to specimen)",
-                        sense.factor * sense.central, cfg.targeting)
+                                log("Check if %s > %s (direction is collinear to specimen)",
+                                    sense.factor * sense.central, cfg.targeting)
 
-                    if (sense.factor * sense.central > cfg.targeting) {
-                        log("Turn into estimation phase")
-                        val network2 = network1.calculate(sense.factor)
+                                if (sense.factor * sense.central > cfg.targeting) {
+                                    log("Turn into estimation phase")
+                                    val network2 = network1.calculate(sense.factor)
 
-                        seedqueue ! SeedQueueAvailable
+                                    seedqueue ! SeedQueueAvailable
+                                    self ! EvaluatePriorityMatrixDump
+                                    context.become(
+                                        phase_estimating(sense, network2, network2.queue(), index)
+                                    )
 
-                        context.become(
-                            phase_estimating(sense, network2, network2.queue())
-                        )
-
-                    } else {
-                        context.become(
-                            phase_targeting(sense, network1)
-                        )
-                    }
+                                } else {
+                                    context.become(
+                                        phase_targeting(sense, network1, index)
+                                    )
+                                }
+                        }
+                }
             }
         }
     }
+
     /**
      * Estimation Phase: estimate gotten pages and request new one on priority
      * base.
      */
     def phase_estimating(sense: SE,
                          network: NE,
-                         queue: SortedSet[Item]): Receive = {
+                         queue: SortedSet[Item], index: RevMap[Seed]): Receive = {
+
+        case EvaluatePriorityMatrixDump =>
+            log("Dump network")
+            Future({
+                
+                (cfg.path / "network.gml").write(network.dump(index))
+                debug("Dump network completed, sleep for awhile")
+
+                Thread.sleep(60000)
+                debug("Dump network sleep completed, initiate new round")
+
+                EvaluatePriorityMatrixDump
+
+            }) pipeTo self
 
         case EvaluatePriorityMatrixStop =>
             debug("ActorSystem shutdown")
@@ -228,30 +273,36 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
 
             log("Estimation of seed #%s (%s): %s, queue = %s",
                 n, cfg.limit, seed, queue.size)
+
             if (n > cfg.limit) {
                 log("Limit has been reached")
                 sample ! EvaluatePriorityMatrixStop
                 seedqueue ! EvaluatePriorityMatrixStop
             } else {
-                val sense1 = sense.estimate(seed, v.normal, storage)
+                index.update(seed) match {
+                    case (id, index) => index.update(seeds) match {
+                        case (ids, index) =>
+                            val sense1 = sense.estimate(id, v.normal, storage)
 
-                debug("Check if %s > %s (direction is collinear to specimen)",
-                    sense.factor * sense.central, cfg.targeting)
+                            debug("Check if %s > %s (direction is collinear to specimen)",
+                                sense.factor * sense.central, cfg.targeting)
 
-                debug("Priorities actual while %s > %s",
-                    sense1.factor.normal * sense.factor.normal, cfg.prioriting)
+                            debug("Priorities actual while %s > %s",
+                                sense1.factor.normal * sense.factor.normal, cfg.prioriting)
 
-                val network1 = network.check(sense1.factor.normal).update(seeds,
-                    sense.factor, seed, v)
+                            val network1 = network.check(sense1.factor.normal)
+                                .update(ids, sense.factor, id, v)
 
-                val queue2 = network1.queue(queue)
+                            val queue2 = network1.queue(queue)
 
-                sample ! SampleHirarchy2PriorityPriority(seed,
-                    sense.factor * v.normal)
+                            sample ! SampleHirarchy2PriorityPriority(seed,
+                                sense.factor * v.normal)
 
-                seedqueue ! SeedQueueAvailable
+                            seedqueue ! SeedQueueAvailable
 
-                context.become(phase_estimating(sense1, network1, queue2))
+                            context.become(phase_estimating(sense1, network1, queue2, index))
+                    }
+                }
             }
         }
 
@@ -262,9 +313,9 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
                 case PQ((priority, seed), queue) =>
                     log("Request priority = %s for %s", priority, seed)
                     //TODO: check continue of estimation  phase
-                    sender ! SeedQueueRequest(seed)
+                    sender ! SeedQueueRequest(index.decode(seed))
                     context.become(phase_estimating(
-                        sense, network.eliminate(seed), queue
+                        sense, network.eliminate(seed), queue, index
                     ))
                 case _ => {
                     debug("Queue was empty")
@@ -272,4 +323,23 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
             }
         }
     }
+}
+
+abstract class SemanticEstimatorBase[SE <: SemanticEstimatorBase[SE]] {
+    def estimate(seed: SeedId, v: V, callback: => Unit): SE
+
+    def factor: V
+
+    val central: V
+
+    val size: Int
+}
+
+abstract trait NetworkEstimatorBase[U <: NetworkEstimatorBase[U]] {
+    def queue(queue: SortedSet[Item] = PQ()): SortedSet[Item]
+    def calculate(factor: V): U
+    def update(seeds: Set[SeedId], factor: V, source_seed: SeedId, v: V): U
+    def check(factor: V): U
+    def eliminate(seed: SeedId): U
+    val size: Int
 }

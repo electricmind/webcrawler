@@ -12,6 +12,15 @@ object Storage {
     case class StorageCompleted() extends StorageMessage
     case class StorageVictim(victim: ActorRef) extends StorageMessage
 
+    def seedToFilename(seed: Seed) =
+        """[/:\\]""".r.replaceAllIn(
+            """https?://""".r.replaceFirstIn(seed.toString, ""), "-"
+        ) match {
+                case x if x.length > 120 => x.slice(0, 120) +
+                x.slice(0, 120).hashCode.toString
+                case x => x
+            }
+
     def props(cfg: CFG): Props =
         Props(new Storage()(cfg))
 }
@@ -24,14 +33,7 @@ class Storage()(implicit val cfg: CFG) extends Actor with CFGAware {
 
     val ns = Iterator.from(1)
 
-    def seedToFilename(seed: Seed) =
-        """[/:\\]""".r.replaceAllIn(
-            """https?://""".r.replaceFirstIn(seed.toString, ""), "-"
-        ) match {
-                case x if x.length > 120 => x.slice(0, 120) +
-                x.slice(0, 120).hashCode.toString
-                case x => x
-            }
+    def seedToFilename(seed: Seed) = Storage.seedToFilename(seed)
 
     def receive(): Receive = {
         case StorageVictim(victim) =>

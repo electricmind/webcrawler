@@ -14,16 +14,16 @@ import ru.wordmetrix.utils.debug
  * 
  */
 class NetworkEstimator(
-        val vectors: Map[Seed, (V, Set[Seed])] = Map[Seed, (V, Set[Seed])](),
-        val priorities: Map[Seed, (Priority, Set[Seed])] = Map[Seed, (Priority, Set[Seed])](),
+        val vectors: Map[SeedId, (V, Set[SeedId])] = Map[SeedId, (V, Set[SeedId])](),
+        val priorities: Map[SeedId, (Priority, Set[SeedId])] = Map[SeedId, (Priority, Set[SeedId])](),
         val pfactor: V = ru.wordmetrix.vector.Vector[Word]())(implicit cfg: CFG) extends NetworkEstimatorBase[NetworkEstimator] {
     import EvaluatePriorityMatrix._
 
     type PQQ = SortedSet[Item]
 
     val size = vectors.size 
-    def copy(vectors: Map[Seed, (V, Set[Seed])] = vectors,
-             priorities: Map[Seed, (Priority, Set[Seed])] = priorities,
+    def copy(vectors: Map[SeedId, (V, Set[SeedId])] = vectors,
+             priorities: Map[SeedId, (Priority, Set[SeedId])] = priorities,
              pfactor: V = pfactor)(implicit cfg: CFG) =
         new NetworkEstimator(vectors, priorities, pfactor)
 
@@ -84,7 +84,7 @@ class NetworkEstimator(
      * @param v        Content vector of seed
      * @return         New matrix
      */
-    def update(seeds: Set[Seed], factor: V, source_seed: Seed, v: V): NetworkEstimator = {
+    def update(seeds: Set[SeedId], factor: V, source_seed: SeedId, v: V): NetworkEstimator = {
         vectors + (source_seed -> (v, seeds)) match {
             case vectors =>
                 copy(vectors = vectors,
@@ -95,11 +95,11 @@ class NetworkEstimator(
                                     (combinepolicy(
                                         priorities.getOrElse(
                                             seed,
-                                            (0d, Set[Seed]())
+                                            (0d, Set[SeedId]())
                                         )._2.map(x => vectors(x)._1 * factor)
                                             + v * factor // + ,_1 to propagate
                                     ),
-                                        priorities.getOrElse(seed, (0d, Set[Seed]()))._2
+                                        priorities.getOrElse(seed, (0d, Set[SeedId]()))._2
                                         + source_seed
                                     )
                                 )
@@ -114,7 +114,7 @@ class NetworkEstimator(
         calculate(factor)
     } else this
 
-    def eliminate(seed: Seed): NetworkEstimator = {
+    def eliminate(seed: SeedId): NetworkEstimator = {
         val (_, seeds) = priorities(seed)
         val priorities1 = priorities - seed
         val vectors1 = vectors ++ {

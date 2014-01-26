@@ -9,6 +9,7 @@ import scala.concurrent.Future
 import ru.wordmetrix.smartfile.SmartFile._
 import scala.util.Try
 import akka.pattern.pipe
+import EvaluatePriorityMatrix._
 
 object GMLStorage {
 
@@ -102,20 +103,22 @@ class GMLStorage()(implicit val cfg: CFG) extends Actor with CFGAware {
 
     def collect(state: GMLStorageState): Receive = {
         case GMLStorageSeed(seed, seeds, v) => {
-            log("One more  seed")
+            debug("One more  seed")
 
             context.become(collect(state.update(seed, seeds, v)), false)
         }
 
+        case EvaluatePriorityMatrixStop =>
+            context.stop(self)
+
         case GMLStorageEstimator(estimator: SemanticEstimatorBase[_]) => {
-            log("estimator come")
             Future({
-                log("Dump network initiated")
+                log("Dump of network initiated")
 
                 (cfg.path / "network.gml").write(
                     state.dump(estimator)
                 )
-                debug("Dump network sleep completed, initiate new round")
+                debug("Dump of network completed")
                 GMLStorageFinished
             }) pipeTo self
             context.become(dump(state, None), false)
@@ -132,6 +135,9 @@ class GMLStorage()(implicit val cfg: CFG) extends Actor with CFGAware {
             context.become(dump(state, Some(estimator)), false)
         }
 
+        case EvaluatePriorityMatrixStop =>
+            context.stop(self)
+            
         case GMLStorageFinished => {
             estimator match {
                 case Some(estimator: SE) =>

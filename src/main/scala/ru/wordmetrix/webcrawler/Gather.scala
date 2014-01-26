@@ -1,20 +1,22 @@
 package ru.wordmetrix.webcrawler
 
 import java.io.CharArrayReader
-
 import java.net.URI
+
 import scala.Option.option2Iterable
 import scala.util.Try
 import scala.xml.parsing.NoBindingFactoryAdapter
+
 import org.ccil.cowan.tagsoup.jaxp.SAXFactoryImpl
 import org.xml.sax.InputSource
-import EvaluatePriorityMatrix.EvaluatePriorityMatrixStop
-import akka.actor.{ Actor, ActorRef, Props, actorRef2Scala }
+
+import EvaluatePriorityMatrix.{EvaluatePriorityMatrixStop, EvaluatePriorityMatrixStopTargeting}
+import GMLStorage.GMLStorageSeed
+import akka.actor.{Actor, ActorRef, Props, actorRef2Scala}
 import ru.wordmetrix.features.Features
-import ru.wordmetrix.utils.{ CFG, CFGAware, Html2Ascii }
+import ru.wordmetrix.utils.{CFG, CFGAware, Html2Ascii}
 import ru.wordmetrix.vector.Vector
 import ru.wordmetrix.webcrawler.LinkContext.Feature
-import ru.wordmetrix.features.Features
 
 /*
  * Gather analyzes a page and elicits links and useful load.
@@ -23,7 +25,8 @@ import ru.wordmetrix.features.Features
 object Gather {
     abstract sealed trait GatherMessage
 
-    case class GatherLink(storage: ActorRef, sample: ActorRef) extends GatherMessage
+    case class GatherLink(storage: ActorRef, sample: ActorRef,
+                          gmlstorage: ActorRef) extends GatherMessage
     case class GatherStorageAck extends GatherMessage
 
     case class GatherStop extends GatherMessage
@@ -69,13 +72,11 @@ class Gather()(
     //                x => x.attribute("id").getOrElse("").toString ==
     //                    "mw-content-text"))
 
-    def xml2seeds(xml: scala.xml.NodeSeq, base: URI,
-                  map: Set[String]): Set[URI] = (for {
+    def xml2seeds(xml: scala.xml.NodeSeq, base: URI): Set[URI] = (for {
         tag <- (xml \\ "a")
         link <- tag.attribute("href")
         uri <- Try(normalize(base, link.toString)).toOption
         if uri.getHost() == base.getHost()
-        if !map.contains(uri.toString())
     } yield uri).toSet
 
     def xml2vector(xml: scala.xml.NodeSeq,
@@ -101,13 +102,13 @@ class Gather()(
     import EvaluatePriorityMatrix._
 
     def receive(): Receive = {
-        case GatherLink(storage, sample) =>
-            log("Register storage: %s, sample: %s", storage, sample)
-            context.become(active(storage, sample, Set(),
+        case GatherLink(storage, sample, gmlstorage) =>
+            log("Register storage: %s, sample: %s, gmlstorage:  %s", storage, sample, gmlstorage)
+            context.become(active(storage, sample, gmlstorage, Set(),
                 Features.String2Word[String, Double]()))
     }
 
-    def active(storage: ActorRef, sample: ActorRef,
+    def active(storage: ActorRef, sample: ActorRef, gmlstorage: ActorRef,
                links: Set[String], index: Features.String2Word[String, Double]): Receive = {
 
         case EvaluatePriorityMatrixStop =>
@@ -131,14 +132,19 @@ class Gather()(
                 sample ! GatherLinkContext(seed,
                     new LinkContext(seed).extract(page2xml_whole(page)))
 
-                val seeds = xml2seeds(xml, seed, links)
+                val seeds = xml2seeds(xml, seed)
 
-                val (v, index1) = xml2vector(xml,index)
-                
-                context.parent ! GatherSeeds(seed, seeds, v)
+                val (v, index1) = xml2vector(xml, index)
+
+                context.parent ! GatherSeeds(seed,
+                    seeds.filterNot(links contains _.toString),
+                    v)
+
+                gmlstorage ! GMLStorageSeed(seed, seeds, v)
 
                 context.become(
-                    active(storage, sample, links | seeds.map(_.toString), index1))
+                    active(storage, sample, gmlstorage,
+                        links | seeds.map(_.toString), index1))
             } catch {
                 case x => log("Gathering failed on %s: %s", seed, x)
             }

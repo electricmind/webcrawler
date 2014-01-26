@@ -22,6 +22,7 @@ import ru.wordmetrix.utils.{ CFG, CFGAware, debug }
 import EvaluatePriorityMatrix._
 import akka.actor.ActorRef
 import ru.wordmetrix.features.Features
+import ru.wordmetrix.webcrawler.GMLStorage._
 
 //import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -38,6 +39,31 @@ object EvaluatePriorityMatrix {
         extends EvaluatePriorityMatrixMessage
 
     case class EvaluatePriorityMatrixStop extends EvaluatePriorityMatrixMessage
+
+    /**
+     * Define an EvaluatePriorityMatrix
+     *
+     * @param storage    A storage for pages;
+     * @param gather     An actor that elicits data from pages;
+     * @param seedqueue  A dispatcher of requests;
+     * @param sample     An actor that maintains a sample of mapping content of
+     *                   links to priorities;
+     * @param gml        An actor that maintains a storage that dumps network
+     *                   into gml;
+     * @param cfg        A configure object;
+     * @return           An props for EvaluatePriorityMatrix.
+     */
+    def props(storage: Props, gather: Props, seedqueue: Props, sample: Props,
+              gml: Props, cfg: CFG): Props =
+        Props(
+            new EvaluatePriorityMatrix(
+                storage, gather, seedqueue, sample, gml,
+                new NetworkEstimator()(cfg)
+            )(
+                cfg,
+                v => new SemanticEstimator(v)(cfg)
+            )
+        )
 
     /**
      * Extension of SortedSet to use as priority queue
@@ -97,38 +123,16 @@ object EvaluatePriorityMatrix {
         def decode(x: Int)(implicit cfg: CFG) = rmap(x)
     }
 
-    /**
-     * Define an EvaluatePriorityMatrix
-     *
-     * @param storage    A storage for pages;
-     * @param gather     An actor that elicits data from pages;
-     * @param seedqueue  A dispatcher of requests;
-     * @param sample     An actor that maintains a sample of mapping content of
-     *                   links to priorities;
-     * @param cfg        A configure object;
-     * @return           An props for EvaluatePriorityMatrix.
-     */
-    def props(storage: Props, gather: Props, seedqueue: Props, sample: Props,
-              cfg: CFG): Props =
-        Props(
-            new EvaluatePriorityMatrix(
-                storage, gather, seedqueue, sample,
-                new NetworkEstimator()(cfg)
-            )(
-                cfg,
-                v => new SemanticEstimator(v)(cfg)
-            )
-        )
 }
 
 class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstimatorBase[SE]](storageprop: Props,
                                                                                               gatherprop: Props,
                                                                                               seedqueueprop: Props,
                                                                                               sampleprop: Props,
+                                                                                              gmlprop: Props,
                                                                                               networkestimator: NE)(implicit cfg: CFG, factoryse: V => SE) extends Actor
         with CFGAware {
     override val name = "Evaluate . Matrix"
-
 
     import context.dispatcher
     import EvaluatePriorityMatrix._
@@ -143,7 +147,9 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
 
     val sample = context.actorOf(sampleprop, "Sample")
 
-    gather ! GatherLink(storage, sample)
+    val gml = context.actorOf(gmlprop, "GML")
+
+    gather ! GatherLink(storage, sample, gml)
 
     seedqueue ! SeedQueueLink(gather)
 
@@ -175,7 +181,7 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
             }
 
             seedqueue ! EvaluatePriorityMatrixStopTargeting
-            
+
             storage ! StorageSign(seed)
 
             log("Start targeting " + sense.size)
@@ -260,10 +266,22 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
             log("Estimation of seed #%s (%s): %s, queue = %s",
                 n, cfg.limit, seed, queue.size)
 
+            sense match {
+                case sense: SemanticEstimator if (n % 500 == 0) =>
+                    gml ! GMLStorageEstimator(sense)
+                case _ =>
+            }
+
             if (n > cfg.limit) {
                 log("Limit has been reached")
                 sample ! EvaluatePriorityMatrixStop
                 seedqueue ! EvaluatePriorityMatrixStop
+                sense match {
+                    case sense: SemanticEstimator  =>
+                        gml ! GMLStorageEstimator(sense)
+                    case _ => 
+                }
+                gml ! EvaluatePriorityMatrixStop
             } else {
                 index.update(seed) match {
                     case (id, index) => index.update(seeds) match {

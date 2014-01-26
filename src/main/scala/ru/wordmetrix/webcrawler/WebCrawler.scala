@@ -24,8 +24,11 @@ object WebCrawler extends App {
 
         val webgetprop = WebGet.props(cfg)
         val seedqueueprop = SeedQueue.props(webgetprop, cfg)
+
+        val gmlprop = GMLStorage.props(cfg)
+        
         val queueprop: Props = EvaluatePriorityMatrix.props(
-            storageprop, gatherprop, seedqueueprop, sampleprop, cfg
+            storageprop, gatherprop, seedqueueprop, sampleprop, gmlprop, cfg
         )
 
         val queue = system.actorOf(queueprop, "queue")

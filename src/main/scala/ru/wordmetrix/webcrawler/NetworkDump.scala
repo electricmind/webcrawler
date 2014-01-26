@@ -1,23 +1,51 @@
-package ru.wordmetrix.webcrawler    
-import ru.wordmetrix.vector._
+package ru.wordmetrix.webcrawler
 
-class NetworkDump(net: NetworkEstimator) {
-    val edges = Iterator.from(1)
-    
-    def dump(index: EvaluatePriorityMatrix.RevMap[Seed], estimator : SemanticEstimatorBase[_]): String = {
-        s"""
+import Gather.GatherIntel
+
+import akka.actor.{ Actor, ActorRef, Props }
+import ru.wordmetrix.smartfile.SmartFile.fromFile
+import ru.wordmetrix.utils._
+import scala.concurrent.Future
+import ru.wordmetrix.smartfile.SmartFile._
+import scala.util.Try
+import akka.pattern.pipe
+
+object GMLStorage {
+
+    type SE = SemanticEstimator
+
+    sealed abstract class GMLStorageMessage
+
+    case class GMLStorageFinished
+        extends GMLStorageMessage
+
+    case class GMLStorageSeed(seed: Seed, seeds: Set[Seed], v: V)
+        extends GMLStorageMessage
+
+    //    case class GMLStorageEstimator[SE <: SemanticEstimatorBase[SE]](estimator: SE)
+    case class GMLStorageEstimator(estimator: SE)
+        extends GMLStorageMessage
+
+    def props(cfg: CFG): Props =
+        Props(new GMLStorage()(cfg))
+
+    implicit class GMLStorageStateDump(state: GMLStorageState) {
+        def dump(estimator: SemanticEstimatorBase[_]): String = {
+            val edges = Iterator.from(1)
+
+            s"""
         graph
         [
         Creator WebCrawler
         directed 1
         ${
-            (for {
-                (id, (v, ids)) <- net.vectors
-                uri <- index.rmap.get(id)
-                
-                if ids.size > 0
-            } yield {
-                s"""
+                (for {
+                    (id, (v, ids)) <- state.matrix
+                    uri <- state.revmap.rmap.get(id)
+
+                    if ids.size > 0 //TODO: && cfg.dumpincomplete
+                } yield {
+                    s"""
                 node 
                 [
                   id ${id}
@@ -25,24 +53,19 @@ class NetworkDump(net: NetworkEstimator) {
                   similarity ${estimator.central.normal * v.normal}
                   priority ${estimator.factor.normal * v.normal}
                   dimension ${v.size}
-                length ${v.norm} 
+                  length ${v.norm} 
                 ]
                 """
-            }) mkString ("\n")
-        }
+                }) mkString ("\n")
+            }
         ${
-            (for {
-                (id1, (v1, ids)) <- net.vectors
-                id2 <- ids
-                //if (net.vectors contains id2)
-                //if ! (net.priorities contains id2)
-                (v2, ids2) <- net.vectors.get(id2) orElse Some(
-                    (VectorHASH.empty[Word], Set)
-                )
-                
-                
-            } yield {
-                s"""
+                (for {
+                    (id1, (v1, ids1)) <- state.matrix
+                    id2 <- ids1
+                    if (state.matrix contains id2) //TODO: cfg.dumpincomplete
+                    (v2, ids2) <- state.matrix.get(id2)
+                } yield {
+                    s"""
                 edge 
                 [
                   id ${edges.next}
@@ -50,14 +73,92 @@ class NetworkDump(net: NetworkEstimator) {
                   target ${id2}
                   value ${(v1 - v2).norm}
                   angle ${v1.normal * v2.normal}
-                  exist ${ (net.priorities contains id2) }
+                  exist ${(state.matrix contains id2)}
                   
                 ]
                 """
-            }) mkString ("\n")
-        }
+                }) mkString ("\n")
+            }
         
         ]
         """".split("\n").map(_.trim).mkString("\n")
+        }
+    }
+}
+
+class GMLStorage()(implicit val cfg: CFG) extends Actor with CFGAware {
+    override val name = "GMLStorage"
+
+    import GMLStorage._
+
+    import context.dispatcher
+
+    def receive(): Receive = {
+        case GMLStorageSeed(seed, seeds, v) => {
+            log("Initial seed")
+            context.become(collect(GMLStorageState(seed, seeds, v)), false)
+        }
+    }
+
+    def collect(state: GMLStorageState): Receive = {
+        case GMLStorageSeed(seed, seeds, v) => {
+            log("One more  seed")
+
+            context.become(collect(state.update(seed, seeds, v)), false)
+        }
+
+        case GMLStorageEstimator(estimator: SemanticEstimatorBase[_]) => {
+            log("estimator come")
+            Future({
+                log("Dump network initiated")
+
+                (cfg.path / "network.gml").write(
+                    state.dump(estimator)
+                )
+                debug("Dump network sleep completed, initiate new round")
+                GMLStorageFinished
+            }) pipeTo self
+            context.become(dump(state, None), false)
+        }
+    }
+
+    def dump(state: GMLStorageState,
+             estimator: Option[SemanticEstimatorBase[_]]): Receive = {
+
+        case GMLStorageSeed(seed, seeds, v) =>
+            context.become(dump(state.update(seed, seeds, v), estimator), false)
+
+        case GMLStorageEstimator(estimator: SemanticEstimatorBase[_]) => {
+            context.become(dump(state, Some(estimator)), false)
+        }
+
+        case GMLStorageFinished => {
+            estimator match {
+                case Some(estimator: SE) =>
+                    self ! GMLStorageEstimator(estimator)
+                case None => 
+            }
+            context.become(collect(state), false)
+        }
+    }
+}
+
+object GMLStorageState {
+    def apply(seed: Seed, seeds: Set[Seed],
+              v: V)(implicit cfg: CFG): GMLStorageState =
+        GMLStorageState(
+            EvaluatePriorityMatrix.RevMap[Seed](), Map()
+        ).update(seed, seeds, v)
+}
+
+case class GMLStorageState(
+        val revmap: EvaluatePriorityMatrix.RevMap[Seed],
+        val matrix: Map[SeedId, (V, Set[SeedId])])(implicit val cfg: CFG) {
+
+    def update(seed: Seed, seeds: Set[Seed], v: V) = {
+        val (id, revmap1) = revmap.update(seed)
+        val (ids, revmap2) = revmap1.update(seeds)
+
+        copy(revmap = revmap2, matrix = matrix + (id -> (v, ids)))
     }
 }

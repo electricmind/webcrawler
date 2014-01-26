@@ -1,9 +1,7 @@
 package ru.wordmetrix
 
 import java.net.URI
-import ru.wordmetrix.webcrawler.NetworkEstimatorBase
-import ru.wordmetrix.webcrawler.NetworkEstimator
-import ru.wordmetrix.webcrawler.NetworkDump
+
 package object webcrawler {
     type Seed = URI
     type SeedId = Int
@@ -14,16 +12,6 @@ package object webcrawler {
     type V = ru.wordmetrix.vector.Vector[Word]
     type Item = (Priority, SeedId)
     type VItem = (Priority, V)
-
-    implicit class NetworkEstimatorDump[NE <: NetworkEstimatorBase[NE]](net: NE) {
-        def dump(index: EvaluatePriorityMatrix.RevMap[Seed],
-                 estimator: SemanticEstimatorBase[_]) = net match {
-            case net: NetworkEstimator =>
-                new NetworkDump(net).dump(index, estimator)
-            case _ =>
-                "This feature have not implemented yet"
-        }
-    }
 
     def normalize(s: String): URI = normalize(new URI(s))
 
@@ -37,5 +25,4 @@ package object webcrawler {
 
     def normalize(uri: URI) =
         new URI(uri.getScheme(), uri.getHost(), uri.getPath(), null).normalize
-
 }

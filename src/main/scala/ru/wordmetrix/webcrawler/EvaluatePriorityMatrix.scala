@@ -10,6 +10,7 @@ package ru.wordmetrix.webcrawler
  *  - NetworkEstimator propagates semantic estimation through the net of web
  *  pages.
  */
+
 import java.net.URI
 import scala.collection.immutable.SortedSet
 import Gather.{ GatherLink, GatherLinkContext, GatherSeeds }
@@ -21,10 +22,6 @@ import ru.wordmetrix.utils.{ CFG, CFGAware, debug }
 import EvaluatePriorityMatrix._
 import akka.actor.ActorRef
 import ru.wordmetrix.features.Features
-import scala.concurrent.Future
-import ru.wordmetrix.smartfile.SmartFile._
-import scala.util.Try
-import akka.pattern.pipe
 
 //import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -131,6 +128,7 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
                                                                                               networkestimator: NE)(implicit cfg: CFG, factoryse: V => SE) extends Actor
         with CFGAware {
     override val name = "Evaluate . Matrix"
+
 
     import context.dispatcher
     import EvaluatePriorityMatrix._
@@ -251,18 +249,6 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
     def phase_estimating(sense: SE,
                          network: NE,
                          queue: SortedSet[Item], index: RevMap[Seed]): Receive = {
-
-        case EvaluatePriorityMatrixDump =>
-            log("Dump network")
-            Future({
-                (cfg.path / "network.gml").write(network.dump(index,sense))
-                debug("Dump network completed, sleep for awhile")
-
-                Thread.sleep(60000)
-                debug("Dump network sleep completed, initiate new round")
-
-                EvaluatePriorityMatrixDump
-            }) pipeTo self
 
         case EvaluatePriorityMatrixStop =>
             debug("ActorSystem shutdown")

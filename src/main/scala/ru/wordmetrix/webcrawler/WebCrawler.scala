@@ -33,8 +33,6 @@ object WebCrawler extends App {
 
         val queue = system.actorOf(queueprop, "queue")
 
-        for (seed <- cfg.seeds) {
-            queue ! EvaluatePriorityMatrix.EvaluatePriorityMatrixSeed(seed)
-        }
+        queue ! EvaluatePriorityMatrix.EvaluatePriorityMatrixSeed(cfg.seeds.toSet)
     }
 }

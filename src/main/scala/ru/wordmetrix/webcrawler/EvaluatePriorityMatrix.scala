@@ -29,7 +29,7 @@ import ru.wordmetrix.webcrawler.GMLStorage._
 object EvaluatePriorityMatrix {
     abstract sealed class EvaluatePriorityMatrixMessage
 
-    case class EvaluatePriorityMatrixSeed(seed: URI)
+    case class EvaluatePriorityMatrixSeed(seeds: Set[Seed])
         extends EvaluatePriorityMatrixMessage
 
     case class EvaluatePriorityMatrixStopTargeting
@@ -156,43 +156,52 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
     storage ! StorageVictim(seedqueue)
 
     def receive(): Receive = {
-        case EvaluatePriorityMatrixSeed(seed: Seed) => {
-            log("Initial seed: %s", seed)
-            seedqueue ! SeedQueueRequest(seed)
-            context.become(phase_initialization)
+        case EvaluatePriorityMatrixSeed(seeds: Set[Seed]) => {
+            for (seed <- seeds) {
+                log("Initial seed: %s", seed)
+                seedqueue ! SeedQueueRequest(seed)
+            }
+
+            context.become(phase_initialization(seeds.size, new AverageVector[Word]()))
         }
     }
 
     /**
      * Initialization Phase: download initial page(s)
      */
-    def phase_initialization(): Receive = {
+    def phase_initialization(n: Int, central: AverageVector[Word]): Receive = {
 
         case msg @ GatherLinkContext(_, _) => sample ! msg
 
         case Gather.GatherSeeds(seed, seeds, v) => {
             ns.next()
-            log("Initial phase, n = %s, seed = %s", seeds.size, seed)
-            val sense = factoryse(v.normal)
+            log("Initial phase, n = %s size = %s, seed = %s", n, seeds.size, seed)
 
-            // I need it only to do deterministic test
+            // TODO: I need it only to do deterministic test
             for (seed <- seeds.toList.sorted) {
                 seedqueue ! SeedQueueRequest(seed)
             }
 
-            seedqueue ! EvaluatePriorityMatrixStopTargeting
-
             storage ! StorageSign(seed)
 
-            log("Start targeting " + sense.size)
+            if (n > 1) {
+                context.become(phase_initialization(n - 1, central + v))
+                seedqueue ! EvaluatePriorityMatrixStopTargeting
 
-            context.become(
-                phase_targeting(
-                    sense,
-                    networkestimator,
-                    RevMap[Seed]()
+            } else {
+
+                val sense = factoryse((central + v).normal)
+
+                log("Start targeting " + sense.size)
+
+                context.become(
+                    phase_targeting(
+                        sense,
+                        networkestimator,
+                        RevMap[Seed]()
+                    )
                 )
-            )
+            }
         }
     }
 
@@ -277,9 +286,9 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
                 sample ! EvaluatePriorityMatrixStop
                 seedqueue ! EvaluatePriorityMatrixStop
                 sense match {
-                    case sense: SemanticEstimator  =>
+                    case sense: SemanticEstimator =>
                         gml ! GMLStorageEstimator(sense)
-                    case _ => 
+                    case _ =>
                 }
                 gml ! EvaluatePriorityMatrixStop
             } else {

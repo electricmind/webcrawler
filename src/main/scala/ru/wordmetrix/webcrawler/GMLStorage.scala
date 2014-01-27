@@ -75,6 +75,7 @@ object GMLStorage {
                   value ${(v1 - v2).norm}
                   angle ${v1.normal * v2.normal}
                   exist ${(state.matrix contains id2)}
+                  propagate ${id2 < id1}
                   
                 ]
                 """

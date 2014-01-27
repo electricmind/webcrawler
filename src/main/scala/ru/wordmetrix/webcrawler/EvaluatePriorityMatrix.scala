@@ -12,6 +12,7 @@ package ru.wordmetrix.webcrawler
  */
 
 import java.net.URI
+import scala.util.Random._
 import scala.collection.immutable.SortedSet
 import Gather.{ GatherLink, GatherLinkContext, GatherSeeds }
 import SampleHierarchy2Priority.SampleHirarchy2PriorityPriority
@@ -162,14 +163,14 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
                 seedqueue ! SeedQueueRequest(seed)
             }
 
-            context.become(phase_initialization(seeds.size, new AverageVector[Word]()))
+            context.become(phase_initialization(seeds.size, new AverageVector[Word](), Set()))
         }
     }
 
     /**
      * Initialization Phase: download initial page(s)
      */
-    def phase_initialization(n: Int, central: AverageVector[Word]): Receive = {
+    def phase_initialization(n: Int, central: AverageVector[Word], init_seeds: Set[Seed]): Receive = {
 
         case msg @ GatherLinkContext(_, _) => sample ! msg
 
@@ -178,17 +179,17 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
             log("Initial phase, n = %s size = %s, seed = %s", n, seeds.size, seed)
 
             // TODO: I need it only to do deterministic test
-            for (seed <- seeds.toList.sorted) {
-                seedqueue ! SeedQueueRequest(seed)
-            }
 
             storage ! StorageSign(seed)
 
             if (n > 1) {
-                context.become(phase_initialization(n - 1, central + v))
-                seedqueue ! EvaluatePriorityMatrixStopTargeting
+                context.become(phase_initialization(n - 1, central + v, init_seeds ++ seeds))
 
             } else {
+                for (seed <- shuffle(init_seeds ++ seeds).toList) {
+                    seedqueue ! SeedQueueRequest(seed)
+                }
+                seedqueue ! EvaluatePriorityMatrixStopTargeting
 
                 val sense = factoryse((central + v).normal)
 

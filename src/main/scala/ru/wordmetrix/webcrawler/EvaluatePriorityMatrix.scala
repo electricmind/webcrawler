@@ -161,7 +161,7 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
 
     storage ! StorageVictim(seedqueue)
 
-    def receive(): Receive = {
+    def receive(): Receive = ({
         case EvaluatePriorityMatrixSeed(seeds: Set[Seed]) => {
             for (seed <- seeds) {
                 log("Initial seed: %s", seed)
@@ -170,10 +170,11 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
 
             context.become(phase_initialization(seeds.size, new AverageVector[Word](), Set()))
         }
-    }
+    } : Receive)  orElse common()
 
     def common(): Receive = {
-        case msg @ GatherAllow(seed) =>
+        case msg @ GatherAllow(seeds) =>
+            debug("allow seeds: %s", seeds)
             gather ! msg
     }
 

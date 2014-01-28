@@ -33,7 +33,7 @@ object WebCrawler extends App {
         )
         
         val queue = system.actorOf(queueprop, "queue")
-
+        println(000)
         for (seed <- cfg.hosts) {
             queue ! GatherAllow(seed)
         }

@@ -79,7 +79,7 @@ class Gather()(
         tag <- (xml \\ "a")
         link <- tag.attribute("href")
         uri <- Try(normalize(base, link.toString)).toOption
-        if hosts contains uri.getHost() //== base.getHost()
+        if cfg.allhosts || (hosts contains uri.getHost())
     } yield uri).toSet
 
     def xml2vector(xml: scala.xml.NodeSeq,
@@ -144,7 +144,6 @@ class Gather()(
 
                     
                 val seeds = xml2seeds(xml, seed, hosts1)
-println(seed, seeds, hosts1)
                 val (v, index1) = xml2vector(xml, index)
 
                 context.parent ! GatherSeeds(seed,

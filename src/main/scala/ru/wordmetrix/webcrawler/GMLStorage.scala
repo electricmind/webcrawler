@@ -31,7 +31,8 @@ object GMLStorage {
         Props(new GMLStorage()(cfg))
 
     implicit class GMLStorageStateDump(state: GMLStorageState) {
-        def dump(estimator: SemanticEstimatorBase[_]): String = {
+        def dump(estimator: SemanticEstimatorBase[_])(
+            implicit cfg: CFG): String = {
             val edges = Iterator.from(1)
 
             s"""
@@ -44,7 +45,7 @@ object GMLStorage {
                     (id, (v, ids)) <- state.matrix
                     uri <- state.revmap.rmap.get(id)
 
-                    if ids.size > 0 //TODO: && cfg.dumpincomplete
+                    if ids.size > 0 || cfg.with_incomplete
                 } yield {
                     s"""
                 node 
@@ -63,7 +64,7 @@ object GMLStorage {
                 (for {
                     (id1, (v1, ids1)) <- state.matrix
                     id2 <- ids1
-                    if (state.matrix contains id2) //TODO: cfg.dumpincomplete
+                    if (state.matrix contains id2) || cfg.with_incomplete
                     (v2, ids2) <- state.matrix.get(id2)
                 } yield {
                     s"""
@@ -138,12 +139,12 @@ class GMLStorage()(implicit val cfg: CFG) extends Actor with CFGAware {
 
         case EvaluatePriorityMatrixStop =>
             context.stop(self)
-            
+
         case GMLStorageFinished => {
             estimator match {
                 case Some(estimator: SE) =>
                     self ! GMLStorageEstimator(estimator)
-                case None => 
+                case None =>
             }
             context.become(collect(state), false)
         }

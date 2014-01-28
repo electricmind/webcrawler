@@ -12,10 +12,16 @@ package ru.wordmetrix.webcrawler
  */
 
 import java.net.URI
+
 import scala.collection.immutable.SortedSet
-import Gather.{ GatherLink, GatherLinkContext, GatherSeeds }
+import Gather.{ GatherLink, GatherLinkContext, GatherSeeds, GatherAllow }
 import SampleHierarchy2Priority.SampleHirarchy2PriorityPriority
-import SeedQueue.{ SeedQueueAvailable, SeedQueueGet, SeedQueueLink, SeedQueueRequest }
+import SeedQueue.{
+    SeedQueueAvailable,
+    SeedQueueGet,
+    SeedQueueLink,
+    SeedQueueRequest
+}
 import Storage.{ StorageSign, StorageVictim }
 import akka.actor.{ Actor, Props, actorRef2Scala }
 import ru.wordmetrix.utils.{ CFG, CFGAware, debug }
@@ -163,6 +169,11 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
         }
     }
 
+    def common(): Receive = {
+        case msg @ GatherAllow(seed) =>
+            gather ! msg
+    }
+
     /**
      * Initialization Phase: download initial page(s)
      */
@@ -277,9 +288,9 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
                 sample ! EvaluatePriorityMatrixStop
                 seedqueue ! EvaluatePriorityMatrixStop
                 sense match {
-                    case sense: SemanticEstimator  =>
+                    case sense: SemanticEstimator =>
                         gml ! GMLStorageEstimator(sense)
-                    case _ => 
+                    case _ =>
                 }
                 gml ! EvaluatePriorityMatrixStop
             } else {

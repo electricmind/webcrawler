@@ -3,6 +3,7 @@ package ru.wordmetrix.webcrawler
 import java.net.URI
 import akka.actor.{ ActorSystem, Props, actorRef2Scala }
 import ru.wordmetrix.utils._
+import Gather.GatherAllow
 
 /*
  * WebCrawler is a base web crawler application.
@@ -30,8 +31,12 @@ object WebCrawler extends App {
         val queueprop: Props = EvaluatePriorityMatrix.props(
             storageprop, gatherprop, seedqueueprop, sampleprop, gmlprop, cfg
         )
-
+        
         val queue = system.actorOf(queueprop, "queue")
+
+        for (seed <- cfg.hosts) {
+            queue ! GatherAllow(seed)
+        }
 
         queue ! EvaluatePriorityMatrix.EvaluatePriorityMatrixSeed(cfg.seeds.toSet)
     }

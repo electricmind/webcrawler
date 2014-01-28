@@ -11,12 +11,17 @@ package ru.wordmetrix.webcrawler
  *  pages.
  */
 
-import java.net.URI
+import java.net.URI 
 import scala.util.Random._
 import scala.collection.immutable.SortedSet
-import Gather.{ GatherLink, GatherLinkContext, GatherSeeds }
+import Gather.{ GatherLink, GatherLinkContext, GatherSeeds, GatherAllow }
 import SampleHierarchy2Priority.SampleHirarchy2PriorityPriority
-import SeedQueue.{ SeedQueueAvailable, SeedQueueGet, SeedQueueLink, SeedQueueRequest }
+import SeedQueue.{
+    SeedQueueAvailable,
+    SeedQueueGet,
+    SeedQueueLink,
+    SeedQueueRequest
+}
 import Storage.{ StorageSign, StorageVictim }
 import akka.actor.{ Actor, Props, actorRef2Scala }
 import ru.wordmetrix.utils.{ CFG, CFGAware, debug }
@@ -165,6 +170,11 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
 
             context.become(phase_initialization(seeds.size, new AverageVector[Word](), Set()))
         }
+    }
+
+    def common(): Receive = {
+        case msg @ GatherAllow(seed) =>
+            gather ! msg
     }
 
     /**

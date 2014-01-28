@@ -96,7 +96,7 @@ class Gather()(
 
                 }
             </html>
-        ).wrap()
+        ).rectify()
     }
 
     import EvaluatePriorityMatrix._

@@ -11,7 +11,7 @@ package ru.wordmetrix.webcrawler
  *  pages.
  */
 
-import java.net.URI 
+import java.net.URI
 import scala.util.Random._
 import scala.collection.immutable.SortedSet
 import Gather.{ GatherLink, GatherLinkContext, GatherSeeds, GatherAllow }
@@ -77,8 +77,10 @@ object EvaluatePriorityMatrix {
     object PQ {
         implicit val o = Ordering.fromLessThan[Item]({
             case ((p1, u1), (p2, u2)) =>
+                //u1 > u2
+                // If priorities are equal fall back to breadth-first search
                 if (p1 == p2)
-                    u1.toString() < u2.toString()
+                    u1 > u2
                 else
                     p1 < p2
         }).reverse
@@ -170,7 +172,7 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
 
             context.become(phase_initialization(seeds.size, new AverageVector[Word](), Set()))
         }
-    } : Receive)  orElse common()
+    }: Receive) orElse common()
 
     def common(): Receive = {
         case msg @ GatherAllow(seeds) =>

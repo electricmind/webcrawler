@@ -2,14 +2,18 @@ package ru.wordmetrix.webcrawler
 
 import Gather.GatherIntel
 
+import scala.util.Random.shuffle
 import akka.actor.{ Actor, ActorRef, Props }
 import ru.wordmetrix.smartfile.SmartFile.fromFile
 import ru.wordmetrix.utils._
+import ru.wordmetrix.utils.impl._
 import scala.concurrent.Future
 import ru.wordmetrix.smartfile.SmartFile._
 import scala.util.Try
 import akka.pattern.pipe
 import EvaluatePriorityMatrix._
+
+import Math._
 
 object GMLStorage {
 
@@ -84,7 +88,47 @@ object GMLStorage {
             }
         
         ]
-        """".split("\n").map(_.trim).mkString("\n")
+        """.split("\n").map(_.trim).mkString("\n")
+        }
+
+        def statistic[SE <: SemanticEstimatorBase[SE]](estimator: SE)(
+            implicit cfg: CFG): String = {
+ 
+            s"""
+               Size of Network : ${state.matrix.size}
+               Density of Network : ${state.density_net()} 
+
+               Density of Cloud : ${state.density_cloud()}
+
+               Deviation from central : ${
+                state.deviation_central(estimator.central)
+            } 
+
+            ${
+                estimator match {
+                    case e: SemanticEstimator => s"""
+                       Deviation from target : ${
+                        state.deviation_target(e.target)
+                    }
+
+                       Deviation from average : ${
+                        state.deviation_average(e.target)
+                    }
+                          target - central deviation : ${
+                        (e.target.normal - e.central.normal).sqr
+                    }
+
+                          target - average deviation : ${
+                        (e.target.normal - state.average.normal).sqr
+                    }
+
+                       """
+                    case _ => ""
+                }
+            }
+
+               Accumulated priority : ${state.accumulated_priority(estimator)}
+               """.split("\n").map(_.trim).filter(_.nonEmpty).mkString("\n")
         }
     }
 }
@@ -113,13 +157,18 @@ class GMLStorage()(implicit val cfg: CFG) extends Actor with CFGAware {
         case EvaluatePriorityMatrixStop =>
             context.stop(self)
 
-        case GMLStorageEstimator(estimator: SemanticEstimatorBase[_]) => {
+        case GMLStorageEstimator(estimator) => {
             Future({
                 log("Dump of network initiated")
 
                 (cfg.path / "network.gml").write(
                     state.dump(estimator)
                 )
+
+                (cfg.path / s"statistic.${state.matrix.size}.txt").write(
+                    state.statistic(estimator)
+                )
+
                 debug("Dump of network completed")
                 GMLStorageFinished
             }) pipeTo self
@@ -169,4 +218,63 @@ case class GMLStorageState(
 
         copy(revmap = revmap2, matrix = matrix + (id -> (v, ids)))
     }
+
+    def density_net() = 
+        (for {
+            (seed1, (v1, seeds)) <- matrix
+            seed2 <- seeds
+            (v2, _) <- matrix.get(seed2)
+        } yield {
+            val d = (v1.normal - v2.normal).sqr
+            debug("density net = %s", d)
+            d
+        }).scanLeft((0.0, 0))({
+            case ((ds, n), d) => (ds + d, n + 1)
+        }).last match {
+            case (ds, n) => ds / n
+        }
+    
+
+    def density_cloud(): Double =
+        debug.time(s"Density of cloud of ${matrix.size} vectors") {
+            (for {
+                List(seed1, seed2) <- shuffle(
+                    matrix.keys.toList.combinations(2).toList).toIterator
+                (v1, _) <- matrix.get(seed1)
+                (v2, _) <- matrix.get(seed2)
+            } yield { (v1.normal - v2.normal).sqr }).scanLeft((0.01, 0))({
+                case ((ds, n), d) => (ds + d, n + 1)
+            }).map({
+                case (ds, n) =>
+                    val dsn = ds / n
+                    debug("density cloud = %s", dsn)
+                    dsn
+            }).drop(100).sliding(2).dropWhile({
+                case List(x1, x2) =>
+                    abs(x2 - x1) / x1 > 0.001
+            }).take(1).toList.headOption.getOrElse(List(0.0, 0.0)).head
+        }
+
+    def deviation_central(v1: V) =
+        (for {
+            (seed1, (v2, seeds)) <- matrix
+        } yield {
+            val d = (v1.normal - v2.normal).sqr
+            d
+        }).sum / matrix.size
+
+    def deviation_target(target: TargetVector[Word]) =
+        deviation_central(target.normal)
+
+    def deviation_average(target: TargetVector[Word]) =
+        deviation_central(average)
+
+    def accumulated_priority(estimator: SemanticEstimatorBase[_]) =
+        matrix.map({
+            case (_, (v, _)) => estimator.factor.normal * v.normal
+        }).sum / matrix.size
+
+    lazy val average = matrix.map({
+        case (_, (v, _)) => v.normal
+    }).reduce(_ + _).normal
 }

@@ -10,6 +10,7 @@ package object webcrawler {
     type Intel = String
     type Word = Int
     type V = ru.wordmetrix.vector.Vector[Word]
+    type VS = ru.wordmetrix.vector.Vector[String]
     type Item = (Priority, SeedId)
     type VItem = (Priority, V)
 

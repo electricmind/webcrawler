@@ -1,15 +1,13 @@
 package ru.wordmetrix.webcrawler
 
 import java.io.CharArrayReader
-import java.net.URI
 
+import java.net.URI
 import scala.Option.option2Iterable
 import scala.util.Try
 import scala.xml.parsing.NoBindingFactoryAdapter
-
 import org.ccil.cowan.tagsoup.jaxp.SAXFactoryImpl
 import org.xml.sax.InputSource
-
 import EvaluatePriorityMatrix.{ EvaluatePriorityMatrixStop, EvaluatePriorityMatrixStopTargeting }
 import GMLStorage.GMLStorageSeed
 import akka.actor.{ Actor, ActorRef, Props, actorRef2Scala }
@@ -17,6 +15,7 @@ import ru.wordmetrix.features.Features
 import ru.wordmetrix.utils.{ CFG, CFGAware, Html2Ascii }
 import ru.wordmetrix.vector.Vector
 import ru.wordmetrix.webcrawler.LinkContext.Feature
+import ru.wordmetrix.webcrawler.LinkedVectorsStorage._
 
 /*
  * Gather analyzes a page and elicits links and useful load.
@@ -26,7 +25,9 @@ object Gather {
     abstract sealed trait GatherMessage
 
     case class GatherLink(storage: ActorRef, sample: ActorRef,
-                          gmlstorage: ActorRef) extends GatherMessage
+                          gmlstorage: ActorRef, linkedvectors: ActorRef)
+            extends GatherMessage
+
     case class GatherStorageAck extends GatherMessage
 
     case class GatherStop extends GatherMessage
@@ -75,7 +76,7 @@ class Gather()(
     //                x => x.attribute("id").getOrElse("").toString ==
     //                    "mw-content-text"))
 
-    def xml2seeds(xml: scala.xml.NodeSeq, base: URI, hosts : Set[String]): Set[URI] = (for {
+    def xml2seeds(xml: scala.xml.NodeSeq, base: URI, hosts: Set[String]): Set[URI] = (for {
         tag <- (xml \\ "a")
         link <- tag.attribute("href")
         uri <- Try(normalize(base, link.toString)).toOption
@@ -105,19 +106,21 @@ class Gather()(
     import EvaluatePriorityMatrix._
 
     def receive(): Receive = {
-        case GatherLink(storage, sample, gmlstorage) =>
-            log("Register storage: %s, sample: %s, gmlstorage:  %s", storage, sample, gmlstorage)
-            context.become(active(storage, sample, gmlstorage, Set(),
-                Features.String2Word[String, Double](), Set()))
+        case GatherLink(storage, sample, gmlstorage, linkedvectors) =>
+            log("Register storage: %s, sample: %s, gmlstorage:  %s", storage,
+                sample, gmlstorage, linkedvectors)
+            context.become(active(storage, sample, gmlstorage, linkedvectors,
+                Set(), Features.String2Word[String, Double](), Set()))
     }
 
     def active(storage: ActorRef, sample: ActorRef, gmlstorage: ActorRef,
+               linkedvectors: ActorRef,
                links: Set[String], index: Features.String2Word[String, Double],
                hosts: Set[String]): Receive = {
 
         case GatherAllow(seed) =>
             context.become(
-                active(storage, sample, gmlstorage, links, index,
+                active(storage, sample, gmlstorage, linkedvectors, links, index,
                     hosts + seed.getHost()))
 
         case EvaluatePriorityMatrixStop =>
@@ -134,7 +137,7 @@ class Gather()(
         case GatherPage(seed, page) => {
             debug("Gather page %s", seed)
             val hosts1 = hosts + seed.getHost()
-            
+
             try {
                 val xml = page2xml(page)
                 storage ! GatherIntel(seed, xml2intel(page2xml_whole(page)))
@@ -142,7 +145,6 @@ class Gather()(
                 sample ! GatherLinkContext(seed,
                     new LinkContext(seed).extract(page2xml_whole(page)))
 
-                    
                 val seeds = xml2seeds(xml, seed, hosts1)
                 val (v, index1) = xml2vector(xml, index)
 
@@ -152,8 +154,12 @@ class Gather()(
 
                 gmlstorage ! GMLStorageSeed(seed, seeds, v)
 
+                linkedvectors ! LinkedVectorsStorageSeed(seed,
+                    seeds,
+                    Features.fromText(Html2Ascii(xml).dump()))
+
                 context.become(
-                    active(storage, sample, gmlstorage,
+                    active(storage, sample, gmlstorage, linkedvectors,
                         links | seeds.map(_.toString), index1,
                         hosts1))
             } catch {

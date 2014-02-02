@@ -60,10 +60,10 @@ object EvaluatePriorityMatrix {
      * @return           An props for EvaluatePriorityMatrix.
      */
     def props(storage: Props, gather: Props, seedqueue: Props, sample: Props,
-              gml: Props, cfg: CFG): Props =
+              gml: Props, linkedvectors : Props, cfg: CFG): Props =
         Props(
             new EvaluatePriorityMatrix(
-                storage, gather, seedqueue, sample, gml,
+                storage, gather, seedqueue, sample, gml, linkedvectors,
                 new NetworkEstimator()(cfg)
             )(
                 cfg,
@@ -138,6 +138,7 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
                                                                                               seedqueueprop: Props,
                                                                                               sampleprop: Props,
                                                                                               gmlprop: Props,
+                                                                                              linkedvectorsprop : Props,
                                                                                               networkestimator: NE)(implicit cfg: CFG, factoryse: V => SE) extends Actor
         with CFGAware {
     override val name = "Evaluate . Matrix"
@@ -157,7 +158,9 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
 
     val gml = context.actorOf(gmlprop, "GML")
 
-    gather ! GatherLink(storage, sample, gml)
+    val linkedvectors = context.actorOf(linkedvectorsprop, "LinkedVectors")
+
+    gather ! GatherLink(storage, sample, gml, linkedvectors)
 
     seedqueue ! SeedQueueLink(gather)
 

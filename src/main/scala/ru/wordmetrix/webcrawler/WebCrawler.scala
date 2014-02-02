@@ -28,12 +28,15 @@ object WebCrawler extends App {
 
         val gmlprop = GMLStorage.props(cfg)
         
+        val linkedvectorsprop = LinkedVectorsStorage.props(cfg)
+        
         val queueprop: Props = EvaluatePriorityMatrix.props(
-            storageprop, gatherprop, seedqueueprop, sampleprop, gmlprop, cfg
+            storageprop, gatherprop, seedqueueprop, sampleprop, gmlprop, 
+            linkedvectorsprop, cfg
         )
         
         val queue = system.actorOf(queueprop, "queue")
-        println(000)
+        
         for (seed <- cfg.hosts) {
             queue ! GatherAllow(seed)
         }

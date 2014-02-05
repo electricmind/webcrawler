@@ -25,10 +25,14 @@ import SeedQueue.{
 import Storage.{ StorageSign, StorageVictim }
 import akka.actor.{ Actor, Props, actorRef2Scala }
 import ru.wordmetrix.utils.{ CFG, CFGAware, debug }
+import ru.wordmetrix.smartfile.SmartFile.fromFile
 import EvaluatePriorityMatrix._
 import akka.actor.ActorRef
 import ru.wordmetrix.features.Features
 import ru.wordmetrix.webcrawler.GMLStorage._
+import akka.pattern.ask
+import akka.util.Timeout
+import scala.concurrent.duration._
 
 //import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -60,7 +64,7 @@ object EvaluatePriorityMatrix {
      * @return           An props for EvaluatePriorityMatrix.
      */
     def props(storage: Props, gather: Props, seedqueue: Props, sample: Props,
-              gml: Props, linkedvectors : Props, cfg: CFG): Props =
+              gml: Props, linkedvectors: Props, cfg: CFG): Props =
         Props(
             new EvaluatePriorityMatrix(
                 storage, gather, seedqueue, sample, gml, linkedvectors,
@@ -138,7 +142,7 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
                                                                                               seedqueueprop: Props,
                                                                                               sampleprop: Props,
                                                                                               gmlprop: Props,
-                                                                                              linkedvectorsprop : Props,
+                                                                                              linkedvectorsprop: Props,
                                                                                               networkestimator: NE)(implicit cfg: CFG, factoryse: V => SE) extends Actor
         with CFGAware {
     override val name = "Evaluate . Matrix"
@@ -193,8 +197,6 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
         case Gather.GatherSeeds(seed, seeds, v) => {
             ns.next()
             log("Initial phase, n = %s size = %s, seed = %s", n, seeds.size, seed)
-
-            // TODO: I need it only to do deterministic test
 
             storage ! StorageSign(seed)
 
@@ -300,6 +302,13 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
 
             if (n > cfg.limit) {
                 log("Limit has been reached")
+                implicit val timeout = Timeout(5 seconds)
+
+                val f = gather ? Gather.GatherDecode(sense.factor)
+                f.onSuccess {
+                    case x: VS => (cfg.path / "vocabulary.dat") write (x)
+                }
+
                 sample ! EvaluatePriorityMatrixStop
                 seedqueue ! EvaluatePriorityMatrixStop
                 sense match {
@@ -308,6 +317,7 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
                     case _ =>
                 }
                 gml ! EvaluatePriorityMatrixStop
+                linkedvectors ! EvaluatePriorityMatrixStop
             } else {
                 index.update(seed) match {
                     case (id, index) => index.update(seeds) match {

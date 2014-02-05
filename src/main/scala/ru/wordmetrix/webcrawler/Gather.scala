@@ -37,6 +37,10 @@ object Gather {
     // Gather data 
     case class GatherAllow(seed: URI) extends GatherSeed(seed)
 
+    
+    //
+    case class GatherDecode(v : V) extends GatherMessage
+    
     // Gather data from new page
     case class GatherPage(seed: URI, page: String) extends GatherSeed(seed)
 
@@ -134,6 +138,10 @@ class Gather()(
             debug("Stop targeting")
             context.parent ! EvaluatePriorityMatrixStopTargeting
 
+        case GatherDecode(v : V) =>
+            debug("Decode for %s",sender)
+            sender ! Vector(v.toList map ({case (id,f) => index.rmap(id) -> f}))
+            
         case GatherPage(seed, page) => {
             debug("Gather page %s", seed)
             val hosts1 = hosts + seed.getHost()

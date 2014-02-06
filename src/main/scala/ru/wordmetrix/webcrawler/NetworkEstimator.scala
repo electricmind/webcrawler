@@ -35,7 +35,7 @@ class NetworkEstimator(
      */
 
     def queue(queue: PQQ = PQ()): PQQ =
-        priorities.foldLeft(PQ()) {
+        priorities.foldLeft(queue) {
             case (queue, ((seed, (p, seeds)))) => queue insert (p, seed)
         }
 

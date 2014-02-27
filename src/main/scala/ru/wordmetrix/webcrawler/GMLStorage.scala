@@ -9,7 +9,7 @@ import ru.wordmetrix.utils._
 import ru.wordmetrix.utils.impl._
 import scala.concurrent.Future
 import ru.wordmetrix.smartfile.SmartFile._
-import scala.util.Try
+import scala.util.{ Try, Random }
 import akka.pattern.pipe
 import EvaluatePriorityMatrix._
 
@@ -93,7 +93,7 @@ object GMLStorage {
 
         def statistic[SE <: SemanticEstimatorBase[SE]](estimator: SE)(
             implicit cfg: CFG): String = {
- 
+
             s"""
                Size of Network : ${state.matrix.size}
                Density of Network : ${state.density_net()} 
@@ -219,7 +219,14 @@ case class GMLStorageState(
         copy(revmap = revmap2, matrix = matrix + (id -> (v, ids)))
     }
 
-    def density_net() = 
+    class Generator(is: Iterable[Int]) extends Iterator[Int] {
+        val ais = is.toArray
+        val n = ais.length
+        def hasNext = true
+        def next = ais(Random.nextInt(n))
+    }
+
+    def density_net() = debug.time(s"Density of net of ${matrix.size} vectors") {
         (for {
             (seed1, (v1, seeds)) <- matrix
             seed2 <- seeds
@@ -233,26 +240,34 @@ case class GMLStorageState(
         }).last match {
             case (ds, n) => ds / n
         }
-    
+    }
 
     def density_cloud(): Double =
-        debug.time(s"Density of cloud of ${matrix.size} vectors") {
-            (for {
-                List(seed1, seed2) <- shuffle(
-                    matrix.keys.toList.combinations(2).toList).toIterator
-                (v1, _) <- matrix.get(seed1)
-                (v2, _) <- matrix.get(seed2)
-            } yield { (v1.normal - v2.normal).sqr }).scanLeft((0.01, 0))({
-                case ((ds, n), d) => (ds + d, n + 1)
-            }).map({
-                case (ds, n) =>
-                    val dsn = ds / n
-                    debug("density cloud = %s", dsn)
-                    dsn
-            }).drop(100).sliding(2).dropWhile({
-                case List(x1, x2) =>
-                    abs(x2 - x1) / x1 > 0.001
-            }).take(1).toList.headOption.getOrElse(List(0.0, 0.0)).head
+        debug.time(s"Density of cloud of ${matrix.size} ${(matrix.size) * (matrix.size - 1)} vectors") {
+            if ((matrix.size) * (matrix.size - 1) == 0) {
+                0.0
+            } else {
+                val seeds = new Generator(matrix.keys)
+                (for {
+                    (seed1, seed2) <- (for {
+                        seed1 <- seeds
+                        seed2 <- seeds
+                        if seed1 != seed2
+                    } yield { println(seed1, seed2); (seed1, seed2) }).toStream.distinct.take((matrix.size) * (matrix.size - 1)- 1)
+                    (v1, _) <- matrix.get(seed1)
+                    (v2, _) <- matrix.get(seed2)
+                } yield { val d = (v1.normal - v2.normal).sqr; debug("%s", d); d }).scanLeft((0.01, 0))({
+                    case ((ds, n), d) => (ds + d, n + 1)
+                }).map({
+                    case (ds, n) =>
+                        val dsn = ds / n
+                        debug("density cloud = %s", dsn)
+                        dsn
+                }).drop(100).sliding(2).dropWhile({
+                    case Stream(x1, x2) =>
+                        abs(x2 - x1) / x1 > 0.001
+                }).take(1).toList.headOption.getOrElse(Stream(0.0, 0.0)).head
+            }
         }
 
     def deviation_central(v1: V) =

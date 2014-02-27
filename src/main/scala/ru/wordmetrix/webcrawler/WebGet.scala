@@ -24,6 +24,7 @@ class WebGet()(implicit cfg: CFG) extends Actor
     override val name = "WebGet"
 
     import Gather._
+
     import WebGet._
     import SeedQueue._
 
@@ -37,23 +38,26 @@ class WebGet()(implicit cfg: CFG) extends Actor
 
             } catch {
                 case x: Throwable =>
-                    log("Getting from source %s ", seed)
-                    try {
-                        val connection = seed.toURL.openConnection()
-                        connection.getContentType().split(";").head match {
-                            case "text/html" => {
-                                val text = io.Source.fromInputStream(
-                                    connection.getInputStream()).
-                                    getLines().mkString("\n")
-                                (cfg.cache / seed.toFilename).write(text)
+                    if (cfg.isdebug) log("Getting from source %s ", seed)
+                    
+                    time(s"Getting from source $seed") {
+                        try {
+                            val connection = seed.toURL.openConnection()
+                            connection.getContentType().split(";").head match {
+                                case "text/html" => {
+                                    val text = io.Source.fromInputStream(
+                                        connection.getInputStream()).
+                                        getLines().mkString("\n")
+                                    (cfg.cache / seed.toFilename).write(text)
 
-                                gather ! GatherPage(seed, text)                                
+                                    gather ! GatherPage(seed, text)
+                                }
+                                case _ => None
                             }
-                            case _ => None
+                        } catch {
+                            case x =>
+                                this.log("Download fault %s because %s", seed, x)
                         }
-                    } catch {
-                        case x =>
-                            this.log("Download fault %s because %s", seed, x)
                     }
             }
             sender ! SeedQueueGet

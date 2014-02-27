@@ -143,8 +143,16 @@ object sample {
         val sample_filtered = sample.filter({case (v1,v2,_) => 
             count(v1) > 10 && count(v2) > 10 && count(v1 & v2) > 5})
 
-            debug("%d samples filtered", sample_filtered.size)
+        debug("%d samples filtered", sample_filtered.size)
 
+        val sample_sparse = sample.filter({case (v1,v2,_) => 
+            count(v1) > 10 && count(v2) > 10 && count(v1 & v2) > 5     
+        }).zipWithIndex.map({case ((v1,v2,_),n) =>
+            (v1 & v2).map(index.get).flatten.map((n+1,_))
+        }).flatten
+        
+        debug("%d samples sparsed", sample_sparse.size)
+        
         def mapx(v1: Set[String], v2: Set[String]) = {
             val is = (v1 & v2).map(index.get).flatten
             (for {
@@ -166,13 +174,13 @@ object sample {
 # rows: 1
 # columns: 1
 # name: <cell-element>
-# type: matrix
+# type: sparse matrix
+# nnz: ${sample_sparse.length}
 # rows: ${sample_filtered.length}
 # columns: ${index.size}
 """)
-
-        for ((v1, v2, _) <- sample_filtered) {
-            file.append.write(mapx(v1, v2) + "\n")
+        for ((i, j) <- sample_sparse.sortBy({case (x,y) => (y,x)})) {
+            file.append.write(s"$i $j 1\n")
         }
         file.append.write(s"""
 # name: Y

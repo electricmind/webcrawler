@@ -34,11 +34,20 @@ class NetworkEstimator(
      * @return       - An updated queue
      */
 
-    def queue(queue: PQQ = PQ()): PQQ =
+    def queue(queue: PQQ = PQ()): PQQ = {
+        //I need  this botch for awhile, but better queue is needed as well instead of ignoring argument
+        val queue = if (cfg.use_breadthsearch)
+            SortedSet[Item]()(Ordering.fromLessThan[Item]({
+                case ((p1, u1), (p2, u2)) =>
+                    u1 > u2
+            }).reverse)
+        else PQ()
+
         priorities.foldLeft(queue) {
             case (queue, ((seed, (p, seeds)))) => queue insert (p, seed)
         }
 
+    }
     /**
      * Calculate new matrix of actual
      * priorities all of the seeds that are in queue by multiplying
@@ -74,7 +83,7 @@ class NetworkEstimator(
      *  the neighborhood graph.
      */
     protected def combinepolicy(priorities: Iterable[Double]) = priorities.max
-    
+
     /**
      * Add new seed to known network
      *

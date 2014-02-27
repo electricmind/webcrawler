@@ -81,26 +81,17 @@ object EvaluatePriorityMatrix {
     object PQ {
         implicit val o = Ordering.fromLessThan[Item]({
             case ((p1, u1), (p2, u2)) =>
-                //u1 > u2
-                // If priorities are equal fall back to breadth-first search
                 if (p1 == p2)
                     u1 > u2
                 else
                     p1 < p2
         }).reverse
         def apply() = SortedSet[Item]()
-        def apply(i1: Item) = SortedSet[Item](i1)
-        def apply(x1: Item, x2: Item, xs: Item*) =
-            xs.foldLeft(SortedSet[Item](x1, x2)) {
-                case (map, x) => map + (x)
-            }
-        def apply(i1: Item, map: SortedSet[Item]) = map + (i1)
         def unapply(map: SortedSet[Item]) =
             map.headOption match {
                 case None    => None
                 case Some(x) => Some((x, map - x))
             }
-        def apply(set: SortedSet[Item]) = new PQEx(set)
     }
 
     implicit class PQEx(set: SortedSet[Item]) {
@@ -322,7 +313,10 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
                 index.update(seed) match {
                     case (id, index) => index.update(seeds) match {
                         case (ids, index) =>
-                            val sense1 = sense.estimate(id, v.normal, storage)
+                            val sense1 = sense.estimate(id, v.normal, {
+                                debug("Seed %s was accepted as target", seed)
+                                storage ! StorageSign(seed)
+                            })
 
                             debug("Check if %s > %s (direction is collinear to specimen)",
                                 sense.factor * sense.central, cfg.targeting)

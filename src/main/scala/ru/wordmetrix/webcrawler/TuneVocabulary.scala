@@ -128,7 +128,7 @@ object sample {
 
         val index = Random.shuffle(sample.foldLeft(Set[String]()) {
             case (set, (v1, v2, _)) => set | v1 | v2
-        }.toList).take(5000).zipWithIndex.toMap
+        }.toList).take(40000).zipWithIndex.toMap
 
         debug("%d words indexed", index.size)
         

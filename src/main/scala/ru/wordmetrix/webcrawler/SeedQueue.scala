@@ -17,9 +17,9 @@ object SeedQueue {
     abstract sealed trait SeedQueueMessage
     case class SeedQueueRequest(seed: URI) extends SeedQueueMessage
     case class SeedQueueLink(gather: ActorRef) extends SeedQueueMessage
-    case class SeedQueueEmpty extends SeedQueueMessage
-    case class SeedQueueAvailable extends SeedQueueMessage
-    case class SeedQueueGet extends SeedQueueMessage
+    case object SeedQueueEmpty extends SeedQueueMessage
+    case object SeedQueueAvailable extends SeedQueueMessage
+    case object SeedQueueGet extends SeedQueueMessage
 
     def props(webgetqueue: Props, cfg: CFG): Props =
         Props(new SeedQueue(webgetqueue)(cfg))

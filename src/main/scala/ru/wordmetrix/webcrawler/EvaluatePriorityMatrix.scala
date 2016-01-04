@@ -38,13 +38,13 @@ object EvaluatePriorityMatrix {
     case class EvaluatePriorityMatrixSeed(seeds: Set[Seed])
         extends EvaluatePriorityMatrixMessage
 
-    case class EvaluatePriorityMatrixStopTargeting
+    case object EvaluatePriorityMatrixStopTargeting
         extends EvaluatePriorityMatrixMessage
 
-    case class EvaluatePriorityMatrixDump
+    case object EvaluatePriorityMatrixDump
         extends EvaluatePriorityMatrixMessage
 
-    case class EvaluatePriorityMatrixStop extends EvaluatePriorityMatrixMessage
+    case object EvaluatePriorityMatrixStop extends EvaluatePriorityMatrixMessage
 
     /**
      * Define an EvaluatePriorityMatrix
@@ -225,7 +225,7 @@ class EvaluatePriorityMatrix[NE <: NetworkEstimatorBase[NE], SE <: SemanticEstim
         case EvaluatePriorityMatrixStopTargeting => {
             log("Targeting impossible, too little casualties")
             //context.stop(self)
-            context.system.shutdown
+            context.system.terminate()
         }
 
         case Gather.GatherSeeds(seed, seeds, v) => {

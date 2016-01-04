@@ -3,6 +3,7 @@ package ru.wordmetrix.webcrawler
 import Gather.GatherIntel
 import akka.actor.{ Actor, ActorRef, Props }
 import ru.wordmetrix.smartfile.SmartFile.fromFile
+import ru.wordmetrix.smartfile.SmartFileAppend
 import ru.wordmetrix.utils._
 
 object Storage {
@@ -56,15 +57,17 @@ class Storage()(implicit val cfg: CFG) extends Actor with CFGAware {
             val n = ns.next()
             log("Datum %04d %s has come", n, seed)
 
-            val map: List[String] = try {
-                cfg.map readLines () toList
-            } catch {
-                case x => List()
-            }
+//            val map: List[String] = try {
+//                cfg.map readLines () toList
+//            } catch {
+//                case x => List()
+//            }
 
-            cfg.map.write(
-                s"${seedToFilename(seed)} : $seed" :: map mkString ("\n")
-            )
+//            cfg.map.write(
+//                s"${seedToFilename(seed)} : $seed" :: map mkString ("\n")
+//            )
+
+            cfg.map.append.write(s"${seedToFilename(seed)} : $seed\n")
 
             cfg.path / "tmp" / seedToFilename(seed) write (intel)
         }

@@ -21,7 +21,7 @@ object GMLStorage {
 
     sealed abstract class GMLStorageMessage
 
-    case class GMLStorageFinished
+    case object GMLStorageFinished
         extends GMLStorageMessage
 
     case class GMLStorageSeed(seed: Seed, seeds: Set[Seed], v: V)
@@ -59,7 +59,7 @@ object GMLStorage {
                   similarity ${estimator.central.normal * v.normal}
                   priority ${estimator.factor.normal * v.normal}
                   dimension ${v.size}
-                  length ${v.norm} 
+                  length ${v.norm}
                 ]
                 """
                 }) mkString ("\n")
@@ -81,12 +81,12 @@ object GMLStorage {
                   angle ${v1.normal * v2.normal}
                   exist ${(state.matrix contains id2)}
                   propagate ${id2 < id1}
-                  
+
                 ]
                 """
                 }) mkString ("\n")
             }
-        
+
         ]
         """.split("\n").map(_.trim).mkString("\n")
         }

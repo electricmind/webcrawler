@@ -12,7 +12,7 @@ import ru.wordmetrix.utils.debug
 
 object TuneVocabulary {
 
-    def learn(net: VS, delta: VS, v1: Set[String], v2: Set[String], haslink: Boolean) = {
+    def learn(net: VS, delta: VS, v1: Set[String], v2: Set[String], haslink: Boolean)(implicit accuracy: Double = 0.0001) = {
         val v = VectorHASH((v1 & v2).map(x => x -> 1.0).toList)
         if (haslink) {
             if (net * v > 0) {
@@ -29,7 +29,7 @@ object TuneVocabulary {
         }
     }
 
-    def learnstage(net: VS, sample: List[(Set[String], Set[String], Boolean)]) = {
+    def learnstage(net: VS, sample: List[(Set[String], Set[String], Boolean)])(implicit accuracy: Double = 0.0001) = {
         sample.foldLeft((VectorHASH.empty[String], 0)) {
             case ((delta, err), (v1, v2, haslink)) =>
                 learn(net, delta, v1, v2, haslink) match {
@@ -53,7 +53,7 @@ object TuneVocabulary {
         )
     }
 
-    def learnprocess(net: VS, sample: List[(Set[String], Set[String], Boolean)], test: List[(Set[String], Set[String], Boolean)], n: Int, bestnet: VS, besterr: Int): VS = if (n > 0) {
+    def learnprocess(net: VS, sample: List[(Set[String], Set[String], Boolean)], test: List[(Set[String], Set[String], Boolean)], n: Int, bestnet: VS, besterr: Int)(implicit accuracy: Double = 0.0001): VS = if (n > 0) {
         (learnstage(net, Random.shuffle(sample) take 100000) match {
             case (net, err) => (VectorHASH(net.map({ case (x, y) => (x, if (y == 0) y else if (y > 0) y - 0.0001 * y else y + 0.0001 * y) }).toList), err)
         }) match {
@@ -94,6 +94,8 @@ object TuneVocabulary {
 
     def main(argv: Array[String]) {
         implicit val cfg = CFG(argv.toList)
+        implicit val accuracy = cfg.accuracy
+
         val root = cfg.path / "vectors"
         val vectors = readVectors(root)
         val matrix: List[(Int, Int)] = readMatrix(root, vectors)

@@ -24,13 +24,15 @@ import ru.wordmetrix.webcrawler.LinkedVectorsStorage._
 object Gather {
     abstract sealed trait GatherMessage
 
-    case class GatherLink(storage: ActorRef, sample: ActorRef,
-                          gmlstorage: ActorRef, linkedvectors: ActorRef)
+    case class GatherLink(storage: ActorRef, 
+                          sample: ActorRef,
+                          gmlstorage: ActorRef, 
+                          linkedvectors: ActorRef)
             extends GatherMessage
 
-    case class GatherStorageAck extends GatherMessage
+    case object GatherStorageAck extends GatherMessage
 
-    case class GatherStop extends GatherMessage
+    case object GatherStop extends GatherMessage
 
     abstract sealed class GatherSeed(seed: URI) extends GatherMessage
 
@@ -60,11 +62,10 @@ object Gather {
         Props(new Gather()(cfg))
 }
 
-class Gather()(
-    implicit val cfg: CFG)
+class Gather()(implicit val cfg: CFG)
         extends Actor with CFGAware {
     override val name = "Gather"
-
+    implicit val accuracy = cfg.accuracy
     import Gather._
 
     def page2xml_whole(page: Page) = {

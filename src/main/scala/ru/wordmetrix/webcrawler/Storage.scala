@@ -1,6 +1,5 @@
 package ru.wordmetrix.webcrawler
 
-import Gather.GatherIntel
 import akka.actor.{ Actor, ActorRef, Props }
 import ru.wordmetrix.smartfile.SmartFile.fromFile
 import ru.wordmetrix.utils._

@@ -1,6 +1,8 @@
 package ru.wordmetrix.webcrawler
 
 import java.net.URI
+import ru.wordmetrix.utils.CFG
+
 import scala.Array.canBuildFrom
 import scala.Option.option2Iterable
 import ru.wordmetrix.vector.Vector
@@ -48,8 +50,9 @@ object LinkContext {
 
 }
 
-class LinkContext(base: URI) {
+class LinkContext(base: URI)(implicit val cfg: CFG) {
     import LinkContext._
+    implicit def accuracy = cfg.accuracy
     type V = Vector[Feature]
     val v = Vector[Feature]()
 

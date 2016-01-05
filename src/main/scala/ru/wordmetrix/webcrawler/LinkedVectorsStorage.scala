@@ -14,7 +14,7 @@ object LinkedVectorsStorage {
 
     sealed abstract class LinkedVectorsStorageMessage
 
-    case class LinkedectorsStorageFinished
+    case object LinkedectorsStorageFinished
         extends LinkedVectorsStorageMessage
 
     case class LinkedVectorsStorageSeed(seed: Seed, seeds: Set[Seed], v: VS)

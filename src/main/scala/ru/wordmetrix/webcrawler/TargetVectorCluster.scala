@@ -22,7 +22,7 @@ class TargetVectorCluster[F](average: AverageVector[F],
         this(target.average, target.vs, n)
     }
     def this(n: Int = 9)(implicit ord: Ordering[F], cfg: CFG) =
-        this(new AverageVector[F](), List[(Double, Vector[F])](), n)
+        this(AverageVector[F](), List[(Double, Vector[F])](), n)
 
 
     lazy val Sigma = Math.sqrt(vs.map({ case (p, x) => p }).sum / vs.length)

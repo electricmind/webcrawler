@@ -165,7 +165,7 @@ class GMLStorage()(implicit val cfg: CFG) extends Actor with CFGAware {
                     state.dump(estimator)
                 )
 
-                (cfg.path / s"statistic.${state.matrix.size}.txt").write(
+                (cfg.path / f"statistic.${state.matrix.size}%08d.txt").write(
                     state.statistic(estimator)
                 )
 

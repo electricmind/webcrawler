@@ -1,11 +1,10 @@
-package ru.wordmetrix.webcrawler
+package ru.wordmetrix.tunevocabulary
 
 import java.io.File
 
 import ru.wordmetrix.smartfile.SmartFile.fromFile
 import ru.wordmetrix.utils.{CFG, debug}
 import ru.wordmetrix.vector.VectorHASH
-
 import scala.util.{Random, Try}
 
 object TuneVocabulary {
@@ -103,9 +102,9 @@ object TuneVocabulary {
     }
     println(s"Amount of pairs = ${s.size}")
 
-    val net = learnprocess(VectorHASH(), s, t, 100, VectorHASH(),
+    val net = learnprocess(VectorHASH[String](), s, t, 100, VectorHASH[String](),
       Int.MaxValue)
-    cfg.path / "vocabulary_tuned.dat" write net
+      cfg.path / "vocabulary_tuned.dat" write net
   }
 }
 

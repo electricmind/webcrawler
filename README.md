@@ -38,23 +38,21 @@ Version 1.1, 20140114, Use akka.actor, build with sbt and make a few enhancement
 
 Version 1.2, 20140129, Move libraries out, implement ArrangeText as independent tool and factor out priority forecasting code, add initialization with multiply seeds and permission to cross intersite links
 
-Version 1.3, 20150129,
+Version 1.3, 20140329, Export network of nodes as GML, initialize process with a multiply seeds, and allow the crawler to scan other hosts
 
- * Export network of nodes as GML
- 
- * Initialize process with a multiply seeds
- 
- * Allow crawler scan different hosts
- 
- * Move ArrangeText into separate package;
- 
+Version 1.4, 20150129,
+
  * Export matrix of links and vector representation of text for downloaded pages (export them as sparse matrix for Octave);
      
  * TuneVocabulary tries to weight words on the base of links;
  
  * Report a variety of statistics during crawling;
  
- * The "breadthsearch" key turns off estimation and uses breadth search instead.
+ * The "breadthsearch" key turns off estimation and uses breadth search instead;
+ 
+ * Move ArrangeText into separate package.
+  
+
  
   
  

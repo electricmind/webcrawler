@@ -8,14 +8,11 @@ object WebCrawlerBuild extends Build {
   val tunevocabulary =
     Project(id="tunevocabulary", base=file("tunevocabulary")).dependsOn(utils)
 
-  val treeapproximator =
-    Project(id="treeapproximator", base=file("treeapproximator")).dependsOn(utils)
-
   override lazy val settings = super.settings
 
   lazy val root = Project(Name,
     base = file("."),
     settings = Project.defaultSettings
-  ).dependsOn(utils).aggregate(tunevocabulary, treeapproximator)
+  ).dependsOn(utils).aggregate(tunevocabulary)
 }
 

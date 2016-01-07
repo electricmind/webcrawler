@@ -54,7 +54,8 @@ Version 1.3, 20150129,
  
  * Report a variety of statistics during crawling;
  
- * The "breadthsearch" key turns off estimation and uses breadth search instead;
+ * The "breadthsearch" key turns off estimation and uses breadth search instead.
+ 
   
  
  

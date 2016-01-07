@@ -40,6 +40,12 @@ Version 1.2, 20140129, Move libraries out, implement ArrangeText as independent 
 
 Version 1.3, 20150129,
 
+ * Export network of nodes as GML
+ 
+ * Initialize process with a multiply seeds
+ 
+ * Allow crawler scan different hosts
+ 
  * Move ArrangeText into separate package;
  
  * Export matrix of links and vector representation of text for downloaded pages (export them as sparse matrix for Octave);

@@ -153,7 +153,7 @@ object Draw2DMap extends SimpleSwingApplication {
           }
         this.repaint()
 
-      case KeyReleased(_, Space, 128, _) => {
+      case KeyReleased(_, Space, 128 | 640, _) => {
         tree = debug.time("align") {
           tree.align(Vector(1 -> 1.0))._1
         }

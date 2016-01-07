@@ -6,7 +6,7 @@ scalaVersion := "2.11.7"
 
 mainClass := Some("ru.wordmetrix.treeapproximator.ArrangeText")
 
-libraryDependencies += "org.scala-lang" % "scala-swing" % "2.10.2"
+libraryDependencies += "org.scala-lang.modules" %% "scala-swing" % "2.0.0-M2"
 
 libraryDependencies += "org.scalaz" % "scalaz-core_2.10" % "7.0.5"
 

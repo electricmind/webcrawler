@@ -3,7 +3,7 @@ import sbt._
 object WebCrawlerBuild extends Build {
   val Name = "webcrawler"
   val utils =
-    RootProject(uri("https://github.com/electricmind/utils.git#scala-2_11"))
+    RootProject(uri("https://github.com/electricmind/utils.git#v.2.1"))
 
   val tunevocabulary =
     Project(id="tunevocabulary", base=file("tunevocabulary")).dependsOn(utils)

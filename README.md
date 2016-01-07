@@ -20,9 +20,6 @@ Current version is still incomplete and requires some redundant computation, but
  in plain text.
 
  * Use [treeapproximator](https://github.com/electricmind/treeapproximator) from a separate package to arrange items in a tree.
-   
-An additional tool `java -cp webcrawler-assembly-1.1.jar ru.wordmetrix.treeapproximator.Draw2DMap [<File of Points>]` is a simple demo that 
-generates a few clouds of gaussian-distributed points and builds a tree.
 
 The outcome
 -----------
@@ -40,7 +37,7 @@ History
 
 [Version 1.3](https://github.com/electricmind/webcrawler/tree/v.1.3), 20140329, Export network of nodes as GML, initialize process with a multiply seeds, and allow the crawler to scan other hosts
 
-[Version 1.0](https://github.com/electricmind/webcrawler/tree/measures), 20150129,
+[Version 1.4](https://github.com/electricmind/webcrawler/tree/v.1.4), 20150129,
 
  * Export matrix of links and vector representation of text for downloaded pages (export them as sparse matrix for Octave);
      
@@ -51,11 +48,3 @@ History
  * The "breadthsearch" key turns off estimation and uses breadth search instead;
  
  * Move ArrangeText into separate package.
-  
-
- 
-  
- 
- 
- 
- 

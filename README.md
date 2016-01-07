@@ -32,15 +32,15 @@ I used this approach to arrange
 History
 ---------
 
-Version 1.0, 20131101, Initial release
+[Version 1.0](https://github.com/electricmind/webcrawler/tree/v.1.0), 20131101, Initial release
 
-Version 1.1, 20140114, Use akka.actor, build with sbt and make a few enhancements
+[Version 1.1](https://github.com/electricmind/webcrawler/tree/v.1.1), 20140114, Use akka.actor, build with sbt and make a few enhancements
 
-Version 1.2, 20140129, Move libraries out, implement ArrangeText as independent tool and factor out priority forecasting code, add initialization with multiply seeds and permission to cross intersite links
+[Version 1.2](https://github.com/electricmind/webcrawler/tree/v.1.2), 20140129, Move libraries out, implement ArrangeText as independent tool and factor out priority forecasting code, add initialization with multiply seeds and permission to cross intersite links
 
-Version 1.3, 20140329, Export network of nodes as GML, initialize process with a multiply seeds, and allow the crawler to scan other hosts
+[Version 1.3](https://github.com/electricmind/webcrawler/tree/v.1.3), 20140329, Export network of nodes as GML, initialize process with a multiply seeds, and allow the crawler to scan other hosts
 
-Version 1.4, 20150129,
+[Version 1.0](https://github.com/electricmind/webcrawler/tree/measures), 20150129,
 
  * Export matrix of links and vector representation of text for downloaded pages (export them as sparse matrix for Octave);
      
